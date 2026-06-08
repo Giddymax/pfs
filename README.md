@@ -1,36 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Prime Financial Service
 
-## Getting Started
+Client, loan and loan-repayment management for a Ghanaian microfinance company
+(savings, daily susu, fixed deposits, and loans). Built with Next.js 16, Tailwind CSS,
+and Supabase (Postgres + Auth + Storage).
 
-First, run the development server:
+## 1. Set up Supabase
+
+1. Create a free project at [supabase.com](https://supabase.com).
+2. Go to **Project Settings → API** and copy the **Project URL**, **anon public key**,
+   and **service_role key**.
+3. Copy `.env.local.example` to `.env.local` and paste in those three values.
+4. Open the **SQL Editor** in your Supabase project and run the migration at
+   [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql). This creates:
+   - `profiles` (staff/admin accounts and roles)
+   - `clients` (with photo support via the `client-photos` storage bucket)
+   - `loans` and `loan_repayments`
+   - Row Level Security policies: **admins** can edit/delete; **staff** can view and create only
+
+## 2. Create your first staff & admin logins
+
+Supabase Auth manages credentials; the `profiles` table maps each auth user to a role.
+
+1. In the Supabase dashboard, go to **Authentication → Users → Add user** and create
+   a user with an email and password (e.g. the branch admin's email).
+2. Copy that user's UUID, then run in the SQL Editor:
+
+   ```sql
+   insert into profiles (id, full_name, email, role)
+   values ('paste-user-uuid-here', 'Ama Owusu', 'ama@primefinancial.com.gh', 'admin');
+   ```
+
+3. Repeat for staff accounts, using `role = 'staff'`. Staff can register clients,
+   issue loans and record repayments, but cannot edit or delete records — that is
+   reserved for `admin`.
+
+## 3. Run the app
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) — you'll be redirected to `/login`.
+Sign in with the email/password you created above.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Features
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Beautiful staff/admin login** at `/login`
+- **Client registration** with photo capture/upload (`/clients/new`), list & search (`/clients`),
+  and detail profile pages
+- **Loan issuance** with live flat-rate repayment schedule preview (`/loans/new`)
+- **Loan repayment recording** and running balance/progress tracking (loan detail page)
+- **Role-based access**: admins can edit and delete clients/loans; staff can register,
+  issue, and record but not modify or remove records
 
-## Learn More
+## Loan calculation model
 
-To learn more about Next.js, take a look at the following resources:
+Simple flat-rate term loan (see [`lib/loan.ts`](lib/loan.ts)):
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+total interest    = principal × (flat rate % / 100)
+total repayable   = principal + total interest
+monthly instalment = total repayable / tenor in months
+```
