@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useActionState, useState } from "react";
 import { IBM_Plex_Sans } from "next/font/google";
 import { Eye, EyeOff, ArrowRight, ShieldCheck, Loader2 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/logo";
+import { signIn } from "./actions";
 
 // Stanbic's site uses a single corporate sans-serif (Benton Sans, licensed) for
 // both headings and body copy — IBM Plex Sans is the closest open equivalent,
@@ -23,32 +23,9 @@ const body = IBM_Plex_Sans({
 });
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-
-    const supabase = createClient();
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
-      password,
-    });
-
-    if (signInError) {
-      setError("We couldn't sign you in. Check your email and password and try again.");
-      setLoading(false);
-      return;
-    }
-
-    window.location.href = "/";
-  }
+  const [state, formAction, isPending] = useActionState(signIn, null);
 
   return (
     <div
@@ -84,7 +61,7 @@ export default function LoginPage() {
               Sign in to manage clients, susu collections, and loans.
             </p>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form action={formAction} className="space-y-6">
               <div
                 className="animate-fade-up"
                 style={{ animationDelay: "240ms" }}
@@ -97,13 +74,12 @@ export default function LoginPage() {
                 </label>
                 <input
                   id="email"
+                  name="email"
                   type="email"
                   required
                   autoComplete="email"
                   autoCapitalize="none"
                   autoCorrect="off"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@primefinancial.com.gh"
                   className="w-full rounded-none border-0 border-b-2 border-[#1D3461]/15 bg-transparent px-1 py-3 text-[15px] text-[#0A2240] outline-none transition-colors placeholder:text-[#0A2240]/30 focus:border-[#2CBFBF]"
                 />
@@ -130,14 +106,13 @@ export default function LoginPage() {
                 <div className="relative">
                   <input
                     id="password"
+                    name="password"
                     type={showPassword ? "text" : "password"}
                     required
                     autoComplete="current-password"
                     autoCapitalize="none"
                     autoCorrect="off"
                     spellCheck={false}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••••"
                     className="w-full rounded-none border-0 border-b-2 border-[#1D3461]/15 bg-transparent px-1 py-3 pr-9 text-[15px] text-[#0A2240] outline-none transition-colors placeholder:text-[#0A2240]/30 focus:border-[#2CBFBF]"
                   />
@@ -178,22 +153,22 @@ export default function LoginPage() {
                 </label>
               </div>
 
-              {error && (
+              {state?.error && (
                 <div
                   role="alert"
                   className="animate-fade-up rounded-md border border-[#B3432B]/25 bg-[#B3432B]/[0.06] px-4 py-3 text-[13px] leading-relaxed text-[#963522]"
                 >
-                  {error}
+                  We couldn&apos;t sign you in. Check your email and password and try again.
                 </div>
               )}
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={isPending}
                 className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-md bg-[#1D3461] px-6 py-3.5 text-[14px] font-semibold tracking-wide text-[#FFFFFF] transition-all hover:bg-[#152847] disabled:cursor-not-allowed disabled:opacity-70 animate-fade-up"
                 style={{ animationDelay: "400ms" }}
               >
-                {loading ? (
+                {isPending ? (
                   <>
                     <Loader2 size={17} className="animate-spin" />
                     Signing in…
@@ -320,8 +295,8 @@ function BrandPanel() {
         style={{ animationDelay: "400ms" }}
       >
         <p className="text-[14px] italic leading-relaxed text-[#FFFFFF]/70" style={{ fontFamily: "var(--font-display)" }}>
-          “Built for the field officers and branch staff who turn small, daily
-          contributions into real financial futures.”
+          &ldquo;Built for the field officers and branch staff who turn small, daily
+          contributions into real financial futures.&rdquo;
         </p>
         <p className="mt-3 text-[11px] uppercase tracking-[0.25em] text-[#2CBFBF]/60">
           — Prime Financial Service Field Team
