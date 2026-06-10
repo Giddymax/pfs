@@ -204,8 +204,7 @@ export default function NewClientPage() {
         // Swallowed intentionally — see comment above.
       }
 
-      router.push(`/clients/${inserted.id}`);
-      router.refresh();
+      window.location.href = `/clients/${inserted.id}`;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
       setSubmitting(false);

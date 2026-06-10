@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Trash2, Loader2, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -36,7 +35,6 @@ export function ConfirmDeleteButton({
   redirectTo: string;
   triggerClassName?: string;
 }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,8 +51,7 @@ export function ConfirmDeleteButton({
       return;
     }
 
-    router.push(redirectTo);
-    router.refresh();
+    window.location.href = redirectTo;
   }
 
   return (

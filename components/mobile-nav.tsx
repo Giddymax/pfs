@@ -2,15 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Menu, X, LayoutDashboard, Users, HandCoins, PiggyBank, Coins, Landmark, LogOut } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/logo";
+import { signOut } from "@/app/actions";
 import type { Profile } from "@/lib/types";
 import clsx from "clsx";
 
-// Mirrors the sidebar's per-item accent treatment, tuned for the white mobile bar —
-// background tint and icon both shift to the item's accent on hover/active.
 const NAV = [
   {
     href: "/",
@@ -74,33 +72,31 @@ const ACCOUNT_NAV = [
 export function MobileNav({ profile }: { profile: Profile }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
-  const router = useRouter();
-
-  async function handleSignOut() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/login");
-    router.refresh();
-  }
 
   return (
-    <div className="lg:hidden">
-      <div className="flex items-center justify-between border-b border-[#0033AA]/10 bg-[#FFFFFF] px-4 py-3.5">
+    // relative here so the dropdown's absolute positioning is scoped to this
+    // element, not the full-page layout container — fixes scroll-position drift
+    <div className="relative lg:hidden">
+      <div className="flex items-center justify-between border-b border-[#1D3461]/10 bg-[#FFFFFF] px-4 py-3.5">
         <div className="flex items-center gap-2.5">
           <Logo size={32} />
-          <p className="text-[12px] font-bold tracking-[0.16em] text-[#0033AA]">PRIME FINANCIAL</p>
+          <p className="text-[12px] font-bold tracking-[0.16em] text-[#1D3461]">PRIME FINANCIAL</p>
         </div>
         <button
+          type="button"
           onClick={() => setOpen((v) => !v)}
-          className="flex h-9 w-9 items-center justify-center rounded-md text-[#0033AA]"
+          className="flex h-10 w-10 items-center justify-center rounded-md text-[#1D3461]"
           aria-label="Toggle navigation"
+          aria-expanded={open ? "true" : "false"}
         >
           {open ? <X size={20} /> : <Menu size={20} />}
         </button>
       </div>
 
       {open && (
-        <div className="absolute inset-x-0 top-[57px] z-40 border-b border-[#0033AA]/10 bg-[#FFFFFF] px-3 pb-4 pt-2 shadow-lg animate-fade-up">
+        // top-full positions the dropdown immediately below the header bar
+        // regardless of how far the page has been scrolled
+        <div className="absolute inset-x-0 top-full z-50 border-b border-[#1D3461]/10 bg-[#FFFFFF] px-3 pb-4 pt-2 shadow-lg animate-fade-up">
           <nav className="space-y-1">
             {NAV.map(({ href, label, icon: Icon, active: activeCls, activeIcon, idle, idleIcon }) => {
               const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -140,13 +136,16 @@ export function MobileNav({ profile }: { profile: Profile }) {
                 </Link>
               );
             })}
-            <button
-              onClick={handleSignOut}
-              className="flex w-full items-center gap-3 rounded-lg px-3.5 py-2.5 text-[14px] font-medium text-[#0A2240]/55"
-            >
-              <LogOut size={17} />
-              Sign out ({profile.full_name.split(" ")[0]})
-            </button>
+
+            <form action={signOut}>
+              <button
+                type="submit"
+                className="flex w-full items-center gap-3 rounded-lg px-3.5 py-2.5 text-[14px] font-medium text-[#0A2240]/55"
+              >
+                <LogOut size={17} />
+                Sign out ({profile.full_name.split(" ")[0]})
+              </button>
+            </form>
           </nav>
         </div>
       )}

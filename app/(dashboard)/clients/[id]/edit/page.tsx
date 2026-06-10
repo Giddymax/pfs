@@ -144,8 +144,7 @@ export default function EditClientPage({ params }: { params: Promise<{ id: strin
 
       if (updateError) throw new Error(updateError.message);
 
-      router.push(`/clients/${id}`);
-      router.refresh();
+      window.location.href = `/clients/${id}`;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
       setSubmitting(false);

@@ -123,8 +123,7 @@ function NewLoanForm() {
 
       if (insertError) throw new Error(insertError.message);
 
-      router.push(`/loans/${inserted.id}`);
-      router.refresh();
+      window.location.href = `/loans/${inserted.id}`;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
       setSubmitting(false);

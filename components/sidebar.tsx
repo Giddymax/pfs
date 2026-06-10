@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Playfair_Display, Space_Grotesk, IBM_Plex_Mono } from "next/font/google";
 import {
   LayoutDashboard,
@@ -19,8 +19,8 @@ import {
   BarChart3,
   Building2,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/logo";
+import { signOut } from "@/app/actions";
 import type { Profile } from "@/lib/types";
 import clsx from "clsx";
 
@@ -155,14 +155,6 @@ const ADMIN_NAV = [
 
 export function Sidebar({ profile }: { profile: Profile }) {
   const pathname = usePathname();
-  const router = useRouter();
-
-  async function handleSignOut() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/login");
-    router.refresh();
-  }
 
   return (
     <aside
@@ -266,13 +258,15 @@ export function Sidebar({ profile }: { profile: Profile }) {
             </p>
           </div>
         </div>
-        <button
-          onClick={handleSignOut}
-          className="flex w-full items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-[13px] font-medium text-[#FFFFFF] transition-colors hover:bg-[#163013]/5 hover:text-[#FFFFFF]"
-        >
-          <LogOut size={16} />
-          Sign out
-        </button>
+        <form action={signOut}>
+          <button
+            type="submit"
+            className="flex w-full items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-[13px] font-medium text-[#FFFFFF] transition-colors hover:bg-[#163013]/5 hover:text-[#FFFFFF]"
+          >
+            <LogOut size={16} />
+            Sign out
+          </button>
+        </form>
       </div>
     </aside>
   );
