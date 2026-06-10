@@ -63,19 +63,19 @@ export default function LoginPage() {
 
         {/* RIGHT — sign-in form */}
         <div className="relative flex items-center justify-center px-6 py-14 sm:px-12 lg:px-20">
-          <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_85%_15%,rgba(15,61,46,0.05),transparent_55%)]" />
+          <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_85%_15%,rgba(44,191,191,0.06),transparent_55%)]" />
 
           <div className="w-full max-w-sm">
             <div
-              className="mb-10 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-[#0033AA]/60 animate-fade-up"
+              className="mb-10 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-[#1D3461]/60 animate-fade-up"
               style={{ animationDelay: "60ms" }}
             >
-              <span className="h-px w-8 bg-[#0062E1]" />
+              <span className="h-px w-8 bg-[#2CBFBF]" />
               Staff &amp; Admin Portal
             </div>
 
             <h1
-              className="mb-2 text-[2.4rem] leading-[1.05] tracking-tight text-[#0033AA] animate-fade-up"
+              className="mb-2 text-[2.4rem] leading-[1.05] tracking-tight text-[#1D3461] animate-fade-up"
               style={{ fontFamily: "var(--font-display)", animationDelay: "120ms" }}
             >
               Welcome back.
@@ -94,7 +94,7 @@ export default function LoginPage() {
               >
                 <label
                   htmlFor="email"
-                  className="mb-2 block text-[13px] font-semibold text-[#0033AA]/80"
+                  className="mb-2 block text-[13px] font-semibold text-[#1D3461]/80"
                 >
                   Email address
                 </label>
@@ -106,7 +106,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@primefinancial.com.gh"
-                  className="w-full rounded-none border-0 border-b-2 border-[#0033AA]/15 bg-transparent px-1 py-3 text-[15px] text-[#0A2240] outline-none transition-colors placeholder:text-[#0A2240]/30 focus:border-[#0062E1]"
+                  className="w-full rounded-none border-0 border-b-2 border-[#1D3461]/15 bg-transparent px-1 py-3 text-[15px] text-[#0A2240] outline-none transition-colors placeholder:text-[#0A2240]/30 focus:border-[#2CBFBF]"
                 />
               </div>
 
@@ -117,13 +117,13 @@ export default function LoginPage() {
                 <div className="mb-2 flex items-center justify-between">
                   <label
                     htmlFor="password"
-                    className="block text-[13px] font-semibold text-[#0033AA]/80"
+                    className="block text-[13px] font-semibold text-[#1D3461]/80"
                   >
                     Password
                   </label>
                   <a
                     href="#"
-                    className="text-[12px] font-medium text-[#0033AA]/45 transition-colors hover:text-[#0062E1]"
+                    className="text-[12px] font-medium text-[#1D3461]/45 transition-colors hover:text-[#2CBFBF]"
                   >
                     Forgot access?
                   </a>
@@ -137,13 +137,13 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••••"
-                    className="w-full rounded-none border-0 border-b-2 border-[#0033AA]/15 bg-transparent px-1 py-3 pr-9 text-[15px] text-[#0A2240] outline-none transition-colors placeholder:text-[#0A2240]/30 focus:border-[#0062E1]"
+                    className="w-full rounded-none border-0 border-b-2 border-[#1D3461]/15 bg-transparent px-1 py-3 pr-9 text-[15px] text-[#0A2240] outline-none transition-colors placeholder:text-[#0A2240]/30 focus:border-[#2CBFBF]"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
                     aria-label={showPassword ? "Hide password" : "Show password"}
-                    className="absolute right-1 top-1/2 -translate-y-1/2 text-[#0033AA]/40 transition-colors hover:text-[#0033AA]"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 text-[#1D3461]/40 transition-colors hover:text-[#1D3461]"
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
@@ -162,7 +162,7 @@ export default function LoginPage() {
                       onChange={(e) => setRemember(e.target.checked)}
                       className="peer sr-only"
                     />
-                    <span className="absolute inset-0 rounded-[4px] border-2 border-[#0033AA]/25 bg-transparent transition-colors peer-checked:border-[#0033AA] peer-checked:bg-[#0033AA]" />
+                    <span className="absolute inset-0 rounded-[4px] border-2 border-[#1D3461]/25 bg-transparent transition-colors peer-checked:border-[#1D3461] peer-checked:bg-[#1D3461]" />
                     <svg
                       className="relative h-2.5 w-2.5 text-[#FFFFFF] opacity-0 transition-opacity peer-checked:opacity-100"
                       style={{ opacity: remember ? 1 : 0 }}
@@ -188,7 +188,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-md bg-[#0033AA] px-6 py-3.5 text-[14px] font-semibold tracking-wide text-[#FFFFFF] transition-all hover:bg-[#002884] disabled:cursor-not-allowed disabled:opacity-70 animate-fade-up"
+                className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-md bg-[#1D3461] px-6 py-3.5 text-[14px] font-semibold tracking-wide text-[#FFFFFF] transition-all hover:bg-[#152847] disabled:cursor-not-allowed disabled:opacity-70 animate-fade-up"
                 style={{ animationDelay: "400ms" }}
               >
                 {loading ? (
@@ -202,15 +202,15 @@ export default function LoginPage() {
                     <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
                   </>
                 )}
-                <span className="pointer-events-none absolute inset-x-0 bottom-0 h-[2px] bg-[#0062E1] opacity-0 transition-opacity group-hover:opacity-100" />
+                <span className="pointer-events-none absolute inset-x-0 bottom-0 h-[2px] bg-[#2CBFBF] opacity-0 transition-opacity group-hover:opacity-100" />
               </button>
             </form>
 
             <div
-              className="mt-10 flex items-start gap-2.5 border-t border-[#0033AA]/10 pt-6 text-[12.5px] leading-relaxed text-[#0A2240]/45 animate-fade-up"
+              className="mt-10 flex items-start gap-2.5 border-t border-[#1D3461]/10 pt-6 text-[12.5px] leading-relaxed text-[#0A2240]/45 animate-fade-up"
               style={{ animationDelay: "460ms" }}
             >
-              <ShieldCheck size={15} className="mt-[2px] shrink-0 text-[#0033AA]/35" />
+              <ShieldCheck size={15} className="mt-[2px] shrink-0 text-[#1D3461]/35" />
               <p>
                 Staff and administrators only. If you need an account or have lost
                 access, contact your branch manager.
@@ -227,17 +227,17 @@ function BrandPanel() {
   const features = ["Daily Susu", "Fixed Deposits", "Client Loans", "Savings"];
 
   return (
-    <div className="relative hidden overflow-hidden bg-[#0033AA] px-16 py-16 text-[#FFFFFF] lg:flex lg:flex-col lg:justify-between">
+    <div className="relative hidden overflow-hidden bg-[#1D3461] px-16 py-16 text-[#FFFFFF] lg:flex lg:flex-col lg:justify-between">
       {/* decorative motifs */}
       <svg
         className="pointer-events-none absolute -right-24 -top-24 h-[420px] w-[420px] opacity-[0.14]"
         viewBox="0 0 300 300"
         fill="none"
       >
-        <circle cx="150" cy="150" r="40" stroke="#0089FF" strokeWidth="1.4" />
-        <circle cx="150" cy="150" r="82" stroke="#0089FF" strokeWidth="1" />
-        <circle cx="150" cy="150" r="124" stroke="#0089FF" strokeWidth="0.8" />
-        <circle cx="150" cy="150" r="148" stroke="#0089FF" strokeWidth="0.5" />
+        <circle cx="150" cy="150" r="40" stroke="#2CBFBF" strokeWidth="1.4" />
+        <circle cx="150" cy="150" r="82" stroke="#2CBFBF" strokeWidth="1" />
+        <circle cx="150" cy="150" r="124" stroke="#2CBFBF" strokeWidth="0.8" />
+        <circle cx="150" cy="150" r="148" stroke="#2CBFBF" strokeWidth="0.5" />
       </svg>
 
       <svg
@@ -255,13 +255,13 @@ function BrandPanel() {
               y1="200"
               x2={(200 + 188 * Math.cos(rad)).toFixed(3)}
               y2={(200 + 188 * Math.sin(rad)).toFixed(3)}
-              stroke="#0089FF"
+              stroke="#2CBFBF"
               strokeWidth="1"
             />
           );
         })}
-        <circle cx="200" cy="200" r="58" stroke="#0089FF" strokeWidth="1.2" />
-        <circle cx="200" cy="200" r="108" stroke="#0089FF" strokeWidth="0.8" />
+        <circle cx="200" cy="200" r="58" stroke="#2CBFBF" strokeWidth="1.2" />
+        <circle cx="200" cy="200" r="108" stroke="#2CBFBF" strokeWidth="0.8" />
       </svg>
 
       <div
@@ -277,7 +277,7 @@ function BrandPanel() {
         <Logo size={44} />
         <div className="leading-tight">
           <p className="text-[13px] font-semibold tracking-[0.18em]">PRIME FINANCIAL</p>
-          <p className="text-[10px] tracking-[0.32em] text-[#00A1E0]/80">SERVICE · GHANA</p>
+          <p className="text-[10px] tracking-[0.32em] text-[#2CBFBF]/80">SERVICE · GHANA</p>
         </div>
       </div>
 
@@ -288,7 +288,7 @@ function BrandPanel() {
           style={{ fontFamily: "var(--font-display)", fontWeight: 400, animationDelay: "180ms" }}
         >
           Where everyday savings become{" "}
-          <em className="not-italic text-[#00A1E0]" style={{ fontStyle: "italic" }}>
+          <em className="not-italic text-[#2CBFBF]" style={{ fontStyle: "italic" }}>
             lasting security.
           </em>
         </h2>
@@ -305,7 +305,7 @@ function BrandPanel() {
           style={{ animationDelay: "330ms" }}
         >
           {features.map((f) => (
-            <span key={f} className="border-b border-[#0089FF]/40 pb-1.5 text-[13px] tracking-wide text-[#FFFFFF]/80">
+            <span key={f} className="border-b border-[#2CBFBF]/40 pb-1.5 text-[13px] tracking-wide text-[#FFFFFF]/80">
               {f}
             </span>
           ))}
@@ -314,14 +314,14 @@ function BrandPanel() {
 
       {/* bottom: quote */}
       <div
-        className="relative z-10 max-w-sm border-l border-[#0089FF]/30 pl-5 animate-fade-up"
+        className="relative z-10 max-w-sm border-l border-[#2CBFBF]/30 pl-5 animate-fade-up"
         style={{ animationDelay: "400ms" }}
       >
         <p className="text-[14px] italic leading-relaxed text-[#FFFFFF]/70" style={{ fontFamily: "var(--font-display)" }}>
           “Built for the field officers and branch staff who turn small, daily
           contributions into real financial futures.”
         </p>
-        <p className="mt-3 text-[11px] uppercase tracking-[0.25em] text-[#00A1E0]/60">
+        <p className="mt-3 text-[11px] uppercase tracking-[0.25em] text-[#2CBFBF]/60">
           — Prime Financial Service Field Team
         </p>
       </div>
