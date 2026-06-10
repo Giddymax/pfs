@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { Playfair_Display, Space_Grotesk, IBM_Plex_Mono } from "next/font/google";
 import {
   LayoutDashboard,
   Users,
@@ -11,42 +12,57 @@ import {
   Landmark,
   LogOut,
   ShieldCheck,
+  Settings,
+  UsersRound,
+  ReceiptText,
+  BarChart2,
+  BarChart3,
+  Building2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/logo";
 import type { Profile } from "@/lib/types";
 import clsx from "clsx";
 
+// Three distinct typefaces give the rail its own visual rhythm — a serif for
+// the brand lockup (gravitas), a geometric sans for primary destinations
+// (modern, structural), and a monospace for the Accounts ledger group
+// (numeric/registry feel) — each layered in via its own CSS variable.
+const brandFont = Playfair_Display({ subsets: ["latin"], weight: ["600", "700"], variable: "--font-sidebar-brand" });
+const navFont = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600"], variable: "--font-sidebar-nav" });
+const acctFont = IBM_Plex_Mono({ subsets: ["latin"], weight: ["500", "600"], variable: "--font-sidebar-accounts" });
+
 // Each nav item carries its own accent so the rail reads as a set of distinct
 // destinations rather than one flat block — active state, hover tint, and icon
-// color all key off the same hex per item.
+// color all key off the same hex per item. Against the lemon-green backdrop,
+// dark ink plus saturated tinted pills give each item its own pop.
 const NAV = [
   {
     href: "/",
     label: "Overview",
     icon: LayoutDashboard,
-    active: "bg-[#22D3EE]/20 text-[#FFFFFF]",
-    activeIcon: "text-[#22D3EE]",
-    idle: "group text-[#FFFFFF]/55 hover:bg-[#22D3EE]/20 hover:text-[#FFFFFF]",
-    idleIcon: "text-[#FFFFFF]/55 transition-colors group-hover:text-[#22D3EE]",
+    active: "bg-[#2563EB]/15 text-[#FFFFFF]",
+    activeIcon: "text-[#2563EB]",
+    idle: "group text-[#FFFFFF] hover:bg-[#2563EB]/15 hover:text-[#FFFFFF]",
+    idleIcon: "text-[#FFFFFF] transition-colors group-hover:text-[#2563EB]",
   },
   {
     href: "/clients",
     label: "Clients",
     icon: Users,
-    active: "bg-[#818CF8]/20 text-[#FFFFFF]",
-    activeIcon: "text-[#818CF8]",
-    idle: "group text-[#FFFFFF]/55 hover:bg-[#818CF8]/20 hover:text-[#FFFFFF]",
-    idleIcon: "text-[#FFFFFF]/55 transition-colors group-hover:text-[#818CF8]",
+    active: "bg-[#7C3AED]/15 text-[#FFFFFF]",
+    activeIcon: "text-[#7C3AED]",
+    idle: "group text-[#FFFFFF] hover:bg-[#7C3AED]/15 hover:text-[#FFFFFF]",
+    idleIcon: "text-[#FFFFFF] transition-colors group-hover:text-[#7C3AED]",
   },
   {
     href: "/loans",
     label: "Loans",
     icon: HandCoins,
-    active: "bg-[#34D399]/20 text-[#FFFFFF]",
-    activeIcon: "text-[#34D399]",
-    idle: "group text-[#FFFFFF]/55 hover:bg-[#34D399]/20 hover:text-[#FFFFFF]",
-    idleIcon: "text-[#FFFFFF]/55 transition-colors group-hover:text-[#34D399]",
+    active: "bg-[#DB2777]/15 text-[#FFFFFF]",
+    activeIcon: "text-[#DB2777]",
+    idle: "group text-[#FFFFFF] hover:bg-[#DB2777]/15 hover:text-[#FFFFFF]",
+    idleIcon: "text-[#FFFFFF] transition-colors group-hover:text-[#DB2777]",
   },
 ];
 
@@ -55,28 +71,85 @@ const ACCOUNT_NAV = [
     href: "/accounts/savings",
     label: "Savings",
     icon: PiggyBank,
-    active: "bg-[#FBBF24]/20 text-[#FFFFFF]",
-    activeIcon: "text-[#FBBF24]",
-    idle: "group text-[#FFFFFF]/55 hover:bg-[#FBBF24]/20 hover:text-[#FFFFFF]",
-    idleIcon: "text-[#FFFFFF]/55 transition-colors group-hover:text-[#FBBF24]",
+    active: "bg-[#EA580C]/15 text-[#FFFFFF]",
+    activeIcon: "text-[#EA580C]",
+    idle: "group text-[#FFFFFF] hover:bg-[#EA580C]/15 hover:text-[#FFFFFF]",
+    idleIcon: "text-[#FFFFFF] transition-colors group-hover:text-[#EA580C]",
   },
   {
     href: "/accounts/susu",
     label: "Daily Susu",
     icon: Coins,
-    active: "bg-[#FB7185]/20 text-[#FFFFFF]",
-    activeIcon: "text-[#FB7185]",
-    idle: "group text-[#FFFFFF]/55 hover:bg-[#FB7185]/20 hover:text-[#FFFFFF]",
-    idleIcon: "text-[#FFFFFF]/55 transition-colors group-hover:text-[#FB7185]",
+    active: "bg-[#0284C7]/15 text-[#FFFFFF]",
+    activeIcon: "text-[#0284C7]",
+    idle: "group text-[#FFFFFF] hover:bg-[#0284C7]/15 hover:text-[#FFFFFF]",
+    idleIcon: "text-[#FFFFFF] transition-colors group-hover:text-[#0284C7]",
   },
   {
-    href: "/accounts/fixed-deposit",
+    href: "/fixed-deposits",
     label: "Fixed Deposit",
     icon: Landmark,
-    active: "bg-[#A78BFA]/20 text-[#FFFFFF]",
-    activeIcon: "text-[#A78BFA]",
-    idle: "group text-[#FFFFFF]/55 hover:bg-[#A78BFA]/20 hover:text-[#FFFFFF]",
-    idleIcon: "text-[#FFFFFF]/55 transition-colors group-hover:text-[#A78BFA]",
+    active: "bg-[#4F46E5]/15 text-[#FFFFFF]",
+    activeIcon: "text-[#4F46E5]",
+    idle: "group text-[#FFFFFF] hover:bg-[#4F46E5]/15 hover:text-[#FFFFFF]",
+    idleIcon: "text-[#FFFFFF] transition-colors group-hover:text-[#4F46E5]",
+  },
+];
+
+const ADMIN_NAV = [
+  {
+    href: "/bank",
+    label: "Bank",
+    icon: Building2,
+    active: "bg-[#0284C7]/15 text-[#FFFFFF]",
+    activeIcon: "text-[#38BDF8]",
+    idle: "group text-[#FFFFFF] hover:bg-[#0284C7]/15 hover:text-[#FFFFFF]",
+    idleIcon: "text-[#FFFFFF] transition-colors group-hover:text-[#38BDF8]",
+  },
+  {
+    href: "/susu/claims",
+    label: "Susu Claims",
+    icon: ReceiptText,
+    active: "bg-[#B58A2A]/15 text-[#FFFFFF]",
+    activeIcon: "text-[#B58A2A]",
+    idle: "group text-[#FFFFFF] hover:bg-[#B58A2A]/15 hover:text-[#FFFFFF]",
+    idleIcon: "text-[#FFFFFF] transition-colors group-hover:text-[#B58A2A]",
+  },
+  {
+    href: "/reports/summary",
+    label: "Summary",
+    icon: BarChart3,
+    active: "bg-[#0891B2]/15 text-[#FFFFFF]",
+    activeIcon: "text-[#0891B2]",
+    idle: "group text-[#FFFFFF] hover:bg-[#0891B2]/15 hover:text-[#FFFFFF]",
+    idleIcon: "text-[#FFFFFF] transition-colors group-hover:text-[#0891B2]",
+  },
+  {
+    href: "/reports/reconciliation",
+    label: "Reconciliation",
+    icon: BarChart2,
+    active: "bg-[#34D399]/15 text-[#FFFFFF]",
+    activeIcon: "text-[#34D399]",
+    idle: "group text-[#FFFFFF] hover:bg-[#34D399]/15 hover:text-[#FFFFFF]",
+    idleIcon: "text-[#FFFFFF] transition-colors group-hover:text-[#34D399]",
+  },
+  {
+    href: "/settings",
+    label: "Settings",
+    icon: Settings,
+    active: "bg-[#0D9488]/15 text-[#FFFFFF]",
+    activeIcon: "text-[#0D9488]",
+    idle: "group text-[#FFFFFF] hover:bg-[#0D9488]/15 hover:text-[#FFFFFF]",
+    idleIcon: "text-[#FFFFFF] transition-colors group-hover:text-[#0D9488]",
+  },
+  {
+    href: "/staff",
+    label: "Staff",
+    icon: UsersRound,
+    active: "bg-[#9333EA]/15 text-[#FFFFFF]",
+    activeIcon: "text-[#9333EA]",
+    idle: "group text-[#FFFFFF] hover:bg-[#9333EA]/15 hover:text-[#FFFFFF]",
+    idleIcon: "text-[#FFFFFF] transition-colors group-hover:text-[#9333EA]",
   },
 ];
 
@@ -92,22 +165,30 @@ export function Sidebar({ profile }: { profile: Profile }) {
   }
 
   return (
-    <aside className="hidden w-64 shrink-0 flex-col bg-gradient-to-b from-[#0046D1] via-[#0033AA] to-[#001F66] text-[#FFFFFF] lg:flex">
+    <aside
+      className={clsx(
+        brandFont.variable,
+        navFont.variable,
+        acctFont.variable,
+        "sidebar-aurora hidden w-64 shrink-0 flex-col text-[#FFFFFF] lg:flex"
+      )}
+    >
       <div className="flex items-center gap-3 px-6 py-7">
         <Logo size={36} />
-        <div className="leading-tight">
-          <p className="text-[12px] font-bold tracking-[0.16em]">PRIME FINANCIAL</p>
-          <p className="text-[9px] tracking-[0.28em] text-[#00A1E0]/70">SERVICE</p>
+        <div className="leading-tight" style={{ fontFamily: "var(--font-sidebar-brand)" }}>
+          <p className="text-[15px] font-bold tracking-[0.06em] text-[#FFFFFF]">Prime Financial</p>
+          <p className="text-[9px] italic tracking-[0.32em] text-[#FFFFFF]">Service</p>
         </div>
       </div>
 
       <nav className="flex-1 space-y-1 px-3 py-2">
-        {NAV.map(({ href, label, icon: Icon, active: activeCls, activeIcon, idle, idleIcon }) => {
+        {NAV.filter(({ href }) => href !== "/" || profile.role === "admin").map(({ href, label, icon: Icon, active: activeCls, activeIcon, idle, idleIcon }) => {
           const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
           return (
             <Link
               key={href}
               href={href}
+              style={{ fontFamily: "var(--font-sidebar-nav)" }}
               className={clsx(
                 "flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-[14px] font-medium transition-colors",
                 active ? activeCls : idle
@@ -119,7 +200,10 @@ export function Sidebar({ profile }: { profile: Profile }) {
           );
         })}
 
-        <p className="px-3.5 pb-1.5 pt-5 text-[10.5px] font-semibold uppercase tracking-[0.18em] text-[#FFFFFF]/35">
+        <p
+          className="px-3.5 pb-1.5 pt-5 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#FFFFFF]"
+          style={{ fontFamily: "var(--font-sidebar-accounts)" }}
+        >
           Accounts
         </p>
         {ACCOUNT_NAV.map(({ href, label, icon: Icon, active: activeCls, activeIcon, idle, idleIcon }) => {
@@ -128,8 +212,9 @@ export function Sidebar({ profile }: { profile: Profile }) {
             <Link
               key={href}
               href={href}
+              style={{ fontFamily: "var(--font-sidebar-accounts)" }}
               className={clsx(
-                "flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-[14px] font-medium transition-colors",
+                "flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-[13.5px] font-medium transition-colors",
                 active ? activeCls : idle
               )}
             >
@@ -138,24 +223,52 @@ export function Sidebar({ profile }: { profile: Profile }) {
             </Link>
           );
         })}
+
+        {profile.role === "admin" && (
+          <>
+            <p
+              className="px-3.5 pb-1.5 pt-5 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#FFFFFF]"
+              style={{ fontFamily: "var(--font-sidebar-accounts)" }}
+            >
+              Admin
+            </p>
+            {ADMIN_NAV.map(({ href, label, icon: Icon, active: activeCls, activeIcon, idle, idleIcon }) => {
+              const active = pathname.startsWith(href);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  style={{ fontFamily: "var(--font-sidebar-nav)" }}
+                  className={clsx(
+                    "flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-[14px] font-medium transition-colors",
+                    active ? activeCls : idle
+                  )}
+                >
+                  <Icon size={17} className={active ? activeIcon : idleIcon} />
+                  {label}
+                </Link>
+              );
+            })}
+          </>
+        )}
       </nav>
 
-      <div className="border-t border-[#FFFFFF]/10 px-4 py-5">
-        <div className="mb-4 flex items-center gap-3 rounded-lg bg-[#FFFFFF]/5 px-3 py-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#00A1E0]/15 text-[12px] font-semibold text-[#00A1E0]">
+      <div className="border-t border-[#163013]/10 px-4 py-5">
+        <div className="mb-4 flex items-center gap-3 rounded-lg bg-[#163013]/5 px-3 py-2.5">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0033AA]/12 text-[12px] font-semibold text-[#0033AA]">
             {initials(profile.full_name)}
           </span>
           <div className="min-w-0 leading-tight">
             <p className="truncate text-[13px] font-semibold text-[#FFFFFF]">{profile.full_name}</p>
-            <p className="flex items-center gap-1 text-[11px] text-[#FFFFFF]/50">
-              {profile.role === "admin" && <ShieldCheck size={11} className="text-[#00A1E0]" />}
+            <p className="flex items-center gap-1 text-[11px] text-[#FFFFFF]">
+              {profile.role === "admin" && <ShieldCheck size={11} className="text-[#0033AA]" />}
               {profile.role === "admin" ? "Administrator" : "Staff"}
             </p>
           </div>
         </div>
         <button
           onClick={handleSignOut}
-          className="flex w-full items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-[13px] font-medium text-[#FFFFFF]/55 transition-colors hover:bg-[#FFFFFF]/5 hover:text-[#FFFFFF]/85"
+          className="flex w-full items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-[13px] font-medium text-[#FFFFFF] transition-colors hover:bg-[#163013]/5 hover:text-[#FFFFFF]"
         >
           <LogOut size={16} />
           Sign out

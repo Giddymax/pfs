@@ -30,6 +30,7 @@ function NewLoanForm() {
   const [principal, setPrincipal] = useState("");
   const [ratePercent, setRatePercent] = useState("10");
   const [tenorMonths, setTenorMonths] = useState("6");
+  const [processingFee, setProcessingFee] = useState("0");
   const [purpose, setPurpose] = useState("");
   const [disbursementDate, setDisbursementDate] = useState(toISODate(new Date()));
 
@@ -63,6 +64,7 @@ function NewLoanForm() {
   const principalNum = Number(principal) || 0;
   const rateNum = Number(ratePercent) || 0;
   const tenorNum = Number(tenorMonths) || 0;
+  const processingFeeNum = Number(processingFee) || 0;
 
   const schedule = useMemo(() => {
     if (principalNum <= 0 || tenorNum <= 0) return null;
@@ -110,10 +112,10 @@ function NewLoanForm() {
           total_interest: schedule.totalInterest,
           total_repayable: schedule.totalRepayable,
           monthly_installment: schedule.monthlyInstallment,
+          processing_fee: processingFeeNum,
           purpose: purpose.trim() || null,
-          status: "active",
-          disbursement_date: disbursementDate,
-          due_date: dueDate,
+          status: "pending",
+          current_balance: schedule.totalRepayable,
           issued_by: user?.id ?? null,
         })
         .select("id")
@@ -261,11 +263,25 @@ function NewLoanForm() {
                 className="w-full rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
               />
             </Field>
-            <Field label="Disbursement date" required>
+            <Field label="Expected disbursement date" required>
               <input
                 type="date"
                 value={disbursementDate}
                 onChange={(e) => setDisbursementDate(e.target.value)}
+                className="w-full rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
+              />
+              <span className="mt-1 block text-[11.5px] text-[#0A2240]/40">
+                For the schedule preview only — the loan starts as pending and an admin sets the actual disbursement date on activation.
+              </span>
+            </Field>
+            <Field label="Processing fee (GHS)">
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={processingFee}
+                onChange={(e) => setProcessingFee(e.target.value)}
+                placeholder="e.g. 50"
                 className="w-full rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
               />
             </Field>
@@ -289,10 +305,11 @@ function NewLoanForm() {
               <Preview label="Total interest" value={formatGHS(schedule.totalInterest)} />
               <Preview label="Total repayable" value={formatGHS(schedule.totalRepayable)} />
               <Preview label="Monthly installment" value={formatGHS(schedule.monthlyInstallment)} />
-              <Preview label="Due date" value={dueDate ? new Date(dueDate).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—"} />
+              <Preview label="Estimated due date" value={dueDate ? new Date(dueDate).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—"} />
             </div>
             <p className="mt-4 text-[12px] leading-relaxed text-[#0A2240]/45">
               Flat-rate calculation: interest = principal × rate, repayable = principal + interest, spread evenly over {tenorNum || "—"} month{tenorNum === 1 ? "" : "s"}.
+              The due date shown is an estimate based on the expected disbursement date — the real due date is set from the actual disbursement date when an admin activates this loan.
             </p>
           </section>
         )}

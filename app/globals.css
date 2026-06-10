@@ -18,6 +18,85 @@ body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
+/* ─── Watermark: hidden on screen, centred on every printed page ─── */
+.pfs-watermark {
+  display: none;
+}
+
+/* ─── Print isolation ─────────────────────────────────────────────── */
+@media print {
+  /* Hide the entire page */
+  body * {
+    visibility: hidden;
+  }
+
+  /* Registration card */
+  #pfs-print-card,
+  #pfs-print-card * {
+    visibility: visible;
+  }
+  #pfs-print-card {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+
+  /* Transaction history sheet */
+  #pfs-print-sheet,
+  #pfs-print-sheet * {
+    visibility: visible;
+  }
+  #pfs-print-sheet {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    max-width: none !important;
+    padding: 0 !important;
+    font-size: 11px !important;
+  }
+
+  /* Period summary sheet */
+  #pfs-summary-sheet,
+  #pfs-summary-sheet * {
+    visibility: visible;
+  }
+  #pfs-summary-sheet {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    max-width: none !important;
+    background: white !important;
+    z-index: 9999;
+  }
+
+  @page {
+    size: A4;
+    margin: 1.5cm;
+  }
+
+  /* Watermark — centred on every printed page, behind content */
+  .pfs-watermark {
+    display: block !important;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 380px;
+    opacity: 0.07;
+    pointer-events: none;
+    z-index: 0;
+  }
+}
+
 @keyframes fade-up {
   from {
     opacity: 0;
@@ -39,6 +118,10 @@ body {
   to { transform: rotate(360deg); }
 }
 
+.sidebar-aurora {
+  background-color: #177245;
+}
+
 .animate-fade-up {
   animation: fade-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -49,4 +132,9 @@ body {
 
 .animate-spin-slow {
   animation: spin-slow 38s linear infinite;
+}
+
+/* Susu cycle progress bar — width is a runtime value set via --bar-width */
+.susu-cycle-bar {
+  width: var(--bar-width, 0%);
 }

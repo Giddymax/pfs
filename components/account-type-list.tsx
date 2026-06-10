@@ -16,20 +16,10 @@ const PRODUCT_BY_SLUG: Record<string, { product_type: ProductType; label: string
     label: "Daily Susu accounts",
     description: "Clients on a daily collector-based susu cycle.",
   },
-  "fixed-deposit": {
-    product_type: "fixed_deposit",
-    label: "Fixed Deposit accounts",
-    description: "Clients with a lump sum placed for a fixed tenor.",
-  },
 };
 
-export default async function AccountsByTypePage({
-  params,
-}: {
-  params: Promise<{ type: string }>;
-}) {
-  const { type } = await params;
-  const product = PRODUCT_BY_SLUG[type];
+export async function AccountTypeList({ slug }: { slug: string }) {
+  const product = PRODUCT_BY_SLUG[slug];
   if (!product) notFound();
 
   const supabase = await createClient();
@@ -81,7 +71,11 @@ export default async function AccountsByTypePage({
                       "—"
                     )}
                   </td>
-                  <td className="px-5 py-3.5 text-[#0A2240]/55">{account.account_number}</td>
+                  <td className="px-5 py-3.5 text-[#0A2240]/55">
+                    <Link href={`/accounts/${account.id}`} className="font-medium text-[#0033AA] hover:underline">
+                      {account.account_number}
+                    </Link>
+                  </td>
                   <td className="px-5 py-3.5 text-[#0A2240]/55">{detailColumnValue(account)}</td>
                   <td className="px-5 py-3.5 text-[#0A2240]/75">{formatGHS(account.balance)}</td>
                   <td className="px-5 py-3.5">

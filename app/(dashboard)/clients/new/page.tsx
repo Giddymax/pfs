@@ -6,6 +6,19 @@ import { Camera, Loader2, UserRound, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { PageHeader } from "@/components/ui";
 
+// Postgres surfaces unique-constraint violations as raw constraint-name
+// messages (e.g. `duplicate key value violates unique constraint
+// "clients_phone_unique"`). Translate code 23505 into something a
+// non-technical front-desk user can act on.
+const FD_TERM_OPTIONS = [3, 6, 9, 12, 18, 24];
+
+function friendlyInsertError(error: { code?: string; message: string }) {
+  if (error.code === "23505" && error.message.includes("phone")) {
+    return "A client with this phone number is already registered. Search for them instead of creating a duplicate.";
+  }
+  return error.message;
+}
+
 export default function NewClientPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -23,14 +36,16 @@ export default function NewClientPage() {
     alt_phone: "",
     ghana_card_number: "",
     occupation: "",
+    town: "",
     residential_address: "",
     next_of_kin_name: "",
     next_of_kin_phone: "",
     account_type: "",
     opening_deposit: "",
     daily_contribution_amount: "",
-    principal_amount: "",
-    tenor_days: "",
+    principal: "",
+    annual_rate_percent: "",
+    term_months: "",
   });
 
   function update<K extends keyof typeof form>(key: K, value: string) {
@@ -72,12 +87,16 @@ export default function NewClientPage() {
     }
 
     if (form.account_type === "fixed_deposit") {
-      if (!(Number(form.principal_amount) > 0)) {
+      if (!(Number(form.principal) > 0)) {
         setError("Enter the fixed deposit principal amount.");
         return;
       }
-      if (!(Number(form.tenor_days) > 0)) {
-        setError("Enter the fixed deposit tenor in days.");
+      if (!(Number(form.annual_rate_percent) >= 0)) {
+        setError("Enter the fixed deposit's annual interest rate.");
+        return;
+      }
+      if (!FD_TERM_OPTIONS.includes(Number(form.term_months))) {
+        setError("Select the fixed deposit's term.");
         return;
       }
     }
@@ -115,6 +134,7 @@ export default function NewClientPage() {
           alt_phone: form.alt_phone.trim() || null,
           ghana_card_number: form.ghana_card_number.trim() || null,
           occupation: form.occupation.trim() || null,
+          town: form.town.trim() || null,
           residential_address: form.residential_address.trim() || null,
           next_of_kin_name: form.next_of_kin_name.trim() || null,
           next_of_kin_phone: form.next_of_kin_phone.trim() || null,
@@ -124,30 +144,65 @@ export default function NewClientPage() {
         .select("id")
         .single();
 
-      if (insertError) throw new Error(insertError.message);
+      if (insertError) throw new Error(friendlyInsertError(insertError));
 
-      const accountInsert: Record<string, unknown> = {
-        client_id: inserted.id,
-        product_type: form.account_type,
-        created_by: user?.id ?? null,
-      };
+      if (form.account_type === "fixed_deposit") {
+        // Fixed deposits are lump-sum term placements with their own
+        // maturity/rollover lifecycle — they live in `fixed_deposits`,
+        // not the shared `accounts` ledger table, so they're opened via
+        // the dedicated route (which calls the `open_fixed_deposit` RPC).
+        const res = await fetch("/api/fixed-deposits", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            client_id: inserted.id,
+            principal: Number(form.principal),
+            annual_rate_percent: Number(form.annual_rate_percent),
+            term_months: Number(form.term_months),
+          }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error("Client saved, but opening the fixed deposit failed: " + json.error);
+      } else {
+        const accountInsert: Record<string, unknown> = {
+          client_id: inserted.id,
+          product_type: form.account_type,
+          created_by: user?.id ?? null,
+        };
 
-      if (form.account_type === "savings") {
-        const opening = form.opening_deposit ? Number(form.opening_deposit) : 0;
-        accountInsert.balance = opening;
-        accountInsert.minimum_opening_deposit = form.opening_deposit ? opening : null;
-      } else if (form.account_type === "susu") {
-        accountInsert.daily_contribution_amount = Number(form.daily_contribution_amount);
-        accountInsert.cycle_length_days = 31;
-      } else if (form.account_type === "fixed_deposit") {
-        const principal = Number(form.principal_amount);
-        accountInsert.principal_amount = principal;
-        accountInsert.tenor_days = Number(form.tenor_days);
-        accountInsert.balance = principal;
+        if (form.account_type === "savings") {
+          const opening = form.opening_deposit ? Number(form.opening_deposit) : 0;
+          accountInsert.balance = opening;
+          accountInsert.minimum_opening_deposit = form.opening_deposit ? opening : null;
+        } else if (form.account_type === "susu") {
+          accountInsert.daily_contribution_amount = Number(form.daily_contribution_amount);
+          accountInsert.cycle_length_days = 31;
+        }
+
+        const { error: accountError } = await supabase.from("accounts").insert(accountInsert);
+        if (accountError) throw new Error("Client saved, but opening the account failed: " + accountError.message);
       }
 
-      const { error: accountError } = await supabase.from("accounts").insert(accountInsert);
-      if (accountError) throw new Error("Client saved, but opening the account failed: " + accountError.message);
+      // Flat registration/card fee — recorded to the card_fees ledger for the
+      // dashboard reconciliation. Per spec this must be non-blocking: a
+      // failure here must never stop a registration that has already
+      // succeeded, so it's fire-and-forget with no user-facing error.
+      try {
+        const { data: feeSetting } = await supabase
+          .from("settings")
+          .select("value")
+          .eq("key", "card_fee_amount")
+          .maybeSingle<{ value: number }>();
+        const cardFeeAmount = typeof feeSetting?.value === "number" ? feeSetting.value : 20;
+
+        await supabase.from("card_fees").insert({
+          client_id: inserted.id,
+          amount: cardFeeAmount,
+          charged_by: user?.id ?? null,
+        });
+      } catch {
+        // Swallowed intentionally — see comment above.
+      }
 
       router.push(`/clients/${inserted.id}`);
       router.refresh();
@@ -253,6 +308,9 @@ export default function NewClientPage() {
             <Field label="Alternate phone">
               <Input value={form.alt_phone} onChange={(v) => update("alt_phone", v)} placeholder="0XX XXX XXXX" />
             </Field>
+            <Field label="Town">
+              <Input value={form.town} onChange={(v) => update("town", v)} placeholder="e.g. Accra, Kumasi, Tamale" />
+            </Field>
             <Field label="Residential address" full>
               <Textarea value={form.residential_address} onChange={(v) => update("residential_address", v)} placeholder="House number, street, town/area" />
             </Field>
@@ -285,8 +343,9 @@ export default function NewClientPage() {
                     account_type: v,
                     opening_deposit: "",
                     daily_contribution_amount: "",
-                    principal_amount: "",
-                    tenor_days: "",
+                    principal: "",
+                    annual_rate_percent: "",
+                    term_months: "",
                   }))
                 }
               >
@@ -324,18 +383,28 @@ export default function NewClientPage() {
                 <Field label="Principal amount (GHS)" required>
                   <Input
                     type="number"
-                    value={form.principal_amount}
-                    onChange={(v) => update("principal_amount", v)}
+                    value={form.principal}
+                    onChange={(v) => update("principal", v)}
                     placeholder="e.g. 1000.00"
                   />
                 </Field>
-                <Field label="Tenor (days)" required>
+                <Field label="Annual interest rate (%)" required>
                   <Input
                     type="number"
-                    value={form.tenor_days}
-                    onChange={(v) => update("tenor_days", v)}
-                    placeholder="e.g. 90"
+                    value={form.annual_rate_percent}
+                    onChange={(v) => update("annual_rate_percent", v)}
+                    placeholder="e.g. 18"
                   />
+                </Field>
+                <Field label="Term" required>
+                  <Select value={form.term_months} onChange={(v) => update("term_months", v)}>
+                    <option value="">Select term</option>
+                    {FD_TERM_OPTIONS.map((m) => (
+                      <option key={m} value={m}>
+                        {m} months
+                      </option>
+                    ))}
+                  </Select>
                 </Field>
               </>
             )}
@@ -343,6 +412,12 @@ export default function NewClientPage() {
           {form.account_type === "susu" && (
             <p className="mt-3 text-[12px] text-[#0A2240]/45">
               Standard cycle is 31 days; the collector keeps one day&apos;s contribution as commission at cycle-end.
+            </p>
+          )}
+          {form.account_type === "fixed_deposit" && (
+            <p className="mt-3 text-[12px] text-[#0A2240]/45">
+              Maturity date and expected interest are computed automatically (simple interest) from the principal,
+              rate and term. Early withdrawal forfeits all accrued interest.
             </p>
           )}
         </section>

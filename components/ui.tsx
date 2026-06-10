@@ -86,6 +86,8 @@ export function LoanStatusBadge({ status }: { status: LoanStatus }) {
 const CLIENT_STATUS_STYLES: Record<ClientStatus, string> = {
   active: "bg-[#1F6E4A]/10 text-[#1F6E4A] border-[#1F6E4A]/25",
   inactive: "bg-[#0A2240]/8 text-[#0A2240]/45 border-[#0A2240]/15",
+  dormant: "bg-[#0062E1]/12 text-[#0A4DA6] border-[#0062E1]/25",
+  suspended: "bg-[#B3432B]/10 text-[#963522] border-[#B3432B]/25",
 };
 
 export function ClientStatusBadge({ status }: { status: ClientStatus }) {

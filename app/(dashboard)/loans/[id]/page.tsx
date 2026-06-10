@@ -44,7 +44,7 @@ export default async function LoanDetailPage({
         description={`Issued to ${loan.client.full_name} on ${formatDate(loan.disbursement_date)}`}
         action={
           <div className="flex flex-wrap items-center gap-2.5">
-            <RecordRepaymentForm loanId={loan.id} suggestedAmount={Number(loan.monthly_installment)} />
+            <RecordRepaymentForm loanId={loan.id} suggestedAmount={Number(loan.monthly_installment)} currentBalance={Number(loan.current_balance)} />
             {isAdmin && (
               <ConfirmDeleteButton
                 table="loans"

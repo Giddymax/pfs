@@ -5,6 +5,20 @@ import { useRouter } from "next/navigation";
 import { Trash2, Loader2, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
+// Postgres surfaces FK violations as raw constraint-name messages (e.g.
+// `violates foreign key constraint "loans_client_id_fkey" on table "loans"`).
+// Translate code 23503 into something a non-technical admin can act on by
+// naming the table that's still referencing this record.
+function friendlyDeleteError(error: { code?: string; message: string }) {
+  if (error.code === "23503") {
+    const referencingTable = [...error.message.matchAll(/on table "([^"]+)"/g)].at(-1)?.[1];
+    return referencingTable
+      ? `This record still has related ${referencingTable} and can't be deleted. Remove or reassign those first.`
+      : "This record has related data elsewhere and can't be deleted.";
+  }
+  return error.message;
+}
+
 export function ConfirmDeleteButton({
   table,
   id,
@@ -12,6 +26,7 @@ export function ConfirmDeleteButton({
   confirmTitle,
   confirmDescription,
   redirectTo,
+  triggerClassName,
 }: {
   table: string;
   id: string;
@@ -19,6 +34,7 @@ export function ConfirmDeleteButton({
   confirmTitle: string;
   confirmDescription: string;
   redirectTo: string;
+  triggerClassName?: string;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -32,7 +48,7 @@ export function ConfirmDeleteButton({
     const { error: deleteError } = await supabase.from(table).delete().eq("id", id);
 
     if (deleteError) {
-      setError(deleteError.message);
+      setError(friendlyDeleteError(deleteError));
       setLoading(false);
       return;
     }
@@ -45,7 +61,10 @@ export function ConfirmDeleteButton({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 rounded-md border border-[#B3432B]/25 px-4 py-2 text-[13px] font-medium text-[#963522] transition-colors hover:bg-[#B3432B]/[0.06]"
+        className={
+          triggerClassName ??
+          "inline-flex items-center gap-2 rounded-md border border-[#B3432B]/25 px-4 py-2 text-[13px] font-medium text-[#963522] transition-colors hover:bg-[#B3432B]/[0.06]"
+        }
       >
         <Trash2 size={14} />
         {label}

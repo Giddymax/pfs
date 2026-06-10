@@ -3,9 +3,11 @@ import { notFound } from "next/navigation";
 import { Pencil, Plus, UserRound, Phone, MapPin, IdCard, Briefcase, HeartHandshake } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
+import { PrintRegistrationCardButton } from "@/components/print-registration-card";
+import { PrintTransactionHistoryButton } from "@/components/print-transaction-history-button";
 import { Card, ClientStatusBadge, LoanStatusBadge, EmptyState, PageHeader } from "@/components/ui";
 import { formatGHS } from "@/lib/loan";
-import type { Client, Loan, Profile } from "@/lib/types";
+import type { Account, Client, Loan, Profile, Transaction } from "@/lib/types";
 
 export default async function ClientDetailPage({
   params,
@@ -15,15 +17,29 @@ export default async function ClientDetailPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: client }, { data: loans }, { data: profile }] = await Promise.all([
+  const [{ data: client }, { data: loans }, { data: profile }, { data: accounts }, { data: transactions }] = await Promise.all([
     supabase.from("clients").select("*").eq("id", id).single<Client>(),
     supabase.from("loans").select("*").eq("client_id", id).order("created_at", { ascending: false }).returns<Loan[]>(),
     getCurrentProfile(supabase),
+    supabase.from("accounts").select("*").eq("client_id", id).order("created_at", { ascending: false }).returns<Account[]>(),
+    supabase
+      .from("transactions")
+      .select("*, account:accounts(account_number, product_type)")
+      .eq("client_id", id)
+      .order("created_at", { ascending: false })
+      .returns<(Transaction & { account: { account_number: string; product_type: string } | null })[]>(),
   ]);
 
   if (!client) notFound();
 
   const isAdmin = profile?.role === "admin";
+  const account = accounts?.[0] ?? null;
+
+  let agentName: string | null = null;
+  if (account?.agent_id) {
+    const { data: agent } = await supabase.from("profiles").select("*").eq("id", account.agent_id).single<Profile>();
+    agentName = agent?.full_name ?? null;
+  }
 
   return (
     <div>
@@ -32,21 +48,32 @@ export default async function ClientDetailPage({
         title={client.full_name}
         description={`${client.client_code} · Registered ${new Date(client.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`}
         action={
-          <div className="flex items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2">
             <Link
               href={`/loans/new?client=${client.id}`}
-              className="inline-flex items-center gap-2 rounded-md bg-[#0033AA] px-4 py-2.5 text-[13px] font-semibold text-[#FFFFFF] transition-colors hover:bg-[#002884]"
+              className="inline-flex items-center gap-1.5 rounded-md bg-[#0033AA] px-3 py-1.5 text-[11.5px] font-semibold text-[#FFFFFF] transition-colors hover:bg-[#002884]"
             >
-              <Plus size={15} />
+              <Plus size={13} />
               Issue loan
             </Link>
             {isAdmin && (
               <>
+                <PrintRegistrationCardButton
+                  client={client}
+                  account={account}
+                  agentName={agentName}
+                  processedBy={profile?.full_name}
+                />
+                <PrintTransactionHistoryButton
+                  client={client}
+                  transactions={transactions ?? []}
+                  printedBy={profile?.full_name}
+                />
                 <Link
                   href={`/clients/${client.id}/edit`}
-                  className="inline-flex items-center gap-2 rounded-md border border-[#0033AA]/20 px-4 py-2.5 text-[13px] font-medium text-[#0033AA] transition-colors hover:bg-[#0033AA]/5"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-[#0033AA]/20 px-3 py-1.5 text-[11.5px] font-medium text-[#0033AA] transition-colors hover:bg-[#0033AA]/5"
                 >
-                  <Pencil size={14} />
+                  <Pencil size={12} />
                   Edit
                 </Link>
                 <ConfirmDeleteButton
@@ -56,6 +83,7 @@ export default async function ClientDetailPage({
                   confirmTitle="Delete this client?"
                   confirmDescription={`This permanently removes ${client.full_name} and cannot be undone. Clients with existing loans cannot be deleted.`}
                   redirectTo="/clients"
+                  triggerClassName="inline-flex items-center gap-1.5 rounded-md border border-[#B3432B]/25 px-3 py-1.5 text-[11.5px] font-medium text-[#963522] transition-colors hover:bg-[#B3432B]/[0.06]"
                 />
               </>
             )}
