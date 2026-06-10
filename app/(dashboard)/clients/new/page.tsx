@@ -229,8 +229,8 @@ export default function NewClientPage() {
         {/* Photo capture */}
         <section className="rounded-xl border border-[#0033AA]/8 bg-white p-6">
           <h2 className="mb-4 text-[14px] font-semibold text-[#0033AA]">Client photo</h2>
-          <div className="flex items-center gap-5">
-            <div className="relative flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-[#0033AA]/20 bg-[#0033AA]/[0.03]">
+          <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-5">
+            <div className="relative flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-[#0033AA]/20 bg-[#0033AA]/[0.03] sm:h-28 sm:w-28">
               {photoPreview ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={photoPreview} alt="Client preview" className="h-full w-full object-cover" />

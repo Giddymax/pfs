@@ -105,7 +105,7 @@ export default async function LoanDetailPage({
             </div>
             <p className="mb-5 text-[12px] text-[#0A2240]/45">{progressPercent}% of total repayable collected</p>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <p className="text-[11px] uppercase tracking-[0.1em] text-[#0A2240]/40">Paid so far</p>
                 <p className="mt-0.5 text-[18px] font-semibold text-[#1F6E4A]">{formatGHS(totalPaid)}</p>
@@ -132,15 +132,15 @@ export default async function LoanDetailPage({
           ) : (
             <ul className="divide-y divide-[#0033AA]/6">
               {allRepayments.map((r) => (
-                <li key={r.id} className="flex items-center justify-between gap-4 px-5 py-4">
-                  <div>
+                <li key={r.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-5 py-4">
+                  <div className="min-w-0">
                     <p className="text-[14px] font-medium text-[#0A2240]">{formatGHS(r.amount)}</p>
                     <p className="text-[12px] text-[#0A2240]/45">
-                      {formatDate(r.payment_date)} · {methodLabel(r.method)}
+                      {formatDate(r.payment_date)}
                       {r.notes ? ` · ${r.notes}` : ""}
                     </p>
                   </div>
-                  <span className="rounded-full border border-[#0033AA]/12 px-2.5 py-1 text-[11px] font-medium capitalize text-[#0A2240]/55">
+                  <span className="rounded-full border border-[#1D3461]/12 px-2.5 py-1 text-[11px] font-medium capitalize text-[#0A2240]/55">
                     {methodLabel(r.method)}
                   </span>
                 </li>

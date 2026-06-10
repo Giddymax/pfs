@@ -105,7 +105,7 @@ export function DeleteStaffButton({
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#061B3A]/50 px-4 animate-fade-in">
-          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl">
+          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl max-h-[90dvh] overflow-y-auto">
             <div className="mb-4 flex items-start justify-between">
               <h3 className="text-[15px] font-semibold text-[#0033AA]">Delete staff account?</h3>
               <button
@@ -210,7 +210,7 @@ function StaffModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#061B3A]/55 px-4 animate-fade-in">
-      <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl">
+      <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl max-h-[90dvh] overflow-y-auto">
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-[16px] font-semibold text-[#0A2240]">
             {mode === "create" ? "Add staff account" : "Edit staff account"}

@@ -40,24 +40,19 @@ export async function AccountTypeList({ slug }: { slug: string }) {
           description="Accounts are opened from a client's registration form — choose this account type there."
         />
       ) : (
-        <div className="overflow-hidden rounded-xl border border-[#0033AA]/8 bg-white shadow-sm">
-          <table className="w-full text-left text-[14px]">
-            <thead>
-              <tr className="border-b border-[#0033AA]/8 bg-[#0033AA]/[0.02] text-[11px] uppercase tracking-[0.1em] text-[#0A2240]/45">
-                <th className="px-5 py-3 font-semibold">Client</th>
-                <th className="px-5 py-3 font-semibold">Account no.</th>
-                <th className="px-5 py-3 font-semibold">{detailColumnLabel(product.product_type)}</th>
-                <th className="px-5 py-3 font-semibold">Balance</th>
-                <th className="px-5 py-3 font-semibold">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#0033AA]/6">
-              {accounts.map((account) => (
-                <tr key={account.id} className="transition-colors hover:bg-[#0033AA]/[0.025]">
-                  <td className="px-5 py-3.5">
+        <>
+          {/* ── Mobile card list (hidden on lg+) ─────────────────────── */}
+          <ul className="space-y-3 lg:hidden">
+            {accounts.map((account) => (
+              <li key={account.id} className="rounded-xl border border-[#1D3461]/8 bg-white shadow-sm">
+                <div className="px-4 py-3.5">
+                  <div className="flex items-center justify-between gap-2">
                     {account.client ? (
-                      <Link href={`/clients/${account.client.id}`} className="flex items-center gap-3">
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#0033AA]/10 bg-[#0033AA]/5 text-[12px] font-semibold text-[#0033AA]">
+                      <Link
+                        href={`/clients/${account.client.id}`}
+                        className="flex min-w-0 items-center gap-2.5"
+                      >
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#1D3461]/10 bg-[#1D3461]/5 text-[12px] font-semibold text-[#1D3461]">
                           {account.client.photo_url ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img src={account.client.photo_url} alt={account.client.full_name} className="h-full w-full object-cover" />
@@ -65,27 +60,73 @@ export async function AccountTypeList({ slug }: { slug: string }) {
                             initials(account.client.full_name)
                           )}
                         </span>
-                        <span className="font-medium text-[#0A2240] hover:text-[#0033AA]">{account.client.full_name}</span>
+                        <span className="truncate text-[14px] font-semibold text-[#0A2240]">{account.client.full_name}</span>
                       </Link>
                     ) : (
-                      "—"
+                      <span className="text-[#0A2240]/45">—</span>
                     )}
-                  </td>
-                  <td className="px-5 py-3.5 text-[#0A2240]/55">
-                    <Link href={`/accounts/${account.id}`} className="font-medium text-[#0033AA] hover:underline">
+                    <AccountStatusBadge status={account.status} />
+                  </div>
+                  <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 pl-[2.875rem] text-[12px] text-[#0A2240]/55">
+                    <Link href={`/accounts/${account.id}`} className="font-medium text-[#1D3461] hover:underline">
                       {account.account_number}
                     </Link>
-                  </td>
-                  <td className="px-5 py-3.5 text-[#0A2240]/55">{detailColumnValue(account)}</td>
-                  <td className="px-5 py-3.5 text-[#0A2240]/75">{formatGHS(account.balance)}</td>
-                  <td className="px-5 py-3.5">
-                    <AccountStatusBadge status={account.status} />
-                  </td>
+                    <span>{detailColumnValue(account)}</span>
+                    <span className="font-medium text-[#0A2240]">{formatGHS(account.balance)}</span>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          {/* ── Desktop table (hidden on mobile) ─────────────────────── */}
+          <div className="hidden overflow-hidden rounded-xl border border-[#1D3461]/8 bg-white shadow-sm lg:block">
+            <table className="w-full text-left text-[14px]">
+              <thead>
+                <tr className="border-b border-[#1D3461]/8 bg-[#1D3461]/[0.02] text-[11px] uppercase tracking-[0.1em] text-[#0A2240]/45">
+                  <th className="px-5 py-3 font-semibold">Client</th>
+                  <th className="px-5 py-3 font-semibold">Account no.</th>
+                  <th className="px-5 py-3 font-semibold">{detailColumnLabel(product.product_type)}</th>
+                  <th className="px-5 py-3 font-semibold">Balance</th>
+                  <th className="px-5 py-3 font-semibold">Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-[#1D3461]/6">
+                {accounts.map((account) => (
+                  <tr key={account.id} className="transition-colors hover:bg-[#1D3461]/[0.025]">
+                    <td className="px-5 py-3.5">
+                      {account.client ? (
+                        <Link href={`/clients/${account.client.id}`} className="flex items-center gap-3">
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#1D3461]/10 bg-[#1D3461]/5 text-[12px] font-semibold text-[#1D3461]">
+                            {account.client.photo_url ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={account.client.photo_url} alt={account.client.full_name} className="h-full w-full object-cover" />
+                            ) : (
+                              initials(account.client.full_name)
+                            )}
+                          </span>
+                          <span className="font-medium text-[#0A2240] hover:text-[#1D3461]">{account.client.full_name}</span>
+                        </Link>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="px-5 py-3.5 text-[#0A2240]/55">
+                      <Link href={`/accounts/${account.id}`} className="font-medium text-[#1D3461] hover:underline">
+                        {account.account_number}
+                      </Link>
+                    </td>
+                    <td className="px-5 py-3.5 text-[#0A2240]/55">{detailColumnValue(account)}</td>
+                    <td className="px-5 py-3.5 text-[#0A2240]/75">{formatGHS(account.balance)}</td>
+                    <td className="px-5 py-3.5">
+                      <AccountStatusBadge status={account.status} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );

@@ -94,7 +94,7 @@ export function RecordRepaymentForm({
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#061B3A]/50 px-4 animate-fade-in">
-          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl">
+          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl max-h-[90dvh] overflow-y-auto">
 
             {/* Success state — overpayment was credited */}
             {result ? (
@@ -177,7 +177,7 @@ export function RecordRepaymentForm({
 
                   <label className="block">
                     <span className="mb-1.5 block text-[12.5px] font-medium text-[#0033AA]/75">Payment method</span>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       {METHODS.map((m) => (
                         <button
                           type="button"

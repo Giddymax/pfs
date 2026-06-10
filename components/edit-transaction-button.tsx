@@ -84,7 +84,7 @@ export function EditTransactionButton({ transaction }: { transaction: Transactio
 
       {mode !== "closed" && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#061B3A]/50 px-4 animate-fade-in">
-          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl">
+          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl max-h-[90dvh] overflow-y-auto">
             {mode === "edit" ? (
               <>
                 <div className="mb-5 flex items-start justify-between">

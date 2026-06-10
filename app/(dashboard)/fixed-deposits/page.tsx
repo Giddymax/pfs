@@ -16,8 +16,8 @@ const FD_STATUS_STYLE: Record<FdStatus, string> = {
 const FD_STATUS_LABEL: Record<FdStatus, string> = {
   active: "Active",
   matured: "Matured",
-  pending_early: "Early withdrawal pending",
-  approved_early: "Early withdrawal approved",
+  pending_early: "Early w/d pending",
+  approved_early: "Early w/d approved",
   withdrawn: "Withdrawn",
   rolled_over: "Rolled over",
 };
@@ -49,50 +49,87 @@ export default async function FixedDepositsPage() {
           description="Fixed deposits are opened from a client's registration form — choose this account type there."
         />
       ) : (
-        <div className="overflow-hidden rounded-xl border border-[#0033AA]/8 bg-white shadow-sm">
-          <table className="w-full text-left text-[14px]">
-            <thead>
-              <tr className="border-b border-[#0033AA]/8 bg-[#0033AA]/[0.02] text-[11px] uppercase tracking-[0.1em] text-[#0A2240]/45">
-                <th className="px-5 py-3 font-semibold">Client</th>
-                <th className="px-5 py-3 font-semibold">FD number</th>
-                <th className="px-5 py-3 font-semibold">Principal · term</th>
-                <th className="px-5 py-3 font-semibold">Maturity</th>
-                <th className="px-5 py-3 font-semibold">Expected payout</th>
-                <th className="px-5 py-3 font-semibold">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#0033AA]/6">
-              {rows.map((fd) => (
-                <tr key={fd.id} className="transition-colors hover:bg-[#0033AA]/[0.025]">
-                  <td className="px-5 py-3.5">
-                    {fd.client ? (
-                      <Link href={`/clients/${fd.client.id}`} className="font-medium text-[#0A2240] hover:text-[#0033AA]">
-                        {fd.client.full_name}
-                      </Link>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                  <td className="px-5 py-3.5 text-[#0A2240]/55">
-                    <Link href={`/fixed-deposits/${fd.id}`} className="font-medium text-[#0033AA] hover:underline">
+        <>
+          {/* ── Mobile card list (hidden on lg+) ─────────────────────── */}
+          <ul className="space-y-3 lg:hidden">
+            {rows.map((fd) => (
+              <li key={fd.id} className="rounded-xl border border-[#1D3461]/8 bg-white shadow-sm">
+                <div className="px-4 py-3.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <Link
+                      href={`/fixed-deposits/${fd.id}`}
+                      className="text-[14px] font-semibold text-[#1D3461] hover:underline"
+                    >
                       {fd.fd_number}
                     </Link>
-                  </td>
-                  <td className="px-5 py-3.5 text-[#0A2240]/55">
-                    {formatGHS(fd.principal)} · {fd.term_months}mo @ {fd.annual_rate_percent}%
-                  </td>
-                  <td className="px-5 py-3.5 text-[#0A2240]/55">{formatDate(fd.maturity_date)}</td>
-                  <td className="px-5 py-3.5 text-[#0A2240]/75">{formatGHS(fd.expected_payout)}</td>
-                  <td className="px-5 py-3.5">
-                    <span className={`rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide ${FD_STATUS_STYLE[fd.status]}`}>
+                    <span className={`rounded-full border px-2.5 py-0.5 text-[10.5px] font-medium ${FD_STATUS_STYLE[fd.status]}`}>
                       {FD_STATUS_LABEL[fd.status]}
                     </span>
-                  </td>
+                  </div>
+                  {fd.client && (
+                    <Link
+                      href={`/clients/${fd.client.id}`}
+                      className="mt-0.5 block truncate text-[13px] text-[#0A2240]/65 hover:text-[#1D3461]"
+                    >
+                      {fd.client.full_name}
+                    </Link>
+                  )}
+                  <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-[#0A2240]/55">
+                    <span>{formatGHS(fd.principal)} · {fd.term_months}mo @ {fd.annual_rate_percent}%</span>
+                    <span className="font-medium text-[#0A2240]">Payout {formatGHS(fd.expected_payout)}</span>
+                    <span>Matures {formatDate(fd.maturity_date)}</span>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          {/* ── Desktop table (hidden on mobile) ─────────────────────── */}
+          <div className="hidden overflow-hidden rounded-xl border border-[#1D3461]/8 bg-white shadow-sm lg:block">
+            <table className="w-full text-left text-[14px]">
+              <thead>
+                <tr className="border-b border-[#1D3461]/8 bg-[#1D3461]/[0.02] text-[11px] uppercase tracking-[0.1em] text-[#0A2240]/45">
+                  <th className="px-5 py-3 font-semibold">Client</th>
+                  <th className="px-5 py-3 font-semibold">FD number</th>
+                  <th className="px-5 py-3 font-semibold">Principal · term</th>
+                  <th className="px-5 py-3 font-semibold">Maturity</th>
+                  <th className="px-5 py-3 font-semibold">Expected payout</th>
+                  <th className="px-5 py-3 font-semibold">Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-[#1D3461]/6">
+                {rows.map((fd) => (
+                  <tr key={fd.id} className="transition-colors hover:bg-[#1D3461]/[0.025]">
+                    <td className="px-5 py-3.5">
+                      {fd.client ? (
+                        <Link href={`/clients/${fd.client.id}`} className="font-medium text-[#0A2240] hover:text-[#1D3461]">
+                          {fd.client.full_name}
+                        </Link>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="px-5 py-3.5 text-[#0A2240]/55">
+                      <Link href={`/fixed-deposits/${fd.id}`} className="font-medium text-[#1D3461] hover:underline">
+                        {fd.fd_number}
+                      </Link>
+                    </td>
+                    <td className="px-5 py-3.5 text-[#0A2240]/55">
+                      {formatGHS(fd.principal)} · {fd.term_months}mo @ {fd.annual_rate_percent}%
+                    </td>
+                    <td className="px-5 py-3.5 text-[#0A2240]/55">{formatDate(fd.maturity_date)}</td>
+                    <td className="px-5 py-3.5 text-[#0A2240]/75">{formatGHS(fd.expected_payout)}</td>
+                    <td className="px-5 py-3.5">
+                      <span className={`rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide ${FD_STATUS_STYLE[fd.status]}`}>
+                        {FD_STATUS_LABEL[fd.status]}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );

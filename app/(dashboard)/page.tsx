@@ -246,7 +246,7 @@ function SummaryCard({
   return (
     <div className={`rounded-xl ${color} p-5 text-white`}>
       <p className="text-[10.5px] font-semibold uppercase tracking-[0.18em] text-white/80">{label}</p>
-      <p className="mt-2 text-[2rem] font-bold tabular-nums leading-none">{value}</p>
+      <p className="mt-2 break-words text-[1.6rem] font-bold tabular-nums leading-none sm:text-[2rem]">{value}</p>
       {hint && <p className="mt-2 text-[11.5px] leading-snug text-white/75">{hint}</p>}
     </div>
   );

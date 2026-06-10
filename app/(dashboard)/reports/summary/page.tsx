@@ -133,7 +133,7 @@ export default async function SummaryPage({
             {/* Net movement highlight */}
             <div className={`rounded-xl border px-6 py-5 ${summary.net_inflow >= 0 ? "border-[#1F6E4A]/20 bg-[#1F6E4A]/[0.05]" : "border-[#B3432B]/20 bg-[#B3432B]/[0.04]"}`}>
               <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#0A2240]/45">Net cash movement</p>
-              <p className={`mt-1 text-[32px] font-bold tabular-nums ${summary.net_inflow >= 0 ? "text-[#1F6E4A]" : "text-[#963522]"}`}>
+              <p className={`mt-1 break-words text-[24px] font-bold tabular-nums sm:text-[32px] ${summary.net_inflow >= 0 ? "text-[#1F6E4A]" : "text-[#963522]"}`}>
                 {summary.net_inflow >= 0 ? "+" : ""}{formatGHS(summary.net_inflow)}
               </p>
               <p className="mt-0.5 text-[12px] text-[#0A2240]/40">
