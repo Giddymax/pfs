@@ -173,7 +173,7 @@ export function Sidebar({ profile }: { profile: Profile }) {
         </div>
       </div>
 
-      <nav className="flex-1 space-y-1 px-3 py-2">
+      <nav className="sidebar-nav flex-1 space-y-1 overflow-y-auto px-3 py-2">
         {NAV.filter(({ href }) => href !== "/" || profile.role === "admin").map(({ href, label, icon: Icon, active: activeCls, activeIcon, idle, idleIcon }) => {
           const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
           return (
