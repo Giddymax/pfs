@@ -2,22 +2,6 @@ import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import { createClient } from "@/lib/supabase/server";
 
-interface ImportRow {
-  "Full Name"?: unknown;
-  "Phone"?: unknown;
-  "Alt Phone"?: unknown;
-  "Gender"?: unknown;
-  "Date of Birth"?: unknown;
-  "Ghana Card Number"?: unknown;
-  "Occupation"?: unknown;
-  "Residential Address"?: unknown;
-  "Town"?: unknown;
-  "Next of Kin Name"?: unknown;
-  "Next of Kin Phone"?: unknown;
-  "SMS Opt-in"?: unknown;
-  [key: string]: unknown;
-}
-
 function str(v: unknown): string {
   return v != null ? String(v).trim() : "";
 }
@@ -32,24 +16,39 @@ function parseGender(v: unknown): "male" | "female" | null {
 function parseSmsOptIn(v: unknown): boolean {
   const s = str(v).toLowerCase();
   if (s === "no" || s === "false" || s === "0") return false;
-  return true; // default opt-in
+  return true;
 }
 
 function parseDate(v: unknown): string | null {
   if (v == null || str(v) === "") return null;
-  // Excel date serial number
   if (typeof v === "number") {
     const d = XLSX.SSF.parse_date_code(v);
     if (d) return `${d.y}-${String(d.m).padStart(2, "0")}-${String(d.d).padStart(2, "0")}`;
   }
   const s = str(v);
-  // Accept YYYY-MM-DD or DD/MM/YYYY
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
   if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
     const [d, m, y] = s.split("/");
     return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
   }
   return null;
+}
+
+// Build a row accessor that matches column headers flexibly:
+// - exact match first, then case-insensitive/punctuation-stripped match
+function buildAccessor(row: Record<string, unknown>) {
+  const normalized: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(row)) {
+    normalized[k.toLowerCase().replace(/[^a-z0-9]/g, "")] = v;
+  }
+  return function get(...candidates: string[]): unknown {
+    for (const c of candidates) {
+      if (row[c] !== undefined) return row[c];
+      const nk = c.toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (normalized[nk] !== undefined) return normalized[nk];
+    }
+    return undefined;
+  };
 }
 
 export async function POST(request: Request) {
@@ -88,13 +87,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Could not read the Excel file. Make sure it is a valid .xlsx or .xls file." }, { status: 400 });
   }
 
-  const sheetName = wb.SheetNames[0];
-  if (!sheetName) return NextResponse.json({ error: "The workbook has no sheets." }, { status: 400 });
-
-  const rows: ImportRow[] = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { defval: "" });
+  // Try each sheet and use the first one that has data rows
+  let rows: Record<string, unknown>[] = [];
+  for (const sheetName of wb.SheetNames) {
+    const sheet = wb.Sheets[sheetName];
+    const parsed = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
+    if (parsed.length > 0) {
+      rows = parsed;
+      break;
+    }
+  }
 
   if (rows.length === 0) {
-    return NextResponse.json({ error: "The sheet is empty." }, { status: 400 });
+    return NextResponse.json({ error: "The spreadsheet appears to be empty or has no data rows." }, { status: 400 });
   }
 
   const succeeded: string[] = [];
@@ -103,31 +108,75 @@ export async function POST(request: Request) {
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     const rowNum = i + 2; // 1-indexed + header row
-    const fullName = str(row["Full Name"]);
-    const phone = str(row["Phone"]);
+
+    // Skip completely blank rows
+    const allEmpty = Object.values(row).every((v) => str(v) === "");
+    if (allEmpty) continue;
+
+    const get = buildAccessor(row);
+
+    // Required fields — accept common name variations
+    const fullName = str(
+      get("Full Name", "Name", "Client Name", "FullName", "Full_Name", "Fullname", "CLIENT NAME", "CLIENT")
+    );
+    const phone = str(
+      get("Phone", "Mobile", "Phone Number", "Mobile Number", "Tel", "Telephone", "Contact", "Contact Number", "PHONE", "MOBILE")
+    );
 
     if (!fullName) {
-      failed.push({ row: rowNum, name: `Row ${rowNum}`, reason: "Full Name is required" });
+      failed.push({ row: rowNum, name: `Row ${rowNum}`, reason: "Full Name is required (column not found or empty)" });
       continue;
     }
     if (!phone) {
-      failed.push({ row: rowNum, name: fullName, reason: "Phone is required" });
+      failed.push({ row: rowNum, name: fullName, reason: "Phone is required (column not found or empty)" });
       continue;
     }
+
+    // Optional fields — accept common name variations
+    const altPhone = str(
+      get("Alt Phone", "Alt. Phone", "Alternative Phone", "Alt Mobile", "Second Phone", "Other Phone")
+    );
+    const gender = parseGender(
+      get("Gender", "Sex", "GENDER")
+    );
+    const dateOfBirth = parseDate(
+      get("Date of Birth", "DOB", "Birth Date", "Birthday", "Date Of Birth", "DateOfBirth")
+    );
+    const ghanaCard = str(
+      get("Ghana Card Number", "Ghana Card", "Ghana Card No", "GhanaCard", "National ID", "NID", "ID Number")
+    );
+    const occupation = str(
+      get("Occupation", "Job", "Work", "Profession", "OCCUPATION")
+    );
+    const address = str(
+      get("Residential Address", "Address", "Home Address", "Residential", "Location", "ADDRESS")
+    );
+    const town = str(
+      get("Town", "City", "District", "Area", "TOWN")
+    );
+    const nokName = str(
+      get("Next of Kin Name", "Next of Kin", "NOK Name", "NOK", "Emergency Contact", "Emergency Contact Name")
+    );
+    const nokPhone = str(
+      get("Next of Kin Phone", "NOK Phone", "Emergency Contact Phone", "Emergency Phone")
+    );
+    const smsOptIn = parseSmsOptIn(
+      get("SMS Opt-in", "SMS", "SMS Opt In", "SMSOptIn", "Receive SMS", "sms_opt_in")
+    );
 
     const payload = {
       full_name: fullName,
       phone,
-      alt_phone: str(row["Alt Phone"]) || null,
-      gender: parseGender(row["Gender"]),
-      date_of_birth: parseDate(row["Date of Birth"]),
-      ghana_card_number: str(row["Ghana Card Number"]) || null,
-      occupation: str(row["Occupation"]) || null,
-      residential_address: str(row["Residential Address"]) || null,
-      town: str(row["Town"]) || null,
-      next_of_kin_name: str(row["Next of Kin Name"]) || null,
-      next_of_kin_phone: str(row["Next of Kin Phone"]) || null,
-      sms_opt_in: parseSmsOptIn(row["SMS Opt-in"]),
+      alt_phone: altPhone || null,
+      gender,
+      date_of_birth: dateOfBirth,
+      ghana_card_number: ghanaCard || null,
+      occupation: occupation || null,
+      residential_address: address || null,
+      town: town || null,
+      next_of_kin_name: nokName || null,
+      next_of_kin_phone: nokPhone || null,
+      sms_opt_in: smsOptIn,
       created_by: user.id,
     };
 
@@ -152,7 +201,7 @@ export async function POST(request: Request) {
   });
 }
 
-// Template download — returns a blank .xlsx with the correct headers and sample row
+// Template download
 export async function GET() {
   const sample = [{
     "Full Name": "Ama Owusu",

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader, AccountStatusBadge, EmptyState } from "@/components/ui";
+import { TableFilter, type FilterOption } from "@/components/table-filter";
 import { formatGHS } from "@/lib/loan";
 import type { Account, ProductType } from "@/lib/types";
 
@@ -18,26 +19,49 @@ const PRODUCT_BY_SLUG: Record<string, { product_type: ProductType; label: string
   },
 };
 
-export async function AccountTypeList({ slug }: { slug: string }) {
+const STATUS_OPTIONS: FilterOption[] = [
+  { value: "active", label: "Active" },
+  { value: "inactive", label: "Inactive" },
+  { value: "dormant", label: "Dormant" },
+  { value: "suspended", label: "Suspended" },
+  { value: "closed", label: "Closed" },
+];
+
+export async function AccountTypeList({ slug, status }: { slug: string; status?: string }) {
   const product = PRODUCT_BY_SLUG[slug];
   if (!product) notFound();
 
   const supabase = await createClient();
-  const { data: accounts } = await supabase
+
+  const qs = status ? `status=${status}` : "";
+
+  let query = supabase
     .from("accounts")
     .select("*, client:clients(*)")
     .eq("product_type", product.product_type)
-    .order("created_at", { ascending: false })
-    .returns<Account[]>();
+    .order("created_at", { ascending: false });
+  if (status) query = query.eq("status", status);
+
+  const { data: accounts } = await query.returns<Account[]>();
 
   return (
     <div>
       <PageHeader eyebrow="Accounts" title={product.label} description={product.description} />
 
+      {/* Mobile filter */}
+      <div className="mb-4 flex flex-wrap items-center gap-3 lg:hidden">
+        <span className="text-[11.5px] font-medium text-[#0A2240]/40">Filter:</span>
+        <TableFilter param="status" label="Status" options={STATUS_OPTIONS} current={status} qs={qs} />
+      </div>
+
       {!accounts || accounts.length === 0 ? (
         <EmptyState
-          title="No accounts of this type yet"
-          description="Accounts are opened from a client's registration form — choose this account type there."
+          title={status ? "No accounts match this filter" : "No accounts of this type yet"}
+          description={
+            status
+              ? "Try a different status filter."
+              : "Accounts are opened from a client's registration form — choose this account type there."
+          }
         />
       ) : (
         <>
@@ -88,7 +112,9 @@ export async function AccountTypeList({ slug }: { slug: string }) {
                   <th className="px-5 py-3 font-semibold">Account no.</th>
                   <th className="px-5 py-3 font-semibold">{detailColumnLabel(product.product_type)}</th>
                   <th className="px-5 py-3 font-semibold">Balance</th>
-                  <th className="px-5 py-3 font-semibold">Status</th>
+                  <th aria-label="Status" className="px-5 py-3 font-semibold">
+                    <TableFilter param="status" label="Status" options={STATUS_OPTIONS} current={status} qs={qs} />
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#1D3461]/6">

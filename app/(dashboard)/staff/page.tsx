@@ -2,11 +2,27 @@ import { redirect } from "next/navigation";
 import { ShieldCheck, UserRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader, EmptyState } from "@/components/ui";
+import { TableFilter, type FilterOption } from "@/components/table-filter";
 import { StaffStatusToggle } from "@/components/staff-status-toggle";
 import { AddStaffButton, EditStaffButton, DeleteStaffButton } from "@/components/staff-form";
 import type { Profile } from "@/lib/types";
 
-export default async function StaffPage() {
+const ROLE_OPTIONS: FilterOption[] = [
+  { value: "admin", label: "Administrator" },
+  { value: "staff", label: "Staff" },
+];
+
+const ACTIVE_OPTIONS: FilterOption[] = [
+  { value: "active", label: "Active" },
+  { value: "deactivated", label: "Deactivated" },
+];
+
+export default async function StaffPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ role?: string; active?: string }>;
+}) {
+  const { role, active } = await searchParams;
   const supabase = await createClient();
 
   const {
@@ -17,11 +33,20 @@ export default async function StaffPage() {
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single<Profile>();
   if (!profile || profile.role !== "admin") redirect("/");
 
-  const { data: staff } = await supabase
+  const qs = new URLSearchParams({
+    ...(role ? { role } : {}),
+    ...(active ? { active } : {}),
+  }).toString();
+
+  let query = supabase
     .from("profiles")
     .select("*")
-    .order("created_at", { ascending: false })
-    .returns<Profile[]>();
+    .order("created_at", { ascending: false });
+  if (role) query = query.eq("role", role);
+  if (active === "active") query = query.eq("is_active", true);
+  if (active === "deactivated") query = query.eq("is_active", false);
+
+  const { data: staff } = await query.returns<Profile[]>();
 
   return (
     <div>
@@ -32,8 +57,18 @@ export default async function StaffPage() {
         action={<AddStaffButton />}
       />
 
+      {/* Mobile filter controls */}
+      <div className="mb-4 flex flex-wrap items-center gap-3 lg:hidden">
+        <span className="text-[11.5px] font-medium text-[#0A2240]/40">Filter:</span>
+        <TableFilter param="role" label="Role" options={ROLE_OPTIONS} current={role} qs={qs} />
+        <TableFilter param="active" label="Status" options={ACTIVE_OPTIONS} current={active} qs={qs} />
+      </div>
+
       {!staff || staff.length === 0 ? (
-        <EmptyState title="No staff accounts found" description="Staff and admin profiles will appear here once created." />
+        <EmptyState
+          title={role || active ? "No staff match this filter" : "No staff accounts found"}
+          description={role || active ? "Try adjusting the filters." : "Staff and admin profiles will appear here once created."}
+        />
       ) : (
         <>
           {/* ── Mobile card list (hidden on lg+) ─────────────────────── */}
@@ -87,8 +122,12 @@ export default async function StaffPage() {
                 <tr className="border-b border-[#1D3461]/8 bg-[#1D3461]/[0.02] text-[11px] uppercase tracking-[0.1em] text-[#0A2240]/45">
                   <th className="px-5 py-3 font-semibold">Name</th>
                   <th className="px-5 py-3 font-semibold">Email</th>
-                  <th className="px-5 py-3 font-semibold">Role</th>
-                  <th className="px-5 py-3 font-semibold">Status</th>
+                  <th aria-label="Role" className="px-5 py-3 font-semibold">
+                    <TableFilter param="role" label="Role" options={ROLE_OPTIONS} current={role} qs={qs} />
+                  </th>
+                  <th aria-label="Status" className="px-5 py-3 font-semibold">
+                    <TableFilter param="active" label="Status" options={ACTIVE_OPTIONS} current={active} qs={qs} />
+                  </th>
                   <th className="px-5 py-3 font-semibold">Joined</th>
                   <th className="px-5 py-3 font-semibold">Actions</th>
                 </tr>

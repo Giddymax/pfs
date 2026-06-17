@@ -2,10 +2,11 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader, LoanStatusBadge, EmptyState, Card } from "@/components/ui";
+import { TableFilter, type FilterOption } from "@/components/table-filter";
 import { formatGHS } from "@/lib/loan";
 import type { Loan, LoanStatus } from "@/lib/types";
 
-const STATUS_FILTERS: { label: string; value: LoanStatus | "all" }[] = [
+const STATUS_PILLS: { label: string; value: LoanStatus | "all" }[] = [
   { label: "All", value: "all" },
   { label: "Pending", value: "pending" },
   { label: "Active", value: "active" },
@@ -14,6 +15,11 @@ const STATUS_FILTERS: { label: string; value: LoanStatus | "all" }[] = [
   { label: "Rejected", value: "rejected" },
 ];
 
+const STATUS_OPTIONS: FilterOption[] = STATUS_PILLS.filter((p) => p.value !== "all").map((p) => ({
+  value: p.value,
+  label: p.label,
+}));
+
 export default async function LoansPage({
   searchParams,
 }: {
@@ -21,6 +27,8 @@ export default async function LoansPage({
 }) {
   const { status } = await searchParams;
   const supabase = await createClient();
+
+  const qs = status && status !== "all" ? `status=${status}` : "";
 
   let query = supabase.from("loans").select("*, client:clients(*)").order("created_at", { ascending: false });
   if (status && status !== "all") {
@@ -45,8 +53,9 @@ export default async function LoansPage({
         }
       />
 
+      {/* Status pills */}
       <div className="mb-6 flex flex-wrap gap-2">
-        {STATUS_FILTERS.map((f) => {
+        {STATUS_PILLS.map((f) => {
           const active = (status ?? "all") === f.value;
           return (
             <Link
@@ -108,7 +117,9 @@ export default async function LoansPage({
                   <th className="px-5 py-3 font-semibold">Principal</th>
                   <th className="px-5 py-3 font-semibold">Repayable</th>
                   <th className="px-5 py-3 font-semibold">Tenor</th>
-                  <th className="px-5 py-3 font-semibold">Status</th>
+                  <th aria-label="Status" className="px-5 py-3 font-semibold">
+                    <TableFilter param="status" label="Status" options={STATUS_OPTIONS} current={status && status !== "all" ? status : undefined} qs={qs} />
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#1D3461]/6">

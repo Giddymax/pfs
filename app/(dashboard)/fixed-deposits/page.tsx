@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader, EmptyState } from "@/components/ui";
+import { TableFilter, type FilterOption } from "@/components/table-filter";
 import { formatGHS } from "@/lib/loan";
 import type { Client, FdStatus, FixedDeposit } from "@/lib/types";
 
@@ -22,17 +23,30 @@ const FD_STATUS_LABEL: Record<FdStatus, string> = {
   rolled_over: "Rolled over",
 };
 
-export default async function FixedDepositsPage() {
+const STATUS_OPTIONS: FilterOption[] = (Object.keys(FD_STATUS_LABEL) as FdStatus[]).map((k) => ({
+  value: k,
+  label: FD_STATUS_LABEL[k],
+}));
+
+export default async function FixedDepositsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string }>;
+}) {
+  const { status } = await searchParams;
   const supabase = await createClient();
 
   await supabase.rpc("sync_matured_fds");
 
-  const { data: deposits } = await supabase
+  const qs = status ? `status=${status}` : "";
+
+  let query = supabase
     .from("fixed_deposits")
     .select("*, client:clients(*)")
-    .order("created_at", { ascending: false })
-    .returns<(FixedDeposit & { client: Client })[]>();
+    .order("created_at", { ascending: false });
+  if (status) query = query.eq("status", status);
 
+  const { data: deposits } = await query.returns<(FixedDeposit & { client: Client })[]>();
   const rows = deposits ?? [];
 
   return (
@@ -43,10 +57,20 @@ export default async function FixedDepositsPage() {
         description="Lump-sum term placements with maturity, early-withdrawal and rollover lifecycles."
       />
 
+      {/* Mobile filter */}
+      <div className="mb-4 flex flex-wrap items-center gap-3 lg:hidden">
+        <span className="text-[11.5px] font-medium text-[#0A2240]/40">Filter:</span>
+        <TableFilter param="status" label="Status" options={STATUS_OPTIONS} current={status} qs={qs} />
+      </div>
+
       {rows.length === 0 ? (
         <EmptyState
-          title="No fixed deposits yet"
-          description="Fixed deposits are opened from a client's registration form — choose this account type there."
+          title={status ? "No fixed deposits match this filter" : "No fixed deposits yet"}
+          description={
+            status
+              ? "Try a different status filter."
+              : "Fixed deposits are opened from a client's registration form — choose this account type there."
+          }
         />
       ) : (
         <>
@@ -94,7 +118,9 @@ export default async function FixedDepositsPage() {
                   <th className="px-5 py-3 font-semibold">Principal · term</th>
                   <th className="px-5 py-3 font-semibold">Maturity</th>
                   <th className="px-5 py-3 font-semibold">Expected payout</th>
-                  <th className="px-5 py-3 font-semibold">Status</th>
+                  <th aria-label="Status" className="px-5 py-3 font-semibold">
+                    <TableFilter param="status" label="Status" options={STATUS_OPTIONS} current={status} qs={qs} />
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#1D3461]/6">

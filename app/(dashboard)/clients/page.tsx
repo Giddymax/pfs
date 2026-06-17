@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { Plus, Search, Lock, PiggyBank, Coins, Pencil } from "lucide-react";
+import { Plus, Search, Lock, PiggyBank, Coins, Pencil, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { PrintRegistrationCardButton } from "@/components/print-registration-card";
 import { ClientExcelButtons } from "@/components/client-excel-buttons";
+import { TableFilter, type FilterOption } from "@/components/table-filter";
 import { PageHeader, ClientStatusBadge, EmptyState } from "@/components/ui";
 import type { Client, Account, ProductType, Profile } from "@/lib/types";
 
@@ -19,44 +20,112 @@ const PRODUCT_ICON: Record<ProductType, typeof PiggyBank> = {
   fixed_deposit: Lock,
 };
 
+const STATUS_OPTIONS: FilterOption[] = [
+  { value: "active", label: "Active" },
+  { value: "inactive", label: "Inactive" },
+  { value: "dormant", label: "Dormant" },
+  { value: "suspended", label: "Suspended" },
+];
+
+const ACCOUNT_OPTIONS: FilterOption[] = [
+  { value: "savings", label: "Savings" },
+  { value: "susu", label: "Daily Susu" },
+  { value: "fixed_deposit", label: "Fixed Deposit" },
+];
+
+function buildUrl(base: string, params: Record<string, string | undefined>) {
+  const p = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v) p.set(k, v);
+  }
+  const qs = p.toString();
+  return qs ? `${base}?${qs}` : base;
+}
+
 export default async function ClientsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; account?: string; town?: string }>;
 }) {
-  const { q } = await searchParams;
+  const { q, status, account, town } = await searchParams;
   const supabase = await createClient();
 
+  // Build the query string for filter components to preserve other active filters
+  const qs = new URLSearchParams({
+    ...(q ? { q } : {}),
+    ...(status ? { status } : {}),
+    ...(account ? { account } : {}),
+    ...(town ? { town } : {}),
+  }).toString();
+
+  // Get client IDs matching the account-type filter (separate table)
+  let accountFilterIds: string[] | null = null;
+  if (account) {
+    const { data: accs } = await supabase
+      .from("accounts")
+      .select("client_id")
+      .eq("product_type", account);
+    accountFilterIds = (accs ?? []).map((a) => (a as { client_id: string }).client_id);
+  }
+
+  // Main client query
   let query = supabase.from("clients").select("*").order("created_at", { ascending: false });
-  if (q && q.trim()) {
+  if (q?.trim()) {
     const term = q.trim();
     query = query.or(`full_name.ilike.%${term}%,phone.ilike.%${term}%,client_code.ilike.%${term}%`);
   }
+  if (status) query = query.eq("status", status);
+  if (town) query = query.ilike("town", town);
+  if (accountFilterIds !== null && accountFilterIds.length > 0) {
+    query = query.in("id", accountFilterIds);
+  }
 
-  const { data: clients } = await query.returns<Client[]>();
+  const clients: Client[] =
+    accountFilterIds !== null && accountFilterIds.length === 0
+      ? []
+      : (await query.returns<Client[]>()).data ?? [];
+
+  // Unique towns for the Town filter dropdown
+  const { data: townRows } = await supabase
+    .from("clients")
+    .select("town")
+    .not("town", "is", null)
+    .neq("town", "")
+    .order("town");
+  const townOptions: FilterOption[] = [
+    ...new Set((townRows ?? []).map((r) => (r as { town: string }).town).filter(Boolean)),
+  ].map((t) => ({ value: t, label: t }));
 
   const { data: profile } = await getCurrentProfile(supabase);
   const isAdmin = profile?.role === "admin";
 
   const accountByClient = new Map<string, Account>();
   const agentNameById = new Map<string, string>();
-  if (clients && clients.length > 0) {
+  if (clients.length > 0) {
     const { data: accounts } = await supabase
       .from("accounts")
       .select("*")
       .in("client_id", clients.map((c) => c.id))
       .order("created_at", { ascending: false })
       .returns<Account[]>();
-    for (const account of accounts ?? []) {
-      if (!accountByClient.has(account.client_id)) accountByClient.set(account.client_id, account);
+    for (const acc of accounts ?? []) {
+      if (!accountByClient.has(acc.client_id)) accountByClient.set(acc.client_id, acc);
     }
-
-    const agentIds = [...new Set((accounts ?? []).map((a) => a.agent_id).filter((id): id is string => !!id))];
+    const agentIds = [
+      ...new Set((accounts ?? []).map((a) => a.agent_id).filter((id): id is string => !!id)),
+    ];
     if (agentIds.length > 0) {
-      const { data: agents } = await supabase.from("profiles").select("*").in("id", agentIds).returns<Profile[]>();
+      const { data: agents } = await supabase
+        .from("profiles")
+        .select("*")
+        .in("id", agentIds)
+        .returns<Profile[]>();
       for (const agent of agents ?? []) agentNameById.set(agent.id, agent.full_name);
     }
   }
+
+  const hasFilters = !!(status || account || town);
+  const hasSearch = !!q?.trim();
 
   return (
     <div>
@@ -78,7 +147,8 @@ export default async function ClientsPage({
         }
       />
 
-      <form className="mb-6 max-w-sm">
+      {/* Search */}
+      <form className="mb-4 max-w-sm">
         <div className="relative">
           <Search size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#1D3461]/35" />
           <input
@@ -91,13 +161,76 @@ export default async function ClientsPage({
         </div>
       </form>
 
-      {!clients || clients.length === 0 ? (
+      {/* Active filter chips — visible on all screens when filters are set */}
+      {hasFilters && (
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <span className="text-[11.5px] text-[#0A2240]/40">Filtered by:</span>
+          {status && (
+            <Link
+              href={buildUrl("/clients", { q, account, town })}
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#2CBFBF]/30 bg-[#2CBFBF]/10 px-2.5 py-1 text-[12px] font-medium text-[#1D3461] transition-colors hover:bg-[#2CBFBF]/20"
+            >
+              Status: {status}
+              <X size={11} strokeWidth={2.5} />
+            </Link>
+          )}
+          {account && (
+            <Link
+              href={buildUrl("/clients", { q, status, town })}
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#2CBFBF]/30 bg-[#2CBFBF]/10 px-2.5 py-1 text-[12px] font-medium text-[#1D3461] transition-colors hover:bg-[#2CBFBF]/20"
+            >
+              Account: {ACCOUNT_OPTIONS.find((o) => o.value === account)?.label ?? account}
+              <X size={11} strokeWidth={2.5} />
+            </Link>
+          )}
+          {town && (
+            <Link
+              href={buildUrl("/clients", { q, status, account })}
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#2CBFBF]/30 bg-[#2CBFBF]/10 px-2.5 py-1 text-[12px] font-medium text-[#1D3461] transition-colors hover:bg-[#2CBFBF]/20"
+            >
+              Town: {town}
+              <X size={11} strokeWidth={2.5} />
+            </Link>
+          )}
+          <Link
+            href={buildUrl("/clients", { q })}
+            className="text-[12px] text-[#0A2240]/40 underline-offset-2 hover:text-[#963522] hover:underline"
+          >
+            Clear all
+          </Link>
+        </div>
+      )}
+
+      {/* Mobile filter controls (hidden on lg where table headers take over) */}
+      {!hasFilters && (
+        <div className="mb-4 flex flex-wrap items-center gap-3 lg:hidden">
+          <span className="text-[11.5px] font-medium text-[#0A2240]/40">Filter:</span>
+          <TableFilter param="status" label="Status" options={STATUS_OPTIONS} current={status} qs={qs} />
+          <TableFilter param="account" label="Account" options={ACCOUNT_OPTIONS} current={account} qs={qs} />
+          {townOptions.length > 0 && (
+            <TableFilter param="town" label="Town" options={townOptions} current={town} qs={qs} />
+          )}
+        </div>
+      )}
+
+      {clients.length === 0 ? (
         <EmptyState
-          title={q ? "No clients match your search" : "No clients registered yet"}
-          description={q ? "Try a different name, phone number or client code." : "Register your first client to start building their profile."}
+          title={
+            hasFilters || hasSearch
+              ? "No clients match your filters"
+              : "No clients registered yet"
+          }
+          description={
+            hasFilters || hasSearch
+              ? "Try adjusting your search or removing some filters."
+              : "Register your first client to start building their profile."
+          }
           action={
-            !q && (
-              <Link href="/clients/new" className="inline-flex items-center gap-2 rounded-md bg-[#1D3461] px-5 py-2.5 text-[13.5px] font-semibold text-[#FFFFFF] hover:bg-[#152847]">
+            !hasFilters && !hasSearch && (
+              <Link
+                href="/clients/new"
+                className="inline-flex items-center gap-2 rounded-md bg-[#1D3461] px-5 py-2.5 text-[13.5px] font-semibold text-[#FFFFFF] hover:bg-[#152847]"
+              >
                 <Plus size={15} /> Register client
               </Link>
             )
@@ -108,8 +241,8 @@ export default async function ClientsPage({
           {/* ── Mobile card list (hidden on lg+) ───────────────────────── */}
           <ul className="space-y-3 lg:hidden">
             {clients.map((client) => {
-              const account = accountByClient.get(client.id);
-              const ProductIcon = account ? PRODUCT_ICON[account.product_type] : null;
+              const acc = accountByClient.get(client.id);
+              const ProductIcon = acc ? PRODUCT_ICON[acc.product_type] : null;
               return (
                 <li key={client.id} className="rounded-xl border border-[#1D3461]/8 bg-white shadow-sm">
                   <Link href={`/clients/${client.id}`} className="flex items-center gap-3 px-4 py-3.5">
@@ -128,15 +261,13 @@ export default async function ClientsPage({
                       </div>
                       <p className="text-[12px] text-[#0A2240]/45">{client.client_code} · {client.phone}</p>
                       <div className="mt-1 flex items-center gap-3 text-[12px] text-[#0A2240]/55">
-                        {account && ProductIcon && (
+                        {acc && ProductIcon && (
                           <span className="inline-flex items-center gap-1">
                             <ProductIcon size={12} />
-                            {PRODUCT_LABEL[account.product_type]}
+                            {PRODUCT_LABEL[acc.product_type]}
                           </span>
                         )}
-                        {account && (
-                          <span className="font-medium text-[#0A2240]">{formatGHC(account.balance)}</span>
-                        )}
+                        {acc && <span className="font-medium text-[#0A2240]">{formatGHC(acc.balance)}</span>}
                         {client.town && <span>{client.town}</span>}
                       </div>
                     </div>
@@ -145,8 +276,8 @@ export default async function ClientsPage({
                     <div className="flex items-center gap-2 border-t border-[#1D3461]/6 px-4 py-2.5">
                       <PrintRegistrationCardButton
                         client={client}
-                        account={account}
-                        agentName={account?.agent_id ? agentNameById.get(account.agent_id) ?? null : null}
+                        account={acc}
+                        agentName={acc?.agent_id ? agentNameById.get(acc.agent_id) ?? null : null}
                         processedBy={profile?.full_name}
                       />
                       <Link
@@ -161,7 +292,7 @@ export default async function ClientsPage({
                         id={client.id}
                         label="Delete"
                         confirmTitle="Delete this client?"
-                        confirmDescription={`This permanently removes ${client.full_name} and cannot be undone. Clients with existing loans cannot be deleted.`}
+                        confirmDescription={`This permanently removes ${client.full_name} and cannot be undone.`}
                         redirectTo="/clients"
                         triggerClassName="inline-flex items-center gap-1.5 rounded-md border border-[#B3432B]/25 px-3 py-1.5 text-[11.5px] font-medium text-[#963522] transition-colors hover:bg-[#B3432B]/[0.06]"
                       />
@@ -179,18 +310,28 @@ export default async function ClientsPage({
                 <tr className="border-b border-[#1D3461]/8 bg-[#1D3461]/[0.02] text-[11px] uppercase tracking-[0.1em] text-[#0A2240]/45">
                   <th className="px-5 py-3 font-semibold">Client</th>
                   <th className="px-5 py-3 font-semibold">Phone</th>
-                  <th className="px-5 py-3 font-semibold">Account</th>
-                  <th className="px-5 py-3 font-semibold">Town</th>
+                  <th aria-label="Account" className="px-5 py-3 font-semibold">
+                    <TableFilter param="account" label="Account" options={ACCOUNT_OPTIONS} current={account} qs={qs} />
+                  </th>
+                  <th aria-label="Town" className="px-5 py-3 font-semibold">
+                    {townOptions.length > 0 ? (
+                      <TableFilter param="town" label="Town" options={townOptions} current={town} qs={qs} />
+                    ) : (
+                      "Town"
+                    )}
+                  </th>
                   <th className="px-5 py-3 font-semibold">Savings</th>
-                  <th className="px-5 py-3 font-semibold">Status</th>
+                  <th aria-label="Status" className="px-5 py-3 font-semibold">
+                    <TableFilter param="status" label="Status" options={STATUS_OPTIONS} current={status} qs={qs} />
+                  </th>
                   <th className="px-5 py-3 font-semibold">Reg. Date</th>
                   {isAdmin && <th className="px-5 py-3 font-semibold">Actions</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#1D3461]/6">
                 {clients.map((client) => {
-                  const account = accountByClient.get(client.id);
-                  const ProductIcon = account ? PRODUCT_ICON[account.product_type] : null;
+                  const acc = accountByClient.get(client.id);
+                  const ProductIcon = acc ? PRODUCT_ICON[acc.product_type] : null;
                   return (
                     <tr key={client.id} className="transition-colors hover:bg-[#1D3461]/[0.025]">
                       <td className="px-5 py-3.5">
@@ -211,10 +352,10 @@ export default async function ClientsPage({
                       </td>
                       <td className="px-5 py-3.5 text-[#0A2240]/55">{client.phone}</td>
                       <td className="px-5 py-3.5">
-                        {account && ProductIcon ? (
+                        {acc && ProductIcon ? (
                           <span className="inline-flex items-center gap-1.5 text-[#0A2240]/70">
                             <ProductIcon size={14} className="text-[#1D3461]/55" />
-                            {PRODUCT_LABEL[account.product_type]}
+                            {PRODUCT_LABEL[acc.product_type]}
                           </span>
                         ) : (
                           <span className="text-[#0A2240]/35">—</span>
@@ -222,7 +363,7 @@ export default async function ClientsPage({
                       </td>
                       <td className="px-5 py-3.5 text-[#0A2240]/55">{client.town ?? "—"}</td>
                       <td className="px-5 py-3.5 font-medium text-[#0A2240]">
-                        {account ? formatGHC(account.balance) : "—"}
+                        {acc ? formatGHC(acc.balance) : "—"}
                       </td>
                       <td className="px-5 py-3.5">
                         <ClientStatusBadge status={client.status} />
@@ -233,8 +374,8 @@ export default async function ClientsPage({
                           <div className="flex items-center gap-2">
                             <PrintRegistrationCardButton
                               client={client}
-                              account={account}
-                              agentName={account?.agent_id ? agentNameById.get(account.agent_id) ?? null : null}
+                              account={acc}
+                              agentName={acc?.agent_id ? agentNameById.get(acc.agent_id) ?? null : null}
                               processedBy={profile?.full_name}
                             />
                             <Link
@@ -249,7 +390,7 @@ export default async function ClientsPage({
                               id={client.id}
                               label="Delete"
                               confirmTitle="Delete this client?"
-                              confirmDescription={`This permanently removes ${client.full_name} and cannot be undone. Clients with existing loans cannot be deleted.`}
+                              confirmDescription={`This permanently removes ${client.full_name} and cannot be undone.`}
                               redirectTo="/clients"
                               triggerClassName="inline-flex items-center gap-1.5 rounded-md border border-[#B3432B]/25 px-3 py-1.5 text-[11.5px] font-medium text-[#963522] transition-colors hover:bg-[#B3432B]/[0.06]"
                             />
@@ -269,12 +410,7 @@ export default async function ClientsPage({
 }
 
 function initials(name: string) {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase())
-    .join("");
+  return name.split(" ").filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("");
 }
 
 function formatGHC(amount: number) {
@@ -287,9 +423,7 @@ function formatRegDate(iso: string) {
 }
 
 async function getCurrentProfile(supabase: Awaited<ReturnType<typeof createClient>>) {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { data: null };
   return supabase.from("profiles").select("*").eq("id", user.id).single<Profile>();
 }
