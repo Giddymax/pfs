@@ -80,13 +80,14 @@ export default async function OverviewPage() {
 
   // Cash position
   const accountBalance = reconResult.data?.total ?? round2(combined);
-  const cashAtBank = round2(
+  const rawCashAtBank = round2(
     (bankTxnRows ?? []).reduce((s, t) => {
       const amt = Number((t as { type: string; amount: number }).amount ?? 0);
       return (t as { type: string; amount: number }).type === "deposit" ? s + amt : s - amt;
     }, 0)
   );
-  const cashAtHand = round2(accountBalance - cashAtBank);
+  const cashAtBank = Math.min(rawCashAtBank, accountBalance);
+  const cashAtHand = Math.max(round2(accountBalance - rawCashAtBank), 0);
 
   const recentLoans = loans ?? [];
 

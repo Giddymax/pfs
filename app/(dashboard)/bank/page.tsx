@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { BankDepositButton, BankWithdrawalButton } from "@/components/record-bank-transaction-button";
 import { Card, PageHeader } from "@/components/ui";
 import { formatGHS } from "@/lib/loan";
@@ -52,15 +53,37 @@ export default async function BankPage() {
     .rpc("compute_reconciliation")
     .single<Reconciliation>();
 
-  const rows = txns ?? [];
+  let rows = txns ?? [];
 
   // cash_at_bank = sum of deposits − sum of withdrawals
-  const cashAtBank = rows.reduce((acc, t) => {
+  let cashAtBank = rows.reduce((acc, t) => {
     return t.type === "deposit" ? acc + t.amount : acc - t.amount;
   }, 0);
 
   const reconTotal = recon?.total ?? 0;
-  const cashAtHand = reconTotal - cashAtBank;
+
+  // Auto-correct: if cash at bank exceeds total funds, insert a bank withdrawal for the excess
+  if (cashAtBank > reconTotal && reconTotal >= 0) {
+    const excess = Math.round((cashAtBank - reconTotal) * 100) / 100;
+    const admin = createAdminClient();
+    const { data: inserted } = await admin
+      .from("bank_transactions")
+      .insert({
+        type: "withdrawal",
+        amount: excess,
+        description: "Auto-adjustment: account balance dropped below cash at bank",
+        recorded_by: user.id,
+      })
+      .select("*, recorder:recorded_by(full_name)")
+      .single<BankTxn>();
+
+    if (inserted) {
+      rows = [inserted, ...rows];
+      cashAtBank = reconTotal;
+    }
+  }
+
+  const cashAtHand = Math.max(reconTotal - cashAtBank, 0);
 
   return (
     <div>

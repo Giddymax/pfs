@@ -162,7 +162,7 @@ export function Sidebar({ profile }: { profile: Profile }) {
         brandFont.variable,
         navFont.variable,
         acctFont.variable,
-        "sidebar-aurora hidden w-64 shrink-0 flex-col text-[#FFFFFF] lg:flex"
+        "sidebar-aurora hidden h-screen w-64 shrink-0 flex-col text-[#FFFFFF] lg:sticky lg:top-0 lg:flex"
       )}
     >
       <div className="flex items-center gap-3 px-6 py-7">
