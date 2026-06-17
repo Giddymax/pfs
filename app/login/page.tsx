@@ -244,6 +244,13 @@ function BrandPanel() {
         aria-hidden="true"
         className="pointer-events-none absolute bottom-[30%] left-[10%] h-[140px] w-auto rotate-[-18deg] opacity-15 blur-[0.5px]"
       />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/images/notes/cedi-200.png"
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none absolute top-[55%] right-[30%] h-[150px] w-auto rotate-[8deg] opacity-20 blur-[0.5px]"
+      />
 
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.05] mix-blend-overlay"
@@ -295,7 +302,7 @@ function BrandPanel() {
 
       {/* bottom: tagline */}
       <p className="relative z-10 text-[12px] tracking-[0.1em] text-[#FFFFFF]/40">
-        Trusted by communities across Ghana
+        Trusted by all clients
       </p>
     </div>
   );
