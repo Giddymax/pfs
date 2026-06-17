@@ -21,6 +21,19 @@ export function SusuContributionForm({ accountId, dailyAmount }: { accountId: st
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Detect when single-mode amount is an exact positive multiple of the daily amount
+  const amountNum = Number(amount);
+  const multiDayCount =
+    mode === "single" &&
+    dailyAmount &&
+    dailyAmount > 0 &&
+    amountNum > 0 &&
+    Number.isFinite(amountNum) &&
+    amountNum % dailyAmount === 0 &&
+    amountNum / dailyAmount > 1
+      ? Math.round(amountNum / dailyAmount)
+      : null;
+
   function reset() {
     setMode("single");
     setAmount(dailyAmount ? String(dailyAmount) : "");
@@ -45,7 +58,6 @@ export function SusuContributionForm({ accountId, dailyAmount }: { accountId: st
     setError(null);
 
     if (mode === "single") {
-      const amountNum = Number(amount);
       if (!amountNum || amountNum <= 0) {
         setError("Enter an amount greater than zero.");
         return;
@@ -53,13 +65,29 @@ export function SusuContributionForm({ accountId, dailyAmount }: { accountId: st
 
       setSubmitting(true);
       try {
-        const res = await fetch("/api/susu/payment", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ account_id: accountId, amount: amountNum }),
-        });
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.error ?? "Could not record this contribution. Try again.");
+        if (multiDayCount !== null && dailyAmount) {
+          // Split into N entries of dailyAmount, routed through the batch endpoint.
+          // The batch route sends an SMS to the client and company automatically.
+          const entries = Array.from({ length: multiDayCount }, () => ({
+            amount: dailyAmount,
+            payment_date: null,
+          }));
+          const res = await fetch("/api/susu/batch", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ account_id: accountId, entries, multi_day_payment: true }),
+          });
+          const json = await res.json();
+          if (!res.ok) throw new Error(json.error ?? "Could not record this contribution. Try again.");
+        } else {
+          const res = await fetch("/api/susu/payment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ account_id: accountId, amount: amountNum }),
+          });
+          const json = await res.json();
+          if (!res.ok) throw new Error(json.error ?? "Could not record this contribution. Try again.");
+        }
 
         setOpen(false);
         reset();
@@ -105,9 +133,17 @@ export function SusuContributionForm({ accountId, dailyAmount }: { accountId: st
     }
   }
 
+  const submitLabel = (() => {
+    if (submitting) return "Saving…";
+    if (mode === "batch") return "Save batch";
+    if (multiDayCount !== null) return `Save ${multiDayCount} contributions`;
+    return "Save contribution";
+  })();
+
   return (
     <>
       <button
+        type="button"
         onClick={() => setOpen(true)}
         className="inline-flex items-center gap-2 rounded-md bg-[#1F6E4A] px-4 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-[#195C3D]"
       >
@@ -125,7 +161,12 @@ export function SusuContributionForm({ accountId, dailyAmount }: { accountId: st
                   Single-day entries post immediately; use batch mode to catch up several missed days at once.
                 </p>
               </div>
-              <button onClick={() => setOpen(false)} className="text-[#0A2240]/35 hover:text-[#0A2240]">
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={() => { setOpen(false); reset(); }}
+                className="text-[#0A2240]/35 hover:text-[#0A2240]"
+              >
                 <X size={18} />
               </button>
             </div>
@@ -156,18 +197,28 @@ export function SusuContributionForm({ accountId, dailyAmount }: { accountId: st
               )}
 
               {mode === "single" ? (
-                <label className="block">
-                  <span className="mb-1.5 block text-[12.5px] font-medium text-[#0033AA]/75">Amount (GHS)</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    autoFocus
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    className="w-full rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
-                  />
-                </label>
+                <div className="space-y-3">
+                  <label className="block">
+                    <span className="mb-1.5 block text-[12.5px] font-medium text-[#0033AA]/75">Amount (GHS)</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      autoFocus
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      className="w-full rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
+                    />
+                  </label>
+
+                  {/* Informational notice when the amount covers multiple days */}
+                  {multiDayCount !== null && dailyAmount && (
+                    <div className="rounded-lg border border-[#0033AA]/20 bg-[#0033AA]/[0.05] px-4 py-3 text-[12.5px] text-[#0033AA]/80">
+                      GHS {amountNum.toFixed(2)} = <strong>{multiDayCount} days</strong> × GHS {dailyAmount.toFixed(2)}/day.
+                      This will be recorded as <strong>{multiDayCount} separate contributions</strong> and an SMS will be sent to the client and company.
+                    </div>
+                  )}
+                </div>
               ) : (
                 <div className="space-y-2.5">
                   <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
@@ -179,12 +230,14 @@ export function SusuContributionForm({ accountId, dailyAmount }: { accountId: st
                           min="0"
                           step="0.01"
                           placeholder="Amount"
+                          aria-label={`Amount for day ${index + 1}`}
                           value={row.amount}
                           onChange={(e) => updateRow(index, { amount: e.target.value })}
                           className="w-28 rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3 py-2 text-[13.5px] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
                         />
                         <input
                           type="date"
+                          aria-label={`Payment date for day ${index + 1}`}
                           value={row.payment_date}
                           onChange={(e) => updateRow(index, { payment_date: e.target.value })}
                           className="flex-1 rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3 py-2 text-[13.5px] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
@@ -213,7 +266,11 @@ export function SusuContributionForm({ accountId, dailyAmount }: { accountId: st
               )}
 
               <div className="flex justify-end gap-2.5 pt-1">
-                <button type="button" onClick={() => setOpen(false)} className="rounded-md px-4 py-2 text-[13px] font-medium text-[#0A2240]/55 hover:text-[#0A2240]">
+                <button
+                  type="button"
+                  onClick={() => { setOpen(false); reset(); }}
+                  className="rounded-md px-4 py-2 text-[13px] font-medium text-[#0A2240]/55 hover:text-[#0A2240]"
+                >
                   Cancel
                 </button>
                 <button
@@ -222,7 +279,7 @@ export function SusuContributionForm({ accountId, dailyAmount }: { accountId: st
                   className="inline-flex items-center gap-2 rounded-md bg-[#1F6E4A] px-5 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[#195C3D] disabled:opacity-60"
                 >
                   {submitting && <Loader2 size={14} className="animate-spin" />}
-                  {submitting ? "Saving…" : mode === "single" ? "Save contribution" : "Save batch"}
+                  {submitLabel}
                 </button>
               </div>
             </form>

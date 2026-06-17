@@ -16,6 +16,9 @@ export const smsTemplates = {
   susuBatchRecorded: (clientName: string, entryCount: number, totalAmount: number) =>
     `DEPOSIT: ${clientName}, ${entryCount} susu contributions totalling ${formatGHS(totalAmount)} recorded.`,
 
+  susuMultiDayPayment: (clientName: string, days: number, amountPerDay: number, total: number) =>
+    `DEPOSIT: ${clientName}, ${formatGHS(total)} susu received, covering ${days} days (${days} × ${formatGHS(amountPerDay)}). Thank you.`,
+
   susuWithdrawalRecorded: (clientName: string, amount: number, balanceAfter: number) =>
     `WITHDRAWAL: ${clientName}, susu ${formatGHS(amount)} paid out. Bal: ${formatGHS(balanceAfter)}.`,
 

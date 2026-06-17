@@ -22,6 +22,7 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const accountId = body?.account_id;
   const rawEntries = Array.isArray(body?.entries) ? body.entries : null;
+  const isMultiDayPayment: boolean = body?.multi_day_payment === true;
 
   if (!accountId || typeof accountId !== "string") {
     return NextResponse.json({ error: "account_id is required" }, { status: 400 });
@@ -54,11 +55,16 @@ export async function POST(request: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
   const payments = data as SusuPayment[];
-  await notifyBatch(supabase, accountId, payments);
+  await notifyBatch(supabase, accountId, payments, isMultiDayPayment);
   return NextResponse.json({ payments });
 }
 
-async function notifyBatch(supabase: Awaited<ReturnType<typeof createClient>>, accountId: string, payments: SusuPayment[]) {
+async function notifyBatch(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  accountId: string,
+  payments: SusuPayment[],
+  isMultiDayPayment: boolean,
+) {
   if (payments.length === 0) return;
 
   const { data: account } = await supabase.from("accounts").select("client_id").eq("id", accountId).single<{ client_id: string }>();
@@ -69,13 +75,19 @@ async function notifyBatch(supabase: Awaited<ReturnType<typeof createClient>>, a
 
   const settings = await getSettings();
   const total = payments.reduce((sum, p) => sum + p.amount, 0);
-  const msg = smsTemplates.susuBatchRecorded(client.full_name, payments.length, total);
+
+  // Multi-day single payments get a more descriptive message than manual batch catch-ups
+  const msg = isMultiDayPayment
+    ? smsTemplates.susuMultiDayPayment(client.full_name, payments.length, payments[0].amount, total)
+    : smsTemplates.susuBatchRecorded(client.full_name, payments.length, total);
+
+  const event = isMultiDayPayment ? "susu_multi_day_payment" : "susu_batch_recorded";
 
   if (shouldSendClientSms("susu", client, settings)) {
-    await sendSms({ to: client.phone, message: msg, event: "susu_batch_recorded", recipientType: "client", relatedClientId: client.id });
+    await sendSms({ to: client.phone, message: msg, event, recipientType: "client", relatedClientId: client.id });
   }
 
   if (shouldSendAdminSms(settings)) {
-    await sendSms({ to: settings.sms.company_tel!, message: msg, event: "susu_batch_recorded_admin", recipientType: "admin", relatedClientId: client.id });
+    await sendSms({ to: settings.sms.company_tel!, message: msg, event: `${event}_admin`, recipientType: "admin", relatedClientId: client.id });
   }
 }
