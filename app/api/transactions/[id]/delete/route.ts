@@ -30,14 +30,21 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
 
   if (!txn) return NextResponse.json({ error: "Transaction not found" }, { status: 404 });
 
-  // Find any linked susu_payment before deleting the transaction
+  // Delete linked susu_payment BEFORE the transaction (FK constraint)
   const { data: linkedPayment } = await admin
     .from("susu_payments")
     .select("id, cycle_id")
     .eq("transaction_id", txnId)
     .maybeSingle<{ id: string; cycle_id: string }>();
 
-  // Delete the transaction
+  if (linkedPayment) {
+    await admin
+      .from("susu_payments")
+      .delete()
+      .eq("id", linkedPayment.id);
+  }
+
+  // Now safe to delete the transaction
   const { error: deleteError } = await admin
     .from("transactions")
     .delete()
@@ -45,14 +52,8 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
 
   if (deleteError) return NextResponse.json({ error: deleteError.message }, { status: 400 });
 
-  // Clean up linked susu data so cycle progress, dashboard totals, and reconciliation stay accurate
+  // Recalculate the cycle from remaining payments
   if (linkedPayment) {
-    await admin
-      .from("susu_payments")
-      .delete()
-      .eq("id", linkedPayment.id);
-
-    // Recalculate the cycle from remaining payments
     const { data: remaining } = await admin
       .from("susu_payments")
       .select("amount, day_in_cycle")
@@ -61,7 +62,6 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     const payments = remaining ?? [];
 
     if (payments.length === 0) {
-      // No payments left — delete any claims tied to this cycle, then delete the cycle
       await admin
         .from("susu_claims")
         .delete()

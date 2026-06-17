@@ -80,21 +80,17 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
     activeCycle && !claims.some((c) => c.cycle_id === activeCycle.id && c.claim_type === "emergency" && c.status !== "rejected")
       ? activeCycle
       : null;
-  // Qualified when a complete unclaimed cycle exists, or the client has finished their 30 days
-  const hasDeposits = allTransactions.some((t) => t.type === "deposit" && !t.reversed_at);
-  const isQualifiedToWithdraw = hasDeposits && (normalCycle !== null || clientDayInCycle >= CLIENT_DAYS);
+  // Qualified only when a complete unclaimed cycle exists (full 31-day cycle finished)
+  const isQualifiedToWithdraw = account.balance > 0 && normalCycle !== null;
 
-  // Susu KPI values — grounded in actual non-reversed deposits so deleted transactions zero out correctly
+  // Susu KPI values — grounded in the live account balance so deletions always reflect correctly
   const daily = account.daily_contribution_amount ?? 0;
-  const depositTotal = allTransactions
-    .filter((t) => t.type === "deposit" && !t.reversed_at)
-    .reduce((sum, t) => sum + t.amount, 0);
-  const companyFeeAmount = depositTotal > 0 ? daily : 0;
-  const clientCycleBalance = depositTotal <= 0
-    ? 0
-    : normalCycle
-      ? Math.max(normalCycle.total_collected - (normalCycle.company_fee ?? daily), 0)
-      : clientDayInCycle * daily;
+  const companyFeeAmount = normalCycle
+    ? (normalCycle.company_fee ?? daily)
+    : account.balance >= daily ? daily : 0;
+  const clientCycleBalance = normalCycle
+    ? Math.max(normalCycle.total_collected - (normalCycle.company_fee ?? daily), 0)
+    : Math.max(account.balance - companyFeeAmount, 0);
 
   return (
     <div>

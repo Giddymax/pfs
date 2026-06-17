@@ -29,15 +29,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
 
   if (!account) return NextResponse.json({ error: "Account not found" }, { status: 404 });
 
-  const { error: deleteError } = await admin
-    .from("transactions")
-    .delete()
-    .eq("account_id", accountId);
-
-  if (deleteError) return NextResponse.json({ error: deleteError.message }, { status: 400 });
-
-  // Clear susu-related data so cycle cards and claims also reset
-  // Delete in dependency order: payments & claims first (they reference cycles), then cycles
+  // Delete in FK dependency order: susu_payments → susu_claims → transactions → susu_cycles
   const [{ error: paymentsErr }, { error: claimsErr }] = await Promise.all([
     admin.from("susu_payments").delete().eq("account_id", accountId),
     admin.from("susu_claims").delete().eq("account_id", accountId),
@@ -45,6 +37,13 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
 
   if (paymentsErr) return NextResponse.json({ error: paymentsErr.message }, { status: 400 });
   if (claimsErr) return NextResponse.json({ error: claimsErr.message }, { status: 400 });
+
+  const { error: deleteError } = await admin
+    .from("transactions")
+    .delete()
+    .eq("account_id", accountId);
+
+  if (deleteError) return NextResponse.json({ error: deleteError.message }, { status: 400 });
 
   const { error: cyclesErr } = await admin
     .from("susu_cycles")
