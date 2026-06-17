@@ -218,35 +218,35 @@ function BrandPanel() {
       {/* Currency note images */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/images/notes/cedi-50.png"
+        src="/images/notes/cedi-50.png.jpg"
         alt=""
         aria-hidden="true"
         className="pointer-events-none absolute -right-10 top-[12%] h-[180px] w-auto rotate-[15deg] opacity-25 blur-[1px]"
       />
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/images/notes/cedi-20.png"
+        src="/images/notes/cedi-20.png.webp"
         alt=""
         aria-hidden="true"
         className="pointer-events-none absolute -left-6 top-[38%] h-[160px] w-auto -rotate-[10deg] opacity-20 blur-[0.5px]"
       />
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/images/notes/cedi-100.png"
+        src="/images/notes/cedi-100.png.jpg"
         alt=""
         aria-hidden="true"
         className="pointer-events-none absolute bottom-[8%] right-[5%] h-[170px] w-auto rotate-[22deg] opacity-20 blur-[1px]"
       />
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/images/notes/cedi-10.png"
+        src="/images/notes/cedi-10.png.jpg"
         alt=""
         aria-hidden="true"
         className="pointer-events-none absolute bottom-[30%] left-[10%] h-[140px] w-auto rotate-[-18deg] opacity-15 blur-[0.5px]"
       />
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/images/notes/cedi-200.png"
+        src="/images/notes/cedi-200.png.jpg"
         alt=""
         aria-hidden="true"
         className="pointer-events-none absolute top-[55%] right-[30%] h-[150px] w-auto rotate-[8deg] opacity-20 blur-[0.5px]"
