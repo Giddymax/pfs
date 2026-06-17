@@ -3,6 +3,7 @@ import { Plus, Search, Lock, PiggyBank, Coins, Pencil, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { PrintRegistrationCardButton } from "@/components/print-registration-card";
+import { ClientPrintHistoryButton } from "@/components/client-print-history-button";
 import { ClientExcelButtons } from "@/components/client-excel-buttons";
 import { TableFilter, type FilterOption } from "@/components/table-filter";
 import { PageHeader, ClientStatusBadge, EmptyState } from "@/components/ui";
@@ -272,32 +273,40 @@ export default async function ClientsPage({
                       </div>
                     </div>
                   </Link>
-                  {isAdmin && (
-                    <div className="flex items-center gap-2 border-t border-[#1D3461]/6 px-4 py-2.5">
-                      <PrintRegistrationCardButton
-                        client={client}
-                        account={acc}
-                        agentName={acc?.agent_id ? agentNameById.get(acc.agent_id) ?? null : null}
-                        processedBy={profile?.full_name}
-                      />
-                      <Link
-                        href={`/clients/${client.id}/edit`}
-                        className="inline-flex items-center gap-1.5 rounded-md border border-[#1D3461]/20 px-3 py-1.5 text-[11.5px] font-medium text-[#1D3461] transition-colors hover:bg-[#1D3461]/5"
-                      >
-                        <Pencil size={12} />
-                        Edit
-                      </Link>
-                      <ConfirmDeleteButton
-                        table="clients"
-                        id={client.id}
-                        label="Delete"
-                        confirmTitle="Delete this client?"
-                        confirmDescription={`This permanently removes ${client.full_name} and cannot be undone.`}
-                        redirectTo="/clients"
-                        triggerClassName="inline-flex items-center gap-1.5 rounded-md border border-[#B3432B]/25 px-3 py-1.5 text-[11.5px] font-medium text-[#963522] transition-colors hover:bg-[#B3432B]/[0.06]"
-                      />
-                    </div>
-                  )}
+                  <div className="flex flex-wrap items-center gap-2 border-t border-[#1D3461]/6 px-4 py-2.5">
+                    <ClientPrintHistoryButton
+                      client={client}
+                      accountNumber={acc?.account_number}
+                      accountBalance={acc?.balance}
+                      printedBy={profile?.full_name}
+                    />
+                    {isAdmin && (
+                      <>
+                        <PrintRegistrationCardButton
+                          client={client}
+                          account={acc}
+                          agentName={acc?.agent_id ? agentNameById.get(acc.agent_id) ?? null : null}
+                          processedBy={profile?.full_name}
+                        />
+                        <Link
+                          href={`/clients/${client.id}/edit`}
+                          className="inline-flex items-center gap-1.5 rounded-md border border-[#1D3461]/20 px-3 py-1.5 text-[11.5px] font-medium text-[#1D3461] transition-colors hover:bg-[#1D3461]/5"
+                        >
+                          <Pencil size={12} />
+                          Edit
+                        </Link>
+                        <ConfirmDeleteButton
+                          table="clients"
+                          id={client.id}
+                          label="Delete"
+                          confirmTitle="Delete this client?"
+                          confirmDescription={`This permanently removes ${client.full_name} and cannot be undone.`}
+                          redirectTo="/clients"
+                          triggerClassName="inline-flex items-center gap-1.5 rounded-md border border-[#B3432B]/25 px-3 py-1.5 text-[11.5px] font-medium text-[#963522] transition-colors hover:bg-[#B3432B]/[0.06]"
+                        />
+                      </>
+                    )}
+                  </div>
                 </li>
               );
             })}
@@ -325,7 +334,7 @@ export default async function ClientsPage({
                     <TableFilter param="status" label="Status" options={STATUS_OPTIONS} current={status} qs={qs} />
                   </th>
                   <th className="px-5 py-3 font-semibold">Reg. Date</th>
-                  {isAdmin && <th className="px-5 py-3 font-semibold">Actions</th>}
+                  <th className="px-5 py-3 font-semibold">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#1D3461]/6">
@@ -369,34 +378,42 @@ export default async function ClientsPage({
                         <ClientStatusBadge status={client.status} />
                       </td>
                       <td className="px-5 py-3.5 text-[#0A2240]/55">{formatRegDate(client.created_at)}</td>
-                      {isAdmin && (
-                        <td className="px-5 py-3.5">
-                          <div className="flex items-center gap-2">
-                            <PrintRegistrationCardButton
-                              client={client}
-                              account={acc}
-                              agentName={acc?.agent_id ? agentNameById.get(acc.agent_id) ?? null : null}
-                              processedBy={profile?.full_name}
-                            />
-                            <Link
-                              href={`/clients/${client.id}/edit`}
-                              className="inline-flex items-center gap-1.5 rounded-md border border-[#1D3461]/20 px-3 py-1.5 text-[11.5px] font-medium text-[#1D3461] transition-colors hover:bg-[#1D3461]/5"
-                            >
-                              <Pencil size={12} />
-                              Edit
-                            </Link>
-                            <ConfirmDeleteButton
-                              table="clients"
-                              id={client.id}
-                              label="Delete"
-                              confirmTitle="Delete this client?"
-                              confirmDescription={`This permanently removes ${client.full_name} and cannot be undone.`}
-                              redirectTo="/clients"
-                              triggerClassName="inline-flex items-center gap-1.5 rounded-md border border-[#B3432B]/25 px-3 py-1.5 text-[11.5px] font-medium text-[#963522] transition-colors hover:bg-[#B3432B]/[0.06]"
-                            />
-                          </div>
-                        </td>
-                      )}
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-2">
+                          <ClientPrintHistoryButton
+                            client={client}
+                            accountNumber={acc?.account_number}
+                            accountBalance={acc?.balance}
+                            printedBy={profile?.full_name}
+                          />
+                          {isAdmin && (
+                            <>
+                              <PrintRegistrationCardButton
+                                client={client}
+                                account={acc}
+                                agentName={acc?.agent_id ? agentNameById.get(acc.agent_id) ?? null : null}
+                                processedBy={profile?.full_name}
+                              />
+                              <Link
+                                href={`/clients/${client.id}/edit`}
+                                className="inline-flex items-center gap-1.5 rounded-md border border-[#1D3461]/20 px-3 py-1.5 text-[11.5px] font-medium text-[#1D3461] transition-colors hover:bg-[#1D3461]/5"
+                              >
+                                <Pencil size={12} />
+                                Edit
+                              </Link>
+                              <ConfirmDeleteButton
+                                table="clients"
+                                id={client.id}
+                                label="Delete"
+                                confirmTitle="Delete this client?"
+                                confirmDescription={`This permanently removes ${client.full_name} and cannot be undone.`}
+                                redirectTo="/clients"
+                                triggerClassName="inline-flex items-center gap-1.5 rounded-md border border-[#B3432B]/25 px-3 py-1.5 text-[11.5px] font-medium text-[#963522] transition-colors hover:bg-[#B3432B]/[0.06]"
+                              />
+                            </>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}

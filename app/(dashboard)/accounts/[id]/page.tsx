@@ -12,6 +12,7 @@ import { SusuWithdrawalForm } from "@/components/susu-withdrawal-form";
 import { SusuClaimRequestButton } from "@/components/susu-claim-request-button";
 import { SusuClaimActions } from "@/components/susu-claim-actions";
 import { ResetSusuButton } from "@/components/reset-susu-button";
+import { ClearTransactionsButton } from "@/components/clear-transactions-button";
 import { formatGHS } from "@/lib/loan";
 import type { Account, Client, CommissionTier, Profile, SusuClaim, SusuCycle, SusuPayment, Transaction } from "@/lib/types";
 
@@ -113,6 +114,7 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
                 )
               )}
               {isAdmin && account.product_type !== "fixed_deposit" && <RecalculateAccountButton accountId={account.id} />}
+              {isAdmin && <ClearTransactionsButton accountId={account.id} />}
               <PrintTransactionHistoryButton
                 client={account.client}
                 transactions={txnsWithAccount}

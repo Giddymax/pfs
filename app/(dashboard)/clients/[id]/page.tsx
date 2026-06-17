@@ -56,6 +56,11 @@ export default async function ClientDetailPage({
               <Plus size={13} />
               Issue loan
             </Link>
+            <PrintTransactionHistoryButton
+              client={client}
+              transactions={transactions ?? []}
+              printedBy={profile?.full_name}
+            />
             {isAdmin && (
               <>
                 <PrintRegistrationCardButton
@@ -63,11 +68,6 @@ export default async function ClientDetailPage({
                   account={account}
                   agentName={agentName}
                   processedBy={profile?.full_name}
-                />
-                <PrintTransactionHistoryButton
-                  client={client}
-                  transactions={transactions ?? []}
-                  printedBy={profile?.full_name}
                 />
                 <Link
                   href={`/clients/${client.id}/edit`}
