@@ -36,19 +36,29 @@ export function StatCard({
   value,
   hint,
   icon,
+  highlight = false,
 }: {
   label: string;
   value: string;
   hint?: string;
   icon?: React.ReactNode;
+  highlight?: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-[#0033AA]/8 bg-white px-5 py-4 shadow-sm">
+    <div className={clsx(
+      "rounded-xl border px-5 py-4 shadow-sm",
+      highlight ? "border-[#1F6E4A]/25 bg-[#1F6E4A]/[0.04]" : "border-[#0033AA]/8 bg-white"
+    )}>
       <div className="mb-3 flex items-center justify-between">
         <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-[#0A2240]/45">{label}</p>
-        {icon && <span className="text-[#0062E1]">{icon}</span>}
+        {icon && (
+          <span className={highlight ? "text-[#1F6E4A]" : "text-[#0062E1]"}>{icon}</span>
+        )}
       </div>
-      <p className="text-[1.6rem] font-semibold tracking-tight text-[#0033AA]">{value}</p>
+      <p className={clsx(
+        "text-[1.6rem] font-semibold tracking-tight",
+        highlight ? "text-[#1F6E4A]" : "text-[#0033AA]"
+      )}>{value}</p>
       {hint && <p className="mt-1 text-[12px] text-[#0A2240]/45">{hint}</p>}
     </div>
   );

@@ -4,7 +4,15 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowUpFromLine, Loader2, X } from "lucide-react";
 
-export function SusuWithdrawalForm({ accountId, availableBalance }: { accountId: string; availableBalance: number }) {
+export function SusuWithdrawalForm({
+  accountId,
+  availableBalance,
+  isQualified = false,
+}: {
+  accountId: string;
+  availableBalance: number;
+  isQualified?: boolean;
+}) {
   const router = useRouter();
 
   const [open, setOpen] = useState(false);
@@ -49,11 +57,16 @@ export function SusuWithdrawalForm({ accountId, availableBalance }: { accountId:
   return (
     <>
       <button
+        type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 rounded-md bg-[#B3432B] px-4 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-[#963522]"
+        className={`inline-flex items-center gap-2 rounded-md px-4 py-2.5 text-[13px] font-semibold text-white transition-colors ${
+          isQualified
+            ? "bg-[#1F6E4A] hover:bg-[#195C3D]"
+            : "bg-[#B3432B] hover:bg-[#963522]"
+        }`}
       >
         <ArrowUpFromLine size={15} />
-        Partial withdrawal
+        {isQualified ? "Qualified to withdraw" : "Partial withdrawal"}
       </button>
 
       {open && (
@@ -61,12 +74,16 @@ export function SusuWithdrawalForm({ accountId, availableBalance }: { accountId:
           <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl max-h-[90dvh] overflow-y-auto">
             <div className="mb-5 flex items-start justify-between">
               <div>
-                <h3 className="text-[15px] font-semibold text-[#0033AA]">Partial susu withdrawal</h3>
+                <h3 className="text-[15px] font-semibold text-[#0033AA]">
+                  {isQualified ? "Qualified withdrawal" : "Partial susu withdrawal"}
+                </h3>
                 <p className="mt-0.5 text-[12.5px] text-[#0A2240]/45">
-                  Drawn against the account&rsquo;s available balance — independent of any cycle claim, and exempt from commission.
+                  {isQualified
+                    ? "The 30-day cycle is complete. Drawn against the available balance — exempt from commission."
+                    : "Drawn against the account's available balance — independent of any cycle claim, and exempt from commission."}
                 </p>
               </div>
-              <button onClick={() => setOpen(false)} className="text-[#0A2240]/35 hover:text-[#0A2240]">
+              <button type="button" aria-label="Close" onClick={() => setOpen(false)} className="text-[#0A2240]/35 hover:text-[#0A2240]">
                 <X size={18} />
               </button>
             </div>

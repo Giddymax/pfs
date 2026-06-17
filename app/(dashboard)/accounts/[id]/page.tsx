@@ -64,7 +64,13 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
   }
 
   const activeCycle = cycles.find((c) => c.status === "in_progress") ?? null;
-  const dayInCycle = activeCycle ? payments.find((p) => p.cycle_id === activeCycle.id)?.day_in_cycle ?? 0 : 0;
+  // Max day recorded in the active cycle (payments ordered desc by day_in_cycle)
+  const dayInCycle = activeCycle
+    ? Math.max(0, ...payments.filter((p) => p.cycle_id === activeCycle.id).map((p) => p.day_in_cycle))
+    : 0;
+  // Client contributes 30 days; day 31 is the company fee — cap display at 30
+  const CLIENT_DAYS = 30;
+  const clientDayInCycle = Math.min(dayInCycle, CLIENT_DAYS);
   const liveClaimStatuses: SusuClaim["status"][] = ["pending_admin", "approved"];
   const claimedCycleIds = new Set(claims.filter((c) => liveClaimStatuses.includes(c.status) || c.status === "paid").map((c) => c.cycle_id));
   const normalCycle = cycles.find((c) => c.status === "complete" && !claimedCycleIds.has(c.id)) ?? null;
@@ -72,6 +78,15 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
     activeCycle && !claims.some((c) => c.cycle_id === activeCycle.id && c.claim_type === "emergency" && c.status !== "rejected")
       ? activeCycle
       : null;
+  // Qualified when a complete unclaimed cycle exists, or the client has finished their 30 days
+  const isQualifiedToWithdraw = normalCycle !== null || clientDayInCycle >= CLIENT_DAYS;
+
+  // Susu KPI values
+  const daily = account.daily_contribution_amount ?? 0;
+  const companyFeeAmount = daily; // 1 day's contribution is always the company fee
+  const clientCycleBalance = normalCycle
+    ? Math.max(normalCycle.total_collected - (normalCycle.company_fee ?? companyFeeAmount), 0)
+    : clientDayInCycle * daily;
 
   return (
     <div>
@@ -86,7 +101,7 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
                 isSusu ? (
                   <>
                     <SusuContributionForm accountId={account.id} dailyAmount={account.daily_contribution_amount} />
-                    <SusuWithdrawalForm accountId={account.id} availableBalance={account.balance} />
+                    <SusuWithdrawalForm accountId={account.id} availableBalance={account.balance} isQualified={isQualifiedToWithdraw} />
                     <SusuClaimRequestButton accountId={account.id} normalCycle={normalCycle} emergencyCycle={emergencyCycle} />
                     {isAdmin && <ResetSusuButton accountId={account.id} />}
                   </>
@@ -117,6 +132,22 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
         <StatCard label="Commission paid" value={formatGHS(account.comm)} icon={<ReceiptText size={16} />} />
       </div>
 
+      {isSusu && (activeCycle || normalCycle) && (
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <StatCard
+            label="Client cycle balance"
+            value={formatGHS(clientCycleBalance)}
+            icon={<PiggyBank size={16} />}
+            highlight={isQualifiedToWithdraw}
+          />
+          <StatCard
+            label="Company fee (cycle)"
+            value={formatGHS(companyFeeAmount)}
+            icon={<ReceiptText size={16} />}
+          />
+        </div>
+      )}
+
       {isSusu && (
         <Card className="mb-6">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#0033AA]/8 px-5 py-4">
@@ -126,7 +157,15 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
             </div>
             {activeCycle && (
               <span className="text-[12.5px] text-[#0A2240]/50">
-                Cycle {activeCycle.cycle_number} · day {dayInCycle} of 31 · {formatGHS(activeCycle.total_collected)} collected so far
+                Cycle {activeCycle.cycle_number} · day {clientDayInCycle} of {CLIENT_DAYS}
+                {clientDayInCycle >= CLIENT_DAYS
+                  ? " · complete"
+                  : ` · ${formatGHS(activeCycle.total_collected)} collected`}
+              </span>
+            )}
+            {normalCycle && !activeCycle && (
+              <span className="rounded-full border border-[#1F6E4A]/25 bg-[#1F6E4A]/10 px-2.5 py-1 text-[11.5px] font-semibold text-[#1F6E4A]">
+                Qualified to withdraw
               </span>
             )}
           </div>
@@ -137,11 +176,13 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
                 <div className="mb-1.5 h-2.5 w-full overflow-hidden rounded-full bg-[#0033AA]/8">
                   <div
                     className="susu-cycle-bar h-full rounded-full bg-[#0033AA] transition-[width]"
-                    style={{ "--bar-width": `${Math.min((dayInCycle / 31) * 100, 100)}%` } as React.CSSProperties}
+                    style={{ "--bar-width": `${Math.min((clientDayInCycle / CLIENT_DAYS) * 100, 100)}%` } as React.CSSProperties}
                   />
                 </div>
                 <p className="text-[12px] text-[#0A2240]/45">
-                  Day 31 is retained as the company fee; the next cycle opens automatically once it posts.
+                  {clientDayInCycle >= CLIENT_DAYS
+                    ? "All 30 client days are complete. The company fee is retained automatically."
+                    : `${CLIENT_DAYS - clientDayInCycle} day${CLIENT_DAYS - clientDayInCycle === 1 ? "" : "s"} remaining · company fee (1 day) is retained when the cycle closes.`}
                 </p>
               </div>
             ) : (
