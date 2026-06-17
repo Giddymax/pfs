@@ -57,6 +57,12 @@ export const smsTemplates = {
       cashInterestPaid > 0 ? ` Interest of ${formatGHS(cashInterestPaid)} paid in cash.` : " Interest capitalised into new principal."
     }`,
 
-  adminEmergencyClaimAlert: (clientName: string, amount: number) =>
-    `${clientName} requested an emergency susu claim of ${formatGHS(amount)}. Review for approval.`,
+  adminEmergencyClaimAlert: (clientName: string, amount: number, reason?: string) =>
+    `${clientName} requested an emergency susu claim of ${formatGHS(amount)}.${reason ? ` Reason: ${reason}.` : ""} Review for approval.`,
+
+  susuEmergencyWithdrawal: (clientName: string, payout: number, companyFee: number, balanceAfter: number) =>
+    `EMERGENCY WITHDRAWAL: ${clientName}, ${formatGHS(payout)} paid out (company fee ${formatGHS(companyFee)} deducted). Bal: ${formatGHS(balanceAfter)}.`,
+
+  susuEmergencyWithdrawalAdmin: (clientName: string, payout: number, companyFee: number, reason: string, staffName: string) =>
+    `EMERGENCY WITHDRAWAL: ${clientName}, ${formatGHS(payout)} paid out (fee ${formatGHS(companyFee)}).${reason ? ` Reason: ${reason}.` : ""} By: ${staffName}.`,
 };

@@ -18,6 +18,7 @@ export async function POST(request: Request) {
   const accountId = body?.account_id;
   const cycleId = body?.cycle_id;
   const claimType = body?.claim_type;
+  const reason = typeof body?.reason === "string" ? body.reason.trim() : undefined;
 
   if (!accountId || typeof accountId !== "string") {
     return NextResponse.json({ error: "account_id is required" }, { status: 400 });
@@ -41,11 +42,11 @@ export async function POST(request: Request) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-  if (claimType === "emergency") await notifyEmergencyClaimAdmin(supabase, data);
+  if (claimType === "emergency") await notifyEmergencyClaimAdmin(supabase, data, reason);
   return NextResponse.json({ claim: data });
 }
 
-async function notifyEmergencyClaimAdmin(supabase: Awaited<ReturnType<typeof createClient>>, claim: SusuClaim) {
+async function notifyEmergencyClaimAdmin(supabase: Awaited<ReturnType<typeof createClient>>, claim: SusuClaim, reason?: string) {
   const settings = await getSettings();
   if (!shouldSendAdminSms(settings)) return;
 
@@ -56,7 +57,7 @@ async function notifyEmergencyClaimAdmin(supabase: Awaited<ReturnType<typeof cre
 
   await sendSms({
     to: settings.sms.company_tel!,
-    message: smsTemplates.adminEmergencyClaimAlert(client.full_name, claim.amount),
+    message: smsTemplates.adminEmergencyClaimAlert(client.full_name, claim.amount, reason),
     event: "susu_emergency_claim_admin_alert",
     recipientType: "admin",
     relatedClientId: client.id,

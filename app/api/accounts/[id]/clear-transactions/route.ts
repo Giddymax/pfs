@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: accountId } = await params;
@@ -18,8 +19,9 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: "Admin access required" }, { status: 403 });
   }
 
-  // Verify the account exists
-  const { data: account } = await supabase
+  const admin = createAdminClient();
+
+  const { data: account } = await admin
     .from("accounts")
     .select("id")
     .eq("id", accountId)
@@ -27,16 +29,31 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
 
   if (!account) return NextResponse.json({ error: "Account not found" }, { status: 404 });
 
-  // Delete all transactions for this account
-  const { error: deleteError } = await supabase
+  const { error: deleteError } = await admin
     .from("transactions")
     .delete()
     .eq("account_id", accountId);
 
   if (deleteError) return NextResponse.json({ error: deleteError.message }, { status: 400 });
 
-  // Reset the account balance counters
-  const { error: resetError } = await supabase
+  // Clear susu-related data so cycle cards and claims also reset
+  // Delete in dependency order: payments & claims first (they reference cycles), then cycles
+  const [{ error: paymentsErr }, { error: claimsErr }] = await Promise.all([
+    admin.from("susu_payments").delete().eq("account_id", accountId),
+    admin.from("susu_claims").delete().eq("account_id", accountId),
+  ]);
+
+  if (paymentsErr) return NextResponse.json({ error: paymentsErr.message }, { status: 400 });
+  if (claimsErr) return NextResponse.json({ error: claimsErr.message }, { status: 400 });
+
+  const { error: cyclesErr } = await admin
+    .from("susu_cycles")
+    .delete()
+    .eq("account_id", accountId);
+
+  if (cyclesErr) return NextResponse.json({ error: cyclesErr.message }, { status: 400 });
+
+  const { error: resetError } = await admin
     .from("accounts")
     .update({ balance: 0, dep: 0, wdr: 0, comm: 0 })
     .eq("id", accountId);

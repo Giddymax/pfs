@@ -81,14 +81,20 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
       ? activeCycle
       : null;
   // Qualified when a complete unclaimed cycle exists, or the client has finished their 30 days
-  const isQualifiedToWithdraw = normalCycle !== null || clientDayInCycle >= CLIENT_DAYS;
+  const hasDeposits = allTransactions.some((t) => t.type === "deposit" && !t.reversed_at);
+  const isQualifiedToWithdraw = hasDeposits && (normalCycle !== null || clientDayInCycle >= CLIENT_DAYS);
 
-  // Susu KPI values
+  // Susu KPI values — grounded in actual non-reversed deposits so deleted transactions zero out correctly
   const daily = account.daily_contribution_amount ?? 0;
-  const companyFeeAmount = daily; // 1 day's contribution is always the company fee
-  const clientCycleBalance = normalCycle
-    ? Math.max(normalCycle.total_collected - (normalCycle.company_fee ?? companyFeeAmount), 0)
-    : clientDayInCycle * daily;
+  const depositTotal = allTransactions
+    .filter((t) => t.type === "deposit" && !t.reversed_at)
+    .reduce((sum, t) => sum + t.amount, 0);
+  const companyFeeAmount = depositTotal > 0 ? daily : 0;
+  const clientCycleBalance = depositTotal <= 0
+    ? 0
+    : normalCycle
+      ? Math.max(normalCycle.total_collected - (normalCycle.company_fee ?? daily), 0)
+      : clientDayInCycle * daily;
 
   return (
     <div>
@@ -103,7 +109,7 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
                 isSusu ? (
                   <>
                     <SusuContributionForm accountId={account.id} dailyAmount={account.daily_contribution_amount} />
-                    <SusuWithdrawalForm accountId={account.id} availableBalance={account.balance} isQualified={isQualifiedToWithdraw} />
+                    <SusuWithdrawalForm accountId={account.id} availableBalance={account.balance} dailyAmount={daily} isQualified={isQualifiedToWithdraw} emergencyCycle={emergencyCycle} />
                     <SusuClaimRequestButton accountId={account.id} normalCycle={normalCycle} emergencyCycle={emergencyCycle} />
                     {isAdmin && <ResetSusuButton accountId={account.id} />}
                   </>
