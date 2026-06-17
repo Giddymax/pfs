@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader, LoanStatusBadge, EmptyState, Card } from "@/components/ui";
 import { TableFilter, type FilterOption } from "@/components/table-filter";
@@ -20,21 +20,52 @@ const STATUS_OPTIONS: FilterOption[] = STATUS_PILLS.filter((p) => p.value !== "a
   label: p.label,
 }));
 
+function pillHref(statusValue: string, q: string | undefined) {
+  const p = new URLSearchParams();
+  if (q?.trim()) p.set("q", q.trim());
+  if (statusValue !== "all") p.set("status", statusValue);
+  const s = p.toString();
+  return s ? `/loans?${s}` : "/loans";
+}
+
 export default async function LoansPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; q?: string }>;
 }) {
-  const { status } = await searchParams;
+  const { status, q } = await searchParams;
   const supabase = await createClient();
 
-  const qs = status && status !== "all" ? `status=${status}` : "";
+  const qs = new URLSearchParams({
+    ...(status && status !== "all" ? { status } : {}),
+    ...(q?.trim() ? { q: q.trim() } : {}),
+  }).toString();
 
-  let query = supabase.from("loans").select("*, client:clients(*)").order("created_at", { ascending: false });
-  if (status && status !== "all") {
-    query = query.eq("status", status);
+  let query = supabase
+    .from("loans")
+    .select("*, client:clients(*)")
+    .order("created_at", { ascending: false });
+
+  if (status && status !== "all") query = query.eq("status", status);
+
+  if (q?.trim()) {
+    const term = q.trim();
+    const { data: matchedClients } = await supabase
+      .from("clients")
+      .select("id")
+      .ilike("full_name", `%${term}%`);
+    const cids = (matchedClients ?? []).map((c: { id: string }) => c.id);
+    if (cids.length > 0) {
+      query = query.or(`loan_code.ilike.%${term}%,client_id.in.(${cids.join(",")})`);
+    } else {
+      query = query.ilike("loan_code", `%${term}%`);
+    }
   }
+
   const { data: loans } = await query.returns<Loan[]>();
+
+  const hasSearch = !!q?.trim();
+  const hasFilter = !!(status && status !== "all");
 
   return (
     <div>
@@ -53,6 +84,21 @@ export default async function LoansPage({
         }
       />
 
+      {/* Search */}
+      <form className="mb-4 max-w-sm">
+        {status && status !== "all" && <input type="hidden" name="status" value={status} />}
+        <div className="relative">
+          <Search size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#1D3461]/35" />
+          <input
+            type="text"
+            name="q"
+            defaultValue={q ?? ""}
+            placeholder="Search by loan code or client name…"
+            className="w-full rounded-md border border-[#1D3461]/15 bg-white py-2.5 pl-10 pr-4 text-[14px] outline-none transition-colors placeholder:text-[#0A2240]/35 focus:border-[#2CBFBF]"
+          />
+        </div>
+      </form>
+
       {/* Status pills */}
       <div className="mb-6 flex flex-wrap gap-2">
         {STATUS_PILLS.map((f) => {
@@ -60,7 +106,7 @@ export default async function LoansPage({
           return (
             <Link
               key={f.value}
-              href={f.value === "all" ? "/loans" : `/loans?status=${f.value}`}
+              href={pillHref(f.value, q)}
               className={`rounded-full border px-3.5 py-1.5 text-[12.5px] font-medium transition-colors ${
                 active
                   ? "border-[#1D3461] bg-[#1D3461] text-[#FFFFFF]"
@@ -75,12 +121,18 @@ export default async function LoansPage({
 
       {!loans || loans.length === 0 ? (
         <EmptyState
-          title="No loans found"
-          description="Loans matching this filter will appear here."
+          title={hasSearch || hasFilter ? "No loans match your search" : "No loans found"}
+          description={
+            hasSearch || hasFilter
+              ? "Try adjusting your search term or status filter."
+              : "Loans matching this filter will appear here."
+          }
           action={
-            <Link href="/loans/new" className="inline-flex items-center gap-2 rounded-md bg-[#1D3461] px-5 py-2.5 text-[13.5px] font-semibold text-[#FFFFFF] hover:bg-[#152847]">
-              <Plus size={15} /> Issue loan
-            </Link>
+            !hasSearch && !hasFilter ? (
+              <Link href="/loans/new" className="inline-flex items-center gap-2 rounded-md bg-[#1D3461] px-5 py-2.5 text-[13.5px] font-semibold text-[#FFFFFF] hover:bg-[#152847]">
+                <Plus size={15} /> Issue loan
+              </Link>
+            ) : undefined
           }
         />
       ) : (
@@ -118,7 +170,13 @@ export default async function LoansPage({
                   <th className="px-5 py-3 font-semibold">Repayable</th>
                   <th className="px-5 py-3 font-semibold">Tenor</th>
                   <th aria-label="Status" className="px-5 py-3 font-semibold">
-                    <TableFilter param="status" label="Status" options={STATUS_OPTIONS} current={status && status !== "all" ? status : undefined} qs={qs} />
+                    <TableFilter
+                      param="status"
+                      label="Status"
+                      options={STATUS_OPTIONS}
+                      current={status && status !== "all" ? status : undefined}
+                      qs={qs}
+                    />
                   </th>
                 </tr>
               </thead>

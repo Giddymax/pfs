@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Search } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader, EmptyState } from "@/components/ui";
 import { TableFilter, type FilterOption } from "@/components/table-filter";
@@ -31,23 +32,44 @@ const STATUS_OPTIONS: FilterOption[] = (Object.keys(FD_STATUS_LABEL) as FdStatus
 export default async function FixedDepositsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; q?: string }>;
 }) {
-  const { status } = await searchParams;
+  const { status, q } = await searchParams;
   const supabase = await createClient();
 
   await supabase.rpc("sync_matured_fds");
 
-  const qs = status ? `status=${status}` : "";
+  const qs = new URLSearchParams({
+    ...(status ? { status } : {}),
+    ...(q?.trim() ? { q: q.trim() } : {}),
+  }).toString();
 
   let query = supabase
     .from("fixed_deposits")
     .select("*, client:clients(*)")
     .order("created_at", { ascending: false });
+
   if (status) query = query.eq("status", status);
+
+  if (q?.trim()) {
+    const term = q.trim();
+    const { data: matchedClients } = await supabase
+      .from("clients")
+      .select("id")
+      .ilike("full_name", `%${term}%`);
+    const cids = (matchedClients ?? []).map((c: { id: string }) => c.id);
+    if (cids.length > 0) {
+      query = query.or(`fd_number.ilike.%${term}%,client_id.in.(${cids.join(",")})`);
+    } else {
+      query = query.ilike("fd_number", `%${term}%`);
+    }
+  }
 
   const { data: deposits } = await query.returns<(FixedDeposit & { client: Client })[]>();
   const rows = deposits ?? [];
+
+  const hasSearch = !!q?.trim();
+  const hasFilter = !!status;
 
   return (
     <div>
@@ -57,6 +79,21 @@ export default async function FixedDepositsPage({
         description="Lump-sum term placements with maturity, early-withdrawal and rollover lifecycles."
       />
 
+      {/* Search */}
+      <form className="mb-4 max-w-sm">
+        {status && <input type="hidden" name="status" value={status} />}
+        <div className="relative">
+          <Search size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#1D3461]/35" />
+          <input
+            type="text"
+            name="q"
+            defaultValue={q ?? ""}
+            placeholder="Search by FD number or client name…"
+            className="w-full rounded-md border border-[#1D3461]/15 bg-white py-2.5 pl-10 pr-4 text-[14px] outline-none transition-colors placeholder:text-[#0A2240]/35 focus:border-[#2CBFBF]"
+          />
+        </div>
+      </form>
+
       {/* Mobile filter */}
       <div className="mb-4 flex flex-wrap items-center gap-3 lg:hidden">
         <span className="text-[11.5px] font-medium text-[#0A2240]/40">Filter:</span>
@@ -65,10 +102,10 @@ export default async function FixedDepositsPage({
 
       {rows.length === 0 ? (
         <EmptyState
-          title={status ? "No fixed deposits match this filter" : "No fixed deposits yet"}
+          title={hasSearch || hasFilter ? "No fixed deposits match your search" : "No fixed deposits yet"}
           description={
-            status
-              ? "Try a different status filter."
+            hasSearch || hasFilter
+              ? "Try adjusting your search term or status filter."
               : "Fixed deposits are opened from a client's registration form — choose this account type there."
           }
         />
