@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, AccountStatusBadge, EmptyState, PageHeader, StatCard } from "@/components/ui";
 import { RecordTransactionForm } from "@/components/record-transaction-form";
 import { EditTransactionButton } from "@/components/edit-transaction-button";
+import { DeleteTransactionButton } from "@/components/delete-transaction-button";
 import { RecalculateAccountButton } from "@/components/recalculate-account-button";
 import { PrintTransactionHistoryButton, type TxnWithAccount } from "@/components/print-transaction-history-button";
 import { SusuContributionForm } from "@/components/susu-contribution-form";
@@ -303,6 +304,7 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
                     {isAdmin && txn.reversed_at === null && (txn.type === "deposit" || txn.type === "withdrawal") && (
                       <EditTransactionButton transaction={txn} />
                     )}
+                    {isAdmin && <DeleteTransactionButton transaction={txn} />}
                   </div>
                 </li>
               ))}
