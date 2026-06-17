@@ -41,31 +41,26 @@ export default function LoginPage() {
 
           <div className="w-full max-w-sm">
             <div
-              className="mb-10 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-[#1D3461]/60 animate-fade-up"
-              style={{ animationDelay: "60ms" }}
+              className="mb-10 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-[#1D3461]/60"
             >
               <span className="h-px w-8 bg-[#2CBFBF]" />
               Staff &amp; Admin Portal
             </div>
 
             <h1
-              className="mb-2 text-[2.4rem] leading-[1.05] tracking-tight text-[#1D3461] animate-fade-up"
-              style={{ fontFamily: "var(--font-display)", animationDelay: "120ms" }}
+              className="mb-2 text-[2.4rem] leading-[1.05] tracking-tight text-[#1D3461]"
+              style={{ fontFamily: "var(--font-display)" }}
             >
               Welcome back.
             </h1>
             <p
-              className="mb-10 text-[15px] leading-relaxed text-[#0A2240]/60 animate-fade-up"
-              style={{ animationDelay: "180ms" }}
+              className="mb-10 text-[15px] leading-relaxed text-[#0A2240]/60"
             >
               Sign in to manage clients, susu collections, and loans.
             </p>
 
             <form action={formAction} className="space-y-6">
-              <div
-                className="animate-fade-up"
-                style={{ animationDelay: "240ms" }}
-              >
+              <div>
                 <label
                   htmlFor="email"
                   className="mb-2 block text-[13px] font-semibold text-[#1D3461]/80"
@@ -85,10 +80,7 @@ export default function LoginPage() {
                 />
               </div>
 
-              <div
-                className="animate-fade-up"
-                style={{ animationDelay: "300ms" }}
-              >
+              <div>
                 <div className="mb-2 flex items-center justify-between">
                   <label
                     htmlFor="password"
@@ -128,8 +120,7 @@ export default function LoginPage() {
               </div>
 
               <div
-                className="flex items-center justify-between pt-1 animate-fade-up"
-                style={{ animationDelay: "350ms" }}
+                className="flex items-center justify-between pt-1"
               >
                 <label className="flex cursor-pointer items-center gap-2.5 text-[13px] text-[#0A2240]/60">
                   <span className="relative flex h-[18px] w-[18px] items-center justify-center">
@@ -165,8 +156,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isPending}
-                className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-md bg-[#1D3461] px-6 py-3.5 text-[14px] font-semibold tracking-wide text-[#FFFFFF] transition-all hover:bg-[#152847] disabled:cursor-not-allowed disabled:opacity-70 animate-fade-up"
-                style={{ animationDelay: "400ms" }}
+                className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-md bg-[#1D3461] px-6 py-3.5 text-[14px] font-semibold tracking-wide text-[#FFFFFF] transition-all hover:bg-[#152847] disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {isPending ? (
                   <>
@@ -184,8 +174,7 @@ export default function LoginPage() {
             </form>
 
             <div
-              className="mt-10 flex items-start gap-2.5 border-t border-[#1D3461]/10 pt-6 text-[12.5px] leading-relaxed text-[#0A2240]/45 animate-fade-up"
-              style={{ animationDelay: "460ms" }}
+              className="mt-10 flex items-start gap-2.5 border-t border-[#1D3461]/10 pt-6 text-[12.5px] leading-relaxed text-[#0A2240]/45"
             >
               <ShieldCheck size={15} className="mt-[2px] shrink-0 text-[#1D3461]/35" />
               <p>
@@ -200,46 +189,61 @@ export default function LoginPage() {
   );
 }
 
-function BrandPanel() {
-  const features = ["Daily Susu", "Fixed Deposits", "Client Loans", "Savings"];
+const PRODUCTS = [
+  {
+    label: "Daily Susu",
+    href: "/about/daily-susu",
+    desc: "Small daily contributions that build up over a 31-day cycle.",
+  },
+  {
+    label: "Fixed Deposits",
+    href: "/about/fixed-deposits",
+    desc: "Lock your savings and earn guaranteed interest.",
+  },
+  {
+    label: "Client Loans",
+    href: "/about/client-loans",
+    desc: "Affordable micro-loans with flexible repayment terms.",
+  },
+  {
+    label: "Savings",
+    href: "/about/savings",
+    desc: "Secure savings accounts with easy deposit and withdrawal.",
+  },
+];
 
+function BrandPanel() {
   return (
     <div className="relative hidden overflow-hidden bg-[#1D3461] px-16 py-16 text-[#FFFFFF] lg:flex lg:flex-col lg:justify-between">
-      {/* decorative motifs */}
-      <svg
-        className="pointer-events-none absolute -right-24 -top-24 h-[420px] w-[420px] opacity-[0.14]"
-        viewBox="0 0 300 300"
-        fill="none"
-      >
-        <circle cx="150" cy="150" r="40" stroke="#2CBFBF" strokeWidth="1.4" />
-        <circle cx="150" cy="150" r="82" stroke="#2CBFBF" strokeWidth="1" />
-        <circle cx="150" cy="150" r="124" stroke="#2CBFBF" strokeWidth="0.8" />
-        <circle cx="150" cy="150" r="148" stroke="#2CBFBF" strokeWidth="0.5" />
-      </svg>
-
-      <svg
-        className="pointer-events-none absolute -bottom-32 -left-28 h-[480px] w-[480px] opacity-[0.12] animate-spin-slow"
-        viewBox="0 0 400 400"
-        fill="none"
-      >
-        {Array.from({ length: 28 }).map((_, i) => {
-          const angle = (i * 360) / 28;
-          const rad = (angle * Math.PI) / 180;
-          return (
-            <line
-              key={i}
-              x1="200"
-              y1="200"
-              x2={(200 + 188 * Math.cos(rad)).toFixed(3)}
-              y2={(200 + 188 * Math.sin(rad)).toFixed(3)}
-              stroke="#2CBFBF"
-              strokeWidth="1"
-            />
-          );
-        })}
-        <circle cx="200" cy="200" r="58" stroke="#2CBFBF" strokeWidth="1.2" />
-        <circle cx="200" cy="200" r="108" stroke="#2CBFBF" strokeWidth="0.8" />
-      </svg>
+      {/* Currency note images */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/images/notes/cedi-50.png"
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-10 top-[12%] h-[180px] w-auto rotate-[15deg] opacity-25 blur-[1px]"
+      />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/images/notes/cedi-20.png"
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none absolute -left-6 top-[38%] h-[160px] w-auto -rotate-[10deg] opacity-20 blur-[0.5px]"
+      />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/images/notes/cedi-100.png"
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none absolute bottom-[8%] right-[5%] h-[170px] w-auto rotate-[22deg] opacity-20 blur-[1px]"
+      />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/images/notes/cedi-10.png"
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none absolute bottom-[30%] left-[10%] h-[140px] w-auto rotate-[-18deg] opacity-15 blur-[0.5px]"
+      />
 
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.05] mix-blend-overlay"
@@ -250,7 +254,7 @@ function BrandPanel() {
       />
 
       {/* top: brand mark */}
-      <div className="relative z-10 flex items-center gap-3 animate-fade-up">
+      <div className="relative z-10 flex items-center gap-3">
         <Logo size={44} />
         <div className="leading-tight">
           <p className="text-[13px] font-semibold tracking-[0.18em]">PRIME FINANCIAL</p>
@@ -261,47 +265,38 @@ function BrandPanel() {
       {/* middle: headline */}
       <div className="relative z-10 max-w-md">
         <h2
-          className="text-[2.85rem] leading-[1.12] tracking-tight animate-fade-up"
-          style={{ fontFamily: "var(--font-display)", fontWeight: 400, animationDelay: "180ms" }}
+          className="text-[2.85rem] leading-[1.12] tracking-tight"
+          style={{ fontFamily: "var(--font-display)", fontWeight: 400 }}
         >
           Where everyday savings become{" "}
           <em className="not-italic text-[#2CBFBF]" style={{ fontStyle: "italic" }}>
             lasting security.
           </em>
         </h2>
-        <p
-          className="mt-6 max-w-sm text-[15px] leading-relaxed text-[#FFFFFF]/65 animate-fade-up"
-          style={{ animationDelay: "260ms" }}
-        >
-          One platform for the people who show up at the market stall, the shop
-          counter, and the front door — every single day.
-        </p>
 
-        <div
-          className="mt-9 flex flex-wrap gap-x-7 gap-y-3 animate-fade-up"
-          style={{ animationDelay: "330ms" }}
-        >
-          {features.map((f) => (
-            <span key={f} className="border-b border-[#2CBFBF]/40 pb-1.5 text-[13px] tracking-wide text-[#FFFFFF]/80">
-              {f}
-            </span>
+        {/* Clickable product links */}
+        <div className="mt-9 grid grid-cols-2 gap-3">
+          {PRODUCTS.map((p) => (
+            <a
+              key={p.href}
+              href={p.href}
+              className="group rounded-lg border border-[#FFFFFF]/10 bg-[#FFFFFF]/[0.04] px-4 py-3.5 transition-colors hover:border-[#2CBFBF]/40 hover:bg-[#2CBFBF]/[0.08]"
+            >
+              <p className="text-[13.5px] font-semibold tracking-wide text-[#FFFFFF] group-hover:text-[#2CBFBF]">
+                {p.label}
+              </p>
+              <p className="mt-1 text-[11.5px] leading-snug text-[#FFFFFF]/50">
+                {p.desc}
+              </p>
+            </a>
           ))}
         </div>
       </div>
 
-      {/* bottom: quote */}
-      <div
-        className="relative z-10 max-w-sm border-l border-[#2CBFBF]/30 pl-5 animate-fade-up"
-        style={{ animationDelay: "400ms" }}
-      >
-        <p className="text-[14px] italic leading-relaxed text-[#FFFFFF]/70" style={{ fontFamily: "var(--font-display)" }}>
-          &ldquo;Built for the field officers and branch staff who turn small, daily
-          contributions into real financial futures.&rdquo;
-        </p>
-        <p className="mt-3 text-[11px] uppercase tracking-[0.25em] text-[#2CBFBF]/60">
-          — Prime Financial Service Field Team
-        </p>
-      </div>
+      {/* bottom: tagline */}
+      <p className="relative z-10 text-[12px] tracking-[0.1em] text-[#FFFFFF]/40">
+        Trusted by communities across Ghana
+      </p>
     </div>
   );
 }
