@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useRef, useState } from "react";
 import { Playfair_Display, Space_Grotesk, IBM_Plex_Mono } from "next/font/google";
 import {
   LayoutDashboard,
@@ -19,7 +18,6 @@ import {
   BarChart2,
   BarChart3,
   Building2,
-  Camera,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { signOut } from "@/app/actions";
@@ -157,29 +155,6 @@ const ADMIN_NAV = [
 
 export function Sidebar({ profile }: { profile: Profile }) {
   const pathname = usePathname();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [photoUrl, setPhotoUrl] = useState(profile.photo_url);
-  const [uploading, setUploading] = useState(false);
-
-  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploading(true);
-    try {
-      const fd = new FormData();
-      fd.append("photo", file);
-      const res = await fetch("/api/profile/photo", { method: "POST", body: fd });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error);
-      setPhotoUrl(json.photo_url);
-    } catch {
-      // silently fail — the old avatar stays
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  }
 
   return (
     <aside
@@ -271,32 +246,18 @@ export function Sidebar({ profile }: { profile: Profile }) {
       </nav>
 
       <div className="border-t border-[#163013]/10 px-4 py-5">
-        <div className="mb-4 flex items-center gap-3 rounded-lg bg-[#163013]/5 px-3 py-2.5">
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            className="group relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#0033AA]/12 text-[12px] font-semibold text-[#0033AA]"
-            title="Change photo"
-          >
-            {photoUrl ? (
+        <Link
+          href="/profile"
+          className="mb-4 flex items-center gap-3 rounded-lg bg-[#163013]/5 px-3 py-2.5 transition-colors hover:bg-[#163013]/10"
+        >
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#0033AA]/12 text-[12px] font-semibold text-[#0033AA]">
+            {profile.photo_url ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={photoUrl} alt={profile.full_name} className="h-full w-full object-cover" />
+              <img src={profile.photo_url} alt={profile.full_name} className="h-full w-full object-cover" />
             ) : (
               initials(profile.full_name)
             )}
-            <span className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
-              <Camera size={12} className="text-white" />
-            </span>
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/png, image/jpeg"
-            aria-label="Upload profile photo"
-            onChange={handlePhotoUpload}
-            className="hidden"
-          />
+          </span>
           <div className="min-w-0 leading-tight">
             <p className="truncate text-[13px] font-semibold text-[#FFFFFF]">{profile.full_name}</p>
             <p className="flex items-center gap-1 text-[11px] text-[#FFFFFF]">
@@ -304,7 +265,7 @@ export function Sidebar({ profile }: { profile: Profile }) {
               {profile.role === "admin" ? "Administrator" : "Staff"}
             </p>
           </div>
-        </div>
+        </Link>
         <form action={signOut}>
           <button
             type="submit"
