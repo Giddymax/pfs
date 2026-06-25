@@ -163,8 +163,8 @@ button:active,
   }
 }
 
-/* Mobile sidebar drawer */
-@media (max-width: 768px) {
+/* Mobile sidebar drawer — must match Tailwind lg (1024px) */
+@media (max-width: 1023px) {
   .sidebar-drawer {
     position: fixed;
     inset: 0;
