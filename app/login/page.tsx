@@ -179,7 +179,7 @@ export default function LoginPage() {
               <ShieldCheck size={15} className="mt-[2px] shrink-0 text-[#1D3461]/35" />
               <p>
                 Staff and administrators only. If you need an account or have lost
-                access, contact your branch manager.
+                access, contact your administrator.
               </p>
             </div>
           </div>
