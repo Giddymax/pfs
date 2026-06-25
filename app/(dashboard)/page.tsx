@@ -86,8 +86,8 @@ export default async function OverviewPage() {
   const sum = (rows: any[] | null, key: string) =>
     round2((rows ?? []).reduce((s: number, r: Record<string, unknown>) => s + Number(r[key] ?? 0), 0));
 
-  const totalSavings  = sum(savingsRows, kpi.total_savings.calc);
-  const totalSusu     = sum(susuRows,   kpi.total_susu.calc);
+  const totalSavings  = sum(savingsRows, "dep");
+  const totalSusu     = sum(susuRows,   "dep");
   const totalFD       = sum(fdRows,     "principal");
   const combined      = round2(totalSavings + totalSusu + totalFD);
 
@@ -141,7 +141,7 @@ export default async function OverviewPage() {
           <SummaryCard
             label="Total Savings"
             value={formatGHS(totalSavings)}
-            hint={kpi.total_savings.calc === "dep" ? "Total deposits (gross)" : "Current balance across all savings accounts"}
+            hint="Total deposits — no withdrawals or deductions"
             color="bg-[#0D9488]"
           />
         )}
@@ -149,7 +149,7 @@ export default async function OverviewPage() {
           <SummaryCard
             label="Total Daily Susu"
             value={formatGHS(totalSusu)}
-            hint={kpi.total_susu.calc === "dep" ? "Total contributions from all susu clients (gross)" : "Current balance across all susu accounts"}
+            hint="Total contributions — no withdrawals or deductions"
             color="bg-[#16A34A]"
           />
         )}

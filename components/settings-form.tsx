@@ -17,11 +17,6 @@ const KPI_LABELS: Record<keyof OverviewKpiSettings, string> = {
   cash_at_bank:    "Cash at Bank",
 };
 
-const CALC_OPTIONS: { value: "balance" | "dep"; label: string }[] = [
-  { value: "balance", label: "Current balance" },
-  { value: "dep",     label: "Total deposits (gross)" },
-];
-
 const REVENUE_LABELS: Record<keyof RevenueComponents, string> = {
   interest:        "Loan Interest",
   commission:      "Withdrawal Commission",
@@ -246,28 +241,6 @@ export function SettingsForm({
                   }
                 />
 
-                {(key === "total_savings" || key === "total_susu") && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-[12px] text-[#0A2240]/50">Calculated from:</span>
-                    <select
-                      aria-label={`Calculation method for ${KPI_LABELS[key]}`}
-                      value={(kpi[key] as { visible: boolean; calc: "balance" | "dep" }).calc}
-                      onChange={(e) =>
-                        setKpi((prev) => ({
-                          ...prev,
-                          [key]: { ...prev[key], calc: e.target.value as "balance" | "dep" },
-                        }))
-                      }
-                      className="rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-2.5 py-1.5 text-[13px] text-[#0A2240] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
-                    >
-                      {CALC_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
               </div>
 
               {key === "total_revenue" && kpi.total_revenue.visible && (
