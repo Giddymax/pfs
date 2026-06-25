@@ -17,6 +17,7 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const accountId = body?.account_id;
   const amount = Number(body?.amount);
+  const notes = typeof body?.notes === "string" ? body.notes.trim() || null : null;
 
   if (!accountId || typeof accountId !== "string") {
     return NextResponse.json({ error: "account_id is required" }, { status: 400 });
@@ -30,6 +31,7 @@ export async function POST(request: Request) {
       p_account_id: accountId,
       p_amount: amount,
       p_recorded_by: user.id,
+      p_notes: notes,
     })
     .single<Transaction>();
 

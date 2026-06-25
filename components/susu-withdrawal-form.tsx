@@ -24,6 +24,11 @@ export function SusuWithdrawalForm({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [isClient, setIsClient] = useState(true);
+  const [proxyName, setProxyName] = useState("");
+  const [proxyPhone, setProxyPhone] = useState("");
+  const [proxyRelation, setProxyRelation] = useState("");
+
   const showEmergencyFlow = !isQualified && emergencyCycle !== null;
   const companyFee = dailyAmount;
   const emergencyPayout = Math.max(availableBalance - companyFee, 0);
@@ -33,6 +38,33 @@ export function SusuWithdrawalForm({
     setError(null);
     setAmount("");
     setReason("");
+    setIsClient(true);
+    setProxyName("");
+    setProxyPhone("");
+    setProxyRelation("");
+  }
+
+  function validateProxy(): boolean {
+    if (isClient) return true;
+    if (!proxyName.trim()) {
+      setError("Please enter the name of the person withdrawing.");
+      return false;
+    }
+    if (!proxyPhone.trim()) {
+      setError("Please enter the phone number of the person withdrawing.");
+      return false;
+    }
+    if (!proxyRelation.trim()) {
+      setError("Please enter their relationship to the client.");
+      return false;
+    }
+    return true;
+  }
+
+  function buildProxyNote(base: string): string {
+    if (isClient) return base;
+    const proxyInfo = `[Proxy withdrawal] Name: ${proxyName.trim()}, Phone: ${proxyPhone.trim()}, Relation: ${proxyRelation.trim()}`;
+    return base ? `${proxyInfo} | ${base}` : proxyInfo;
   }
 
   async function handleQualifiedWithdrawal(e: FormEvent) {
@@ -48,13 +80,16 @@ export function SusuWithdrawalForm({
       setError("That exceeds the account's available balance.");
       return;
     }
+    if (!validateProxy()) return;
+
+    const notes = buildProxyNote("");
 
     setSubmitting(true);
     try {
       const res = await fetch("/api/susu/withdrawal", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ account_id: accountId, amount: amountNum }),
+        body: JSON.stringify({ account_id: accountId, amount: amountNum, notes: notes || null }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Could not record this withdrawal. Try again.");
@@ -76,6 +111,9 @@ export function SusuWithdrawalForm({
       setError("Please provide a reason for the emergency withdrawal.");
       return;
     }
+    if (!validateProxy()) return;
+
+    const proxyReason = buildProxyNote(reason.trim());
 
     setSubmitting(true);
     try {
@@ -84,7 +122,7 @@ export function SusuWithdrawalForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           account_id: accountId,
-          reason: reason.trim(),
+          reason: proxyReason,
         }),
       });
       const json = await res.json();
@@ -171,6 +209,17 @@ export function SusuWithdrawalForm({
                   />
                 </label>
 
+                <ProxyFields
+                  isClient={isClient}
+                  setIsClient={setIsClient}
+                  proxyName={proxyName}
+                  setProxyName={setProxyName}
+                  proxyPhone={proxyPhone}
+                  setProxyPhone={setProxyPhone}
+                  proxyRelation={proxyRelation}
+                  setProxyRelation={setProxyRelation}
+                />
+
                 <div className="flex justify-end gap-2.5 pt-1">
                   <button type="button" onClick={close} className="rounded-md px-4 py-2 text-[13px] font-medium text-[#0A2240]/55 hover:text-[#0A2240]">
                     Cancel
@@ -206,6 +255,17 @@ export function SusuWithdrawalForm({
                   />
                 </label>
 
+                <ProxyFields
+                  isClient={isClient}
+                  setIsClient={setIsClient}
+                  proxyName={proxyName}
+                  setProxyName={setProxyName}
+                  proxyPhone={proxyPhone}
+                  setProxyPhone={setProxyPhone}
+                  proxyRelation={proxyRelation}
+                  setProxyRelation={setProxyRelation}
+                />
+
                 <div className="flex justify-end gap-2.5 pt-1">
                   <button type="button" onClick={close} className="rounded-md px-4 py-2 text-[13px] font-medium text-[#0A2240]/55 hover:text-[#0A2240]">
                     Cancel
@@ -225,5 +285,92 @@ export function SusuWithdrawalForm({
         </div>
       )}
     </>
+  );
+}
+
+function ProxyFields({
+  isClient,
+  setIsClient,
+  proxyName,
+  setProxyName,
+  proxyPhone,
+  setProxyPhone,
+  proxyRelation,
+  setProxyRelation,
+}: {
+  isClient: boolean;
+  setIsClient: (v: boolean) => void;
+  proxyName: string;
+  setProxyName: (v: string) => void;
+  proxyPhone: string;
+  setProxyPhone: (v: string) => void;
+  proxyRelation: string;
+  setProxyRelation: (v: string) => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <fieldset>
+        <legend className="mb-1.5 block text-[12.5px] font-medium text-[#0033AA]/75">
+          Who is withdrawing?
+        </legend>
+        <div className="flex gap-3">
+          <label className="flex items-center gap-1.5 text-[13px] text-[#0A2240]/80 cursor-pointer">
+            <input
+              type="radio"
+              name="susu-withdrawer"
+              checked={isClient}
+              onChange={() => setIsClient(true)}
+              className="accent-[#0033AA]"
+            />
+            The client
+          </label>
+          <label className="flex items-center gap-1.5 text-[13px] text-[#0A2240]/80 cursor-pointer">
+            <input
+              type="radio"
+              name="susu-withdrawer"
+              checked={!isClient}
+              onChange={() => setIsClient(false)}
+              className="accent-[#0033AA]"
+            />
+            Someone else
+          </label>
+        </div>
+      </fieldset>
+
+      {!isClient && (
+        <div className="space-y-3 rounded-lg border border-[#0033AA]/10 bg-[#0033AA]/[0.02] p-3.5">
+          <label className="block">
+            <span className="mb-1 block text-[12.5px] font-medium text-[#0033AA]/75">Full name</span>
+            <input
+              type="text"
+              value={proxyName}
+              onChange={(e) => setProxyName(e.target.value)}
+              placeholder="Name of person withdrawing"
+              className="w-full rounded-md border border-[#0033AA]/15 bg-white px-3.5 py-2.5 text-[14px] outline-none transition-colors placeholder:text-[#0A2240]/35 focus:border-[#0062E1]"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-[12.5px] font-medium text-[#0033AA]/75">Phone number</span>
+            <input
+              type="tel"
+              value={proxyPhone}
+              onChange={(e) => setProxyPhone(e.target.value)}
+              placeholder="e.g. 024 000 0000"
+              className="w-full rounded-md border border-[#0033AA]/15 bg-white px-3.5 py-2.5 text-[14px] outline-none transition-colors placeholder:text-[#0A2240]/35 focus:border-[#0062E1]"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-[12.5px] font-medium text-[#0033AA]/75">Relation to client</span>
+            <input
+              type="text"
+              value={proxyRelation}
+              onChange={(e) => setProxyRelation(e.target.value)}
+              placeholder="e.g. Spouse, Sibling, Agent"
+              className="w-full rounded-md border border-[#0033AA]/15 bg-white px-3.5 py-2.5 text-[14px] outline-none transition-colors placeholder:text-[#0A2240]/35 focus:border-[#0062E1]"
+            />
+          </label>
+        </div>
+      )}
+    </div>
   );
 }

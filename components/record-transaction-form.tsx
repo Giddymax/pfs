@@ -49,6 +49,11 @@ export function RecordTransactionForm({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [isClient, setIsClient] = useState(true);
+  const [proxyName, setProxyName] = useState("");
+  const [proxyPhone, setProxyPhone] = useState("");
+  const [proxyRelation, setProxyRelation] = useState("");
+
   const amountNum = Number(amount) || 0;
   const fee = kind === "withdrawal" ? computeCommission(amountNum, commissionTiers ?? []) : 0;
 
@@ -57,6 +62,10 @@ export function RecordTransactionForm({
     setAmount("");
     setNotes("");
     setError(null);
+    setIsClient(true);
+    setProxyName("");
+    setProxyPhone("");
+    setProxyRelation("");
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -68,12 +77,33 @@ export function RecordTransactionForm({
       return;
     }
 
+    if (kind === "withdrawal" && !isClient) {
+      if (!proxyName.trim()) {
+        setError("Please enter the name of the person withdrawing.");
+        return;
+      }
+      if (!proxyPhone.trim()) {
+        setError("Please enter the phone number of the person withdrawing.");
+        return;
+      }
+      if (!proxyRelation.trim()) {
+        setError("Please enter their relationship to the client.");
+        return;
+      }
+    }
+
+    let combinedNotes = notes.trim() || "";
+    if (kind === "withdrawal" && !isClient) {
+      const proxyInfo = `[Proxy withdrawal] Name: ${proxyName.trim()}, Phone: ${proxyPhone.trim()}, Relation: ${proxyRelation.trim()}`;
+      combinedNotes = combinedNotes ? `${proxyInfo} | ${combinedNotes}` : proxyInfo;
+    }
+
     setSubmitting(true);
     try {
       const res = await fetch(copy.endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ account_id: accountId, amount: amountNum, notes: notes.trim() || null }),
+        body: JSON.stringify({ account_id: accountId, amount: amountNum, notes: combinedNotes || null }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Could not record this transaction. Try again.");
@@ -139,6 +169,73 @@ export function RecordTransactionForm({
                     className="w-full rounded-md border border-[#0033AA]/10 bg-[#0033AA]/[0.03] px-3.5 py-2.5 text-[14px] text-[#0A2240]/70 outline-none"
                   />
                 </label>
+              )}
+
+              {kind === "withdrawal" && (
+                <div className="space-y-3">
+                  <fieldset>
+                    <legend className="mb-1.5 block text-[12.5px] font-medium text-[#0033AA]/75">
+                      Who is withdrawing?
+                    </legend>
+                    <div className="flex gap-3">
+                      <label className="flex items-center gap-1.5 text-[13px] text-[#0A2240]/80 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="withdrawer"
+                          checked={isClient}
+                          onChange={() => setIsClient(true)}
+                          className="accent-[#0033AA]"
+                        />
+                        The client
+                      </label>
+                      <label className="flex items-center gap-1.5 text-[13px] text-[#0A2240]/80 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="withdrawer"
+                          checked={!isClient}
+                          onChange={() => setIsClient(false)}
+                          className="accent-[#0033AA]"
+                        />
+                        Someone else
+                      </label>
+                    </div>
+                  </fieldset>
+
+                  {!isClient && (
+                    <div className="space-y-3 rounded-lg border border-[#0033AA]/10 bg-[#0033AA]/[0.02] p-3.5">
+                      <label className="block">
+                        <span className="mb-1 block text-[12.5px] font-medium text-[#0033AA]/75">Full name</span>
+                        <input
+                          type="text"
+                          value={proxyName}
+                          onChange={(e) => setProxyName(e.target.value)}
+                          placeholder="Name of person withdrawing"
+                          className="w-full rounded-md border border-[#0033AA]/15 bg-white px-3.5 py-2.5 text-[14px] outline-none transition-colors placeholder:text-[#0A2240]/35 focus:border-[#0062E1]"
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="mb-1 block text-[12.5px] font-medium text-[#0033AA]/75">Phone number</span>
+                        <input
+                          type="tel"
+                          value={proxyPhone}
+                          onChange={(e) => setProxyPhone(e.target.value)}
+                          placeholder="e.g. 024 000 0000"
+                          className="w-full rounded-md border border-[#0033AA]/15 bg-white px-3.5 py-2.5 text-[14px] outline-none transition-colors placeholder:text-[#0A2240]/35 focus:border-[#0062E1]"
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="mb-1 block text-[12.5px] font-medium text-[#0033AA]/75">Relation to client</span>
+                        <input
+                          type="text"
+                          value={proxyRelation}
+                          onChange={(e) => setProxyRelation(e.target.value)}
+                          placeholder="e.g. Spouse, Sibling, Agent"
+                          className="w-full rounded-md border border-[#0033AA]/15 bg-white px-3.5 py-2.5 text-[14px] outline-none transition-colors placeholder:text-[#0A2240]/35 focus:border-[#0062E1]"
+                        />
+                      </label>
+                    </div>
+                  )}
+                </div>
               )}
 
               <label className="block">
