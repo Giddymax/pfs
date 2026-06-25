@@ -37,3 +37,13 @@ begin
   return new;
 end;
 $$ language plpgsql;
+
+create or replace function generate_fd_number()
+returns trigger as $$
+begin
+  if new.fd_number is null or new.fd_number = '' then
+    new.fd_number := 'FXD-' || lpad(nextval('fd_code_seq')::text, 4, '0');
+  end if;
+  return new;
+end;
+$$ language plpgsql;
