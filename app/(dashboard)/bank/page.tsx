@@ -135,14 +135,14 @@ export default async function BankPage() {
             No bank transactions recorded yet. Use the buttons above to record your first deposit.
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="admin-table-wrap">
             <table className="w-full min-w-[640px] text-left text-[14px]">
               <thead>
                 <tr className="border-b border-[#0033AA]/8 bg-[#0033AA]/[0.02] text-[11px] uppercase tracking-[0.1em] text-[#0A2240]/45">
                   <th className="px-5 py-3 font-semibold">Date / Time</th>
                   <th className="px-5 py-3 font-semibold">Type</th>
-                  <th className="px-5 py-3 font-semibold">Description</th>
-                  <th className="px-5 py-3 font-semibold">Recorded by</th>
+                  <th className="admin-col-secondary px-5 py-3 font-semibold">Description</th>
+                  <th className="admin-col-secondary px-5 py-3 font-semibold">Recorded by</th>
                   <th className="px-5 py-3 text-right font-semibold">Amount</th>
                 </tr>
               </thead>
@@ -168,10 +168,10 @@ export default async function BankPage() {
                           {isDeposit ? "Deposit" : "Withdrawal"}
                         </span>
                       </td>
-                      <td className="px-5 py-3.5 text-[#0A2240]/65">
+                      <td className="admin-col-secondary px-5 py-3.5 text-[#0A2240]/65">
                         {txn.description ?? <span className="text-[#0A2240]/30">—</span>}
                       </td>
-                      <td className="px-5 py-3.5 text-[13px] text-[#0A2240]/55">
+                      <td className="admin-col-secondary px-5 py-3.5 text-[13px] text-[#0A2240]/55">
                         {txn.recorder?.full_name ?? "—"}
                       </td>
                       <td

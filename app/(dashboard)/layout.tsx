@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { Sidebar } from "@/components/sidebar";
-import { MobileNav } from "@/components/mobile-nav";
+import { DashboardShell } from "@/components/dashboard-shell";
 import type { Profile } from "@/lib/types";
 
 export default async function DashboardLayout({
@@ -29,13 +28,5 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  return (
-    <div className="relative flex min-h-screen w-full">
-      <Sidebar profile={profile} />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <MobileNav profile={profile} />
-        <main className="flex-1 px-5 py-7 sm:px-8 lg:px-10 lg:py-10">{children}</main>
-      </div>
-    </div>
-  );
+  return <DashboardShell profile={profile}>{children}</DashboardShell>;
 }

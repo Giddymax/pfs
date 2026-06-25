@@ -134,6 +134,63 @@ body {
   animation: spin-slow 38s linear infinite;
 }
 
+/* ─── Responsive: mobile-first overrides ─────────────────────────── */
+
+/* Touch targets: pointer + active feedback on all buttons */
+button,
+[role="button"],
+a {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+button:active,
+[role="button"]:active {
+  opacity: 0.75;
+}
+
+/* Admin tables: horizontal scroll wrapper */
+.admin-table-wrap {
+  overflow-x: auto;
+}
+
+@media (max-width: 640px) {
+  /* Hide secondary table columns on phones */
+  .admin-col-secondary {
+    display: none;
+  }
+  .admin-table-wrap table {
+    table-layout: fixed;
+  }
+}
+
+/* Mobile sidebar drawer */
+@media (max-width: 768px) {
+  .sidebar-drawer {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease-in-out;
+    width: 16rem;
+  }
+  .sidebar-drawer.open {
+    transform: translateX(0);
+  }
+  .sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    background: rgba(6, 27, 58, 0.45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease-in-out;
+  }
+  .sidebar-backdrop.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
 /* Susu cycle progress bar — width is a runtime value set via --bar-width */
 .susu-cycle-bar {
   width: var(--bar-width, 0%);

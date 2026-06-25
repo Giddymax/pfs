@@ -153,18 +153,34 @@ const ADMIN_NAV = [
   },
 ];
 
-export function Sidebar({ profile }: { profile: Profile }) {
+export function Sidebar({
+  profile,
+  mobileOpen = false,
+  onMobileClose,
+}: {
+  profile: Profile;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
+}) {
   const pathname = usePathname();
 
   return (
-    <aside
-      className={clsx(
-        brandFont.variable,
-        navFont.variable,
-        acctFont.variable,
-        "sidebar-aurora hidden h-screen w-64 shrink-0 flex-col text-[#FFFFFF] lg:sticky lg:top-0 lg:flex"
-      )}
-    >
+    <>
+      {/* Backdrop for mobile drawer */}
+      <div
+        className={clsx("sidebar-backdrop lg:hidden", mobileOpen && "open")}
+        onClick={onMobileClose}
+        aria-hidden="true"
+      />
+      <aside
+        className={clsx(
+          brandFont.variable,
+          navFont.variable,
+          acctFont.variable,
+          "sidebar-aurora sidebar-drawer flex h-screen w-64 shrink-0 flex-col text-[#FFFFFF] lg:sticky lg:top-0 lg:!transform-none",
+          mobileOpen && "open"
+        )}
+      >
       <div className="flex items-center gap-3 px-6 py-7">
         <Logo size={36} />
         <div className="leading-tight" style={{ fontFamily: "var(--font-sidebar-brand)" }}>
@@ -277,6 +293,7 @@ export function Sidebar({ profile }: { profile: Profile }) {
         </form>
       </div>
     </aside>
+    </>
   );
 }
 

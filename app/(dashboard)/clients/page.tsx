@@ -149,7 +149,7 @@ export default async function ClientsPage({
       />
 
       {/* Search */}
-      <form className="mb-4 max-w-sm">
+      <form className="mb-4 sm:max-w-sm">
         <div className="relative">
           <Search size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#1D3461]/35" />
           <input

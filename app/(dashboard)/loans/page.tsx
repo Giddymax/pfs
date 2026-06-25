@@ -85,7 +85,7 @@ export default async function LoansPage({
       />
 
       {/* Search */}
-      <form className="mb-4 max-w-sm">
+      <form className="mb-4 sm:max-w-sm">
         {status && status !== "all" && <input type="hidden" name="status" value={status} />}
         <div className="relative">
           <Search size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#1D3461]/35" />
