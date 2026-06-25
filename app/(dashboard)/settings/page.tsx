@@ -61,8 +61,23 @@ export default async function SettingsPage() {
         sms={(byKey.get("sms") as SmsSettings | undefined) ?? DEFAULT_SMS_SETTINGS}
         cardFeeAmount={(byKey.get("card_fee_amount") as number | undefined) ?? 20}
         fdTermsMonths={(byKey.get("fd_terms_months") as number[] | undefined) ?? [3, 6, 9, 12, 18, 24]}
-        overviewKpi={(byKey.get("overview_kpi") as OverviewKpiSettings | undefined) ?? DEFAULT_KPI}
+        overviewKpi={mergeKpi(byKey.get("overview_kpi") as Partial<OverviewKpiSettings> | undefined)}
       />
     </div>
   );
+}
+
+function mergeKpi(raw: Partial<OverviewKpiSettings> | undefined): OverviewKpiSettings {
+  if (!raw) return DEFAULT_KPI;
+  return {
+    ...DEFAULT_KPI,
+    ...raw,
+    total_savings: { ...DEFAULT_KPI.total_savings, ...raw.total_savings },
+    total_susu:    { ...DEFAULT_KPI.total_susu,    ...raw.total_susu },
+    total_revenue: {
+      ...DEFAULT_KPI.total_revenue,
+      ...raw.total_revenue,
+      components: { ...DEFAULT_KPI.total_revenue.components, ...(raw.total_revenue as typeof DEFAULT_KPI.total_revenue | undefined)?.components },
+    },
+  };
 }

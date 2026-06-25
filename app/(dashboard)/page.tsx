@@ -14,7 +14,25 @@ export default async function OverviewPage() {
   const supabase = await createClient();
 
   const settings = await getSettings();
-  const kpi = settings.overview_kpi;
+  const defaultKpi = {
+    total_clients:   { visible: true },
+    total_savings:   { visible: true, calc: "balance" as const },
+    total_susu:      { visible: true, calc: "dep" as const },
+    total_fd:        { visible: true },
+    combined_total:  { visible: true },
+    total_revenue:   { visible: true, components: { interest: true, commission: true, susu_fees: true, card_fees: true, sms_charges: true, processing_fees: true } },
+    account_balance: { visible: true },
+    cash_at_hand:    { visible: true },
+    cash_at_bank:    { visible: true },
+  };
+  const raw = settings.overview_kpi ?? defaultKpi;
+  const kpi = {
+    ...defaultKpi,
+    ...raw,
+    total_savings:  { ...defaultKpi.total_savings,  ...raw.total_savings },
+    total_susu:     { ...defaultKpi.total_susu,     ...raw.total_susu },
+    total_revenue:  { ...defaultKpi.total_revenue,  ...raw.total_revenue, components: { ...defaultKpi.total_revenue.components, ...raw.total_revenue?.components } },
+  };
 
   const [
     { count: clientCount },
