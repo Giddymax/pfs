@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans } from "next/font/google";
 import { InstallPrompt } from "@/components/install-prompt";
+import { RegisterSW } from "@/components/register-sw";
 import "./globals.css";
 
 // Stanbic Bank's corporate typeface is Benton Sans (licensed); IBM Plex Sans is
@@ -15,8 +16,6 @@ const plexSans = IBM_Plex_Sans({
 export const metadata: Metadata = {
   title: "Prime Financial Service",
   description: "Client, savings, susu, loan and repayment management for Prime Financial Service",
-  manifest: "/manifest.json",
-  themeColor: "#177245",
   icons: {
     icon: "/favicon.ico",
     apple: "/icons/icon-192.png",
@@ -31,6 +30,12 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  themeColor: "#177245",
+  width: "device-width",
+  initialScale: 1,
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -38,14 +43,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${plexSans.variable} h-full antialiased`}>
+      <head>
+        <link rel="manifest" href="/manifest.webmanifest" />
+        {/* eslint-disable-next-line @next/next/no-head-element */}
+        <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png" />
+      </head>
       <body className="min-h-full flex flex-col bg-[#F3F3F4] text-[#0A2240]" suppressHydrationWarning>
         {children}
         <InstallPrompt />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `if("serviceWorker"in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js")})}`,
-          }}
-        />
+        <RegisterSW />
       </body>
     </html>
   );
