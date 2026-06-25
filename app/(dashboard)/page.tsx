@@ -6,10 +6,6 @@ import { PageHeader, Card, LoanStatusBadge, EmptyState } from "@/components/ui";
 import { formatGHS, round2 } from "@/lib/loan";
 import type { Loan, Client } from "@/lib/types";
 
-interface ReconciliationTotal {
-  total: number;
-}
-
 export default async function OverviewPage() {
   const supabase = await createClient();
 
@@ -47,8 +43,11 @@ export default async function OverviewPage() {
     { data: susuFeeRows },
     { data: processingFeeRows },
     { data: loanInterestRows },
-    // Account-balance comes from the reconciliation RPC (single formula, all ledger items)
-    reconResult,
+    // Withdrawal amounts (not fees — those are commissionRows)
+    { data: withdrawalRows },
+    // Loan disbursements & repayments
+    { data: loanPrincipalRows },
+    { data: repaymentRows },
     // Cash at bank — sum(deposits) − sum(withdrawals) from bank_transactions
     { data: bankTxnRows },
     // Recent items
@@ -65,7 +64,9 @@ export default async function OverviewPage() {
     supabase.from("susu_payments").select("amount").eq("day_in_cycle", 31),
     supabase.from("loans").select("processing_fee"),
     supabase.from("loans").select("total_interest").in("status", ["active", "completed", "defaulted"]),
-    supabase.rpc("compute_reconciliation").single<ReconciliationTotal>(),
+    supabase.from("transactions").select("amount").eq("type", "withdrawal").is("reversed_at", null),
+    supabase.from("loans").select("principal").in("status", ["active", "completed", "defaulted"]),
+    supabase.from("loan_repayments").select("amount"),
     supabase.from("bank_transactions").select("type, amount"),
     supabase
       .from("loans")
@@ -108,8 +109,20 @@ export default async function OverviewPage() {
     (rc.processing_fees ? processingFees : 0)
   );
 
-  // Cash position
-  const accountBalance = reconResult.data?.total ?? round2(combined);
+  // Account balance components
+  const totalWithdrawals  = sum(withdrawalRows,    "amount");
+  const totalLoansPaid    = sum(loanPrincipalRows, "principal");
+  const totalRepayments   = sum(repaymentRows,     "amount");
+
+  // Account Balance = Combined Total - (Withdrawals + Commissions) - Susu Fees - Loans + Repayments + Card Fees
+  const accountBalance = round2(
+    combined
+    - (totalWithdrawals + commission)
+    - susuFees
+    - totalLoansPaid
+    + totalRepayments
+    + cardFees
+  );
   const rawCashAtBank = round2(
     (bankTxnRows ?? []).reduce((s, t) => {
       const amt = Number((t as { type: string; amount: number }).amount ?? 0);
@@ -188,7 +201,7 @@ export default async function OverviewPage() {
           <SummaryCard
             label="Account Balance"
             value={formatGHS(accountBalance)}
-            hint={`Combined Total – withdrawals – commission – SMS – susu fees – loans + repayments – FD interest + card fees ${formatGHS(cardFees)} + processing fees ${formatGHS(processingFees)}`}
+            hint={`${formatGHS(combined)} − (Wdr ${formatGHS(totalWithdrawals)} + Comm ${formatGHS(commission)}) − Susu Fees ${formatGHS(susuFees)} − Loans ${formatGHS(totalLoansPaid)} + Repayments ${formatGHS(totalRepayments)} + Card Fees ${formatGHS(cardFees)}`}
             color="bg-[#9333EA]"
           />
         )}
