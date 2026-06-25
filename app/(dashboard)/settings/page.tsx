@@ -14,7 +14,7 @@ const DEFAULT_COMMISSION_TIERS: CommissionTier[] = [
 
 const DEFAULT_KPI: OverviewKpiSettings = {
   total_clients:   { visible: true },
-  total_savings:   { visible: true, calc: "balance" },
+  total_savings:   { visible: true, calc: "dep" },
   total_susu:      { visible: true, calc: "dep" },
   total_fd:        { visible: true },
   combined_total:  { visible: true },

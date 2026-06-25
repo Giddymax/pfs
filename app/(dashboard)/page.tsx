@@ -16,7 +16,7 @@ export default async function OverviewPage() {
   const settings = await getSettings();
   const defaultKpi = {
     total_clients:   { visible: true },
-    total_savings:   { visible: true, calc: "balance" as const },
+    total_savings:   { visible: true, calc: "dep" as const },
     total_susu:      { visible: true, calc: "dep" as const },
     total_fd:        { visible: true },
     combined_total:  { visible: true },
@@ -196,7 +196,7 @@ export default async function OverviewPage() {
           <SummaryCard
             label="Cash at Hand"
             value={formatGHS(cashAtHand)}
-            hint="Account balance – cash at bank"
+            hint="Money not deposited to bank — account balance minus cash at bank"
             color="bg-[#D97706]"
           />
         )}

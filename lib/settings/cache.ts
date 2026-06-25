@@ -25,7 +25,7 @@ const DEFAULTS: Settings = {
   emergency_claim_penalty_basis: "daily_contribution_amount",
   overview_kpi: {
     total_clients:   { visible: true },
-    total_savings:   { visible: true, calc: "balance" },
+    total_savings:   { visible: true, calc: "dep" },
     total_susu:      { visible: true, calc: "dep" },
     total_fd:        { visible: true },
     combined_total:  { visible: true },
