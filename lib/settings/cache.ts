@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { CommissionTier, Settings, SettingsRow, SmsSettings } from "@/lib/types";
+import type { CommissionTier, OverviewKpiSettings, Settings, SettingsRow, SmsSettings } from "@/lib/types";
 
 const TTL_MS = 5 * 60 * 1000;
 
@@ -23,6 +23,17 @@ const DEFAULTS: Settings = {
   card_fee_amount: 20,
   fd_terms_months: [3, 6, 9, 12, 18, 24],
   emergency_claim_penalty_basis: "daily_contribution_amount",
+  overview_kpi: {
+    total_clients:   { visible: true },
+    total_savings:   { visible: true, calc: "balance" },
+    total_susu:      { visible: true, calc: "dep" },
+    total_fd:        { visible: true },
+    combined_total:  { visible: true },
+    total_revenue:   { visible: true },
+    account_balance: { visible: true },
+    cash_at_hand:    { visible: true },
+    cash_at_bank:    { visible: true },
+  },
 };
 
 let cache: { value: Settings; fetchedAt: number } | null = null;
@@ -40,6 +51,7 @@ export async function getSettings(): Promise<Settings> {
     card_fee_amount: (byKey.get("card_fee_amount") as number | undefined) ?? DEFAULTS.card_fee_amount,
     fd_terms_months: (byKey.get("fd_terms_months") as number[] | undefined) ?? DEFAULTS.fd_terms_months,
     emergency_claim_penalty_basis: "daily_contribution_amount",
+    overview_kpi: (byKey.get("overview_kpi") as OverviewKpiSettings | undefined) ?? DEFAULTS.overview_kpi,
   };
 
   cache = { value, fetchedAt: Date.now() };

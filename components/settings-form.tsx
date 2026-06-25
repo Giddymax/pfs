@@ -3,23 +3,43 @@
 import { useState } from "react";
 import { Loader2, Plus, Save, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui";
-import type { CommissionTier, SmsSettings } from "@/lib/types";
+import type { CommissionTier, OverviewKpiSettings, SmsSettings } from "@/lib/types";
+
+const KPI_LABELS: Record<keyof OverviewKpiSettings, string> = {
+  total_clients:   "Total Clients",
+  total_savings:   "Total Savings",
+  total_susu:      "Total Daily Susu",
+  total_fd:        "Total Fixed Deposits",
+  combined_total:  "Combined Account Total",
+  total_revenue:   "Total Revenue",
+  account_balance: "Account Balance",
+  cash_at_hand:    "Cash at Hand",
+  cash_at_bank:    "Cash at Bank",
+};
+
+const CALC_OPTIONS: { value: "balance" | "dep"; label: string }[] = [
+  { value: "balance", label: "Current balance" },
+  { value: "dep",     label: "Total deposits (gross)" },
+];
 
 export function SettingsForm({
   commissionTiers,
   sms,
   cardFeeAmount,
   fdTermsMonths,
+  overviewKpi,
 }: {
   commissionTiers: CommissionTier[];
   sms: SmsSettings;
   cardFeeAmount: number;
   fdTermsMonths: number[];
+  overviewKpi: OverviewKpiSettings;
 }) {
   const [tiers, setTiers] = useState<CommissionTier[]>(commissionTiers);
   const [smsSettings, setSmsSettings] = useState<SmsSettings>(sms);
   const [cardFee, setCardFee] = useState(String(cardFeeAmount));
   const [fdTerms, setFdTerms] = useState(fdTermsMonths.join(", "));
+  const [kpi, setKpi] = useState<OverviewKpiSettings>(overviewKpi);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,6 +75,7 @@ export function SettingsForm({
         sms: smsSettings,
         card_fee_amount: Number(cardFee) || 0,
         fd_terms_months: fdTermsParsed,
+        overview_kpi: kpi,
       }),
     });
     const json = await res.json().catch(() => ({}));
@@ -194,6 +215,51 @@ export function SettingsForm({
               className="w-full rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] text-[#0A2240] outline-none transition-colors placeholder:text-[#0A2240]/30 focus:border-[#0062E1] focus:bg-white"
             />
           </label>
+        </div>
+      </Card>
+
+      <Card>
+        <div className="border-b border-[#0033AA]/8 px-5 py-4">
+          <h2 className="text-[15px] font-semibold text-[#0033AA]">Overview KPI cards</h2>
+          <p className="mt-1 text-[12.5px] text-[#0A2240]/50">
+            Choose which KPI cards appear on the Overview page and how certain totals are calculated.
+          </p>
+        </div>
+        <div className="space-y-4 px-5 py-5">
+          {(Object.keys(KPI_LABELS) as (keyof OverviewKpiSettings)[]).map((key) => (
+            <div key={key} className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+              <Toggle
+                label={KPI_LABELS[key]}
+                checked={kpi[key].visible}
+                onChange={(v) =>
+                  setKpi((prev) => ({ ...prev, [key]: { ...prev[key], visible: v } }))
+                }
+              />
+
+              {(key === "total_savings" || key === "total_susu") && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[12px] text-[#0A2240]/50">Calculated from:</span>
+                  <select
+                    aria-label={`Calculation method for ${KPI_LABELS[key]}`}
+                    value={(kpi[key] as { visible: boolean; calc: "balance" | "dep" }).calc}
+                    onChange={(e) =>
+                      setKpi((prev) => ({
+                        ...prev,
+                        [key]: { ...prev[key], calc: e.target.value as "balance" | "dep" },
+                      }))
+                    }
+                    className="rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-2.5 py-1.5 text-[13px] text-[#0A2240] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
+                  >
+                    {CALC_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </Card>
 

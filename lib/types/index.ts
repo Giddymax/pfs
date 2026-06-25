@@ -158,12 +158,33 @@ export interface SmsSettings {
   company_tel: string | null;
 }
 
+export interface KpiCardConfig {
+  visible: boolean;
+}
+
+export interface KpiCardCalcConfig extends KpiCardConfig {
+  calc: "balance" | "dep";
+}
+
+export interface OverviewKpiSettings {
+  total_clients: KpiCardConfig;
+  total_savings: KpiCardCalcConfig;
+  total_susu: KpiCardCalcConfig;
+  total_fd: KpiCardConfig;
+  combined_total: KpiCardConfig;
+  total_revenue: KpiCardConfig;
+  account_balance: KpiCardConfig;
+  cash_at_hand: KpiCardConfig;
+  cash_at_bank: KpiCardConfig;
+}
+
 export interface Settings {
   commission_tiers: CommissionTier[];
   sms: SmsSettings;
   card_fee_amount: number;
   fd_terms_months: number[];
   emergency_claim_penalty_basis: "daily_contribution_amount";
+  overview_kpi: OverviewKpiSettings;
 }
 
 export type SettingsKey = keyof Settings;

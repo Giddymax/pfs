@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getSettings } from "@/lib/settings/cache";
 import { PageHeader, Card, LoanStatusBadge, EmptyState } from "@/components/ui";
 import { formatGHS, round2 } from "@/lib/loan";
 import type { Loan, Client } from "@/lib/types";
@@ -11,6 +12,9 @@ interface ReconciliationTotal {
 
 export default async function OverviewPage() {
   const supabase = await createClient();
+
+  const settings = await getSettings();
+  const kpi = settings.overview_kpi;
 
   const [
     { count: clientCount },
@@ -34,8 +38,8 @@ export default async function OverviewPage() {
     { data: recentClients },
   ] = await Promise.all([
     supabase.from("clients").select("*", { count: "exact", head: true }),
-    supabase.from("accounts").select("balance").eq("product_type", "savings"),
-    supabase.from("accounts").select("dep").eq("product_type", "susu"),
+    supabase.from("accounts").select("balance, dep").eq("product_type", "savings"),
+    supabase.from("accounts").select("balance, dep").eq("product_type", "susu"),
     supabase.from("fixed_deposits").select("principal").not("status", "in", '("withdrawn","rolled_over")'),
     supabase.from("card_fees").select("amount"),
     supabase.from("sms_log").select("cost"),
@@ -64,9 +68,9 @@ export default async function OverviewPage() {
   const sum = (rows: any[] | null, key: string) =>
     round2((rows ?? []).reduce((s: number, r: Record<string, unknown>) => s + Number(r[key] ?? 0), 0));
 
-  const totalSavings  = sum(savingsRows,      "balance");
-  const totalSusu     = sum(susuRows,         "dep");
-  const totalFD       = sum(fdRows,           "principal");
+  const totalSavings  = sum(savingsRows, kpi.total_savings.calc);
+  const totalSusu     = sum(susuRows,   kpi.total_susu.calc);
+  const totalFD       = sum(fdRows,     "principal");
   const combined      = round2(totalSavings + totalSusu + totalFD);
 
   // Revenue components
@@ -100,59 +104,77 @@ export default async function OverviewPage() {
       />
 
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <SummaryCard
-          label="Total Clients"
-          value={String(clientCount ?? 0)}
-          color="bg-[#DC2626]"
-        />
-        <SummaryCard
-          label="Total Savings"
-          value={formatGHS(totalSavings)}
-          hint="Total deposits — no deductions"
-          color="bg-[#0D9488]"
-        />
-        <SummaryCard
-          label="Total Daily Susu"
-          value={formatGHS(totalSusu)}
-          hint="Total contributions from all susu clients (gross)"
-          color="bg-[#16A34A]"
-        />
-        <SummaryCard
-          label="Total Fixed Deposits"
-          value={formatGHS(totalFD)}
-          hint="Principal only — no interest added"
-          color="bg-[#7C3AED]"
-        />
-        <SummaryCard
-          label="Combined Account Total"
-          value={formatGHS(combined)}
-          hint={`Savings ${formatGHS(totalSavings)} + Susu ${formatGHS(totalSusu)} + FD ${formatGHS(totalFD)}`}
-          color="bg-[#EA580C]"
-        />
-        <SummaryCard
-          label="Total Revenue"
-          value={formatGHS(totalRevenue)}
-          hint={`Interest ${formatGHS(loanInterest)} + Commission ${formatGHS(commission)} + Susu Fees ${formatGHS(susuFees)} + Card Fees ${formatGHS(cardFees)} + SMS ${formatGHS(smsCharges)} + Processing Fees ${formatGHS(processingFees)}`}
-          color="bg-[#15803D]"
-        />
-        <SummaryCard
-          label="Account Balance"
-          value={formatGHS(accountBalance)}
-          hint={`Combined Total – withdrawals – commission – SMS – susu fees – loans + repayments – FD interest + card fees ${formatGHS(cardFees)} + processing fees ${formatGHS(processingFees)}`}
-          color="bg-[#9333EA]"
-        />
-        <SummaryCard
-          label="Cash at Hand"
-          value={formatGHS(cashAtHand)}
-          hint="Account balance – cash at bank"
-          color="bg-[#D97706]"
-        />
-        <SummaryCard
-          label="Cash at Bank"
-          value={formatGHS(cashAtBank)}
-          hint="Total deposited to bank account"
-          color="bg-[#1D4ED8]"
-        />
+        {kpi.total_clients.visible && (
+          <SummaryCard
+            label="Total Clients"
+            value={String(clientCount ?? 0)}
+            color="bg-[#DC2626]"
+          />
+        )}
+        {kpi.total_savings.visible && (
+          <SummaryCard
+            label="Total Savings"
+            value={formatGHS(totalSavings)}
+            hint={kpi.total_savings.calc === "dep" ? "Total deposits (gross)" : "Current balance across all savings accounts"}
+            color="bg-[#0D9488]"
+          />
+        )}
+        {kpi.total_susu.visible && (
+          <SummaryCard
+            label="Total Daily Susu"
+            value={formatGHS(totalSusu)}
+            hint={kpi.total_susu.calc === "dep" ? "Total contributions from all susu clients (gross)" : "Current balance across all susu accounts"}
+            color="bg-[#16A34A]"
+          />
+        )}
+        {kpi.total_fd.visible && (
+          <SummaryCard
+            label="Total Fixed Deposits"
+            value={formatGHS(totalFD)}
+            hint="Principal only — no interest added"
+            color="bg-[#7C3AED]"
+          />
+        )}
+        {kpi.combined_total.visible && (
+          <SummaryCard
+            label="Combined Account Total"
+            value={formatGHS(combined)}
+            hint={`Savings ${formatGHS(totalSavings)} + Susu ${formatGHS(totalSusu)} + FD ${formatGHS(totalFD)}`}
+            color="bg-[#EA580C]"
+          />
+        )}
+        {kpi.total_revenue.visible && (
+          <SummaryCard
+            label="Total Revenue"
+            value={formatGHS(totalRevenue)}
+            hint={`Interest ${formatGHS(loanInterest)} + Commission ${formatGHS(commission)} + Susu Fees ${formatGHS(susuFees)} + Card Fees ${formatGHS(cardFees)} + SMS ${formatGHS(smsCharges)} + Processing Fees ${formatGHS(processingFees)}`}
+            color="bg-[#15803D]"
+          />
+        )}
+        {kpi.account_balance.visible && (
+          <SummaryCard
+            label="Account Balance"
+            value={formatGHS(accountBalance)}
+            hint={`Combined Total – withdrawals – commission – SMS – susu fees – loans + repayments – FD interest + card fees ${formatGHS(cardFees)} + processing fees ${formatGHS(processingFees)}`}
+            color="bg-[#9333EA]"
+          />
+        )}
+        {kpi.cash_at_hand.visible && (
+          <SummaryCard
+            label="Cash at Hand"
+            value={formatGHS(cashAtHand)}
+            hint="Account balance – cash at bank"
+            color="bg-[#D97706]"
+          />
+        )}
+        {kpi.cash_at_bank.visible && (
+          <SummaryCard
+            label="Cash at Bank"
+            value={formatGHS(cashAtBank)}
+            hint="Total deposited to bank account"
+            color="bg-[#1D4ED8]"
+          />
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
