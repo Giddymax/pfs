@@ -131,7 +131,7 @@ body {
 }
 
 .sidebar-aurora {
-  background-color: #D4A017;
+  background-color: #177245;
 }
 
 .animate-fade-up {
@@ -216,14 +216,14 @@ button:active,
   background: transparent;
 }
 .sidebar-nav::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: #D4A017;
   border-radius: 2px;
 }
 .sidebar-nav:hover::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.35);
+  background: #E6B422;
 }
 /* Firefox */
 .sidebar-nav {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  scrollbar-color: #D4A017 transparent;
 }
