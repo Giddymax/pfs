@@ -6,6 +6,7 @@ export interface Profile {
   email: string;
   role: Role;
   is_active: boolean;
+  photo_url: string | null;
   created_at: string;
 }
 
