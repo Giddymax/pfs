@@ -14,6 +14,19 @@ const plexSans = IBM_Plex_Sans({
 export const metadata: Metadata = {
   title: "Prime Financial Service",
   description: "Client, savings, susu, loan and repayment management for Prime Financial Service",
+  manifest: "/manifest.json",
+  themeColor: "#177245",
+  icons: {
+    apple: "/icons/icon-192.png",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "PrimeFS",
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
 };
 
 export default function RootLayout({
@@ -23,7 +36,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${plexSans.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-[#F3F3F4] text-[#0A2240]" suppressHydrationWarning>{children}</body>
+      <body className="min-h-full flex flex-col bg-[#F3F3F4] text-[#0A2240]" suppressHydrationWarning>
+        {children}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `if("serviceWorker"in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js")})}`,
+          }}
+        />
+      </body>
     </html>
   );
 }
