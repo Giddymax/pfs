@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { invalidateSettingsCache } from "@/lib/settings/cache";
-import type { CommissionTier, OverviewKpiSettings, Profile, SmsSettings } from "@/lib/types";
+import type { CommissionTier, Profile, SmsSettings } from "@/lib/types";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -21,7 +21,6 @@ export async function POST(request: Request) {
   const sms = body?.sms as SmsSettings | undefined;
   const cardFeeAmount = Number(body?.card_fee_amount);
   const fdTermsMonths = body?.fd_terms_months as number[] | undefined;
-  const overviewKpi = body?.overview_kpi as OverviewKpiSettings | undefined;
 
   if (!Array.isArray(commissionTiers)) {
     return NextResponse.json({ error: "commission_tiers must be an array" }, { status: 400 });
@@ -35,16 +34,12 @@ export async function POST(request: Request) {
   if (!Array.isArray(fdTermsMonths)) {
     return NextResponse.json({ error: "fd_terms_months must be an array" }, { status: 400 });
   }
-  if (!overviewKpi || typeof overviewKpi !== "object") {
-    return NextResponse.json({ error: "overview_kpi settings are required" }, { status: 400 });
-  }
 
   const updates = [
     { key: "commission_tiers", value: commissionTiers },
     { key: "sms", value: sms },
     { key: "card_fee_amount", value: cardFeeAmount },
     { key: "fd_terms_months", value: fdTermsMonths },
-    { key: "overview_kpi", value: overviewKpi },
   ];
 
   for (const update of updates) {

@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui";
 import { SettingsForm } from "@/components/settings-form";
-import type { CommissionTier, OverviewKpiSettings, Profile, SettingsRow, SmsSettings } from "@/lib/types";
+import type { CommissionTier, Profile, SettingsRow, SmsSettings } from "@/lib/types";
 
 const DEFAULT_COMMISSION_TIERS: CommissionTier[] = [
   { min: 50, max: 200, fee: 5 },
@@ -11,18 +11,6 @@ const DEFAULT_COMMISSION_TIERS: CommissionTier[] = [
   { min: 1000, max: 1500, fee: 20 },
   { min: 2000, max: null, fee: 40 },
 ];
-
-const DEFAULT_KPI: OverviewKpiSettings = {
-  total_clients:   { visible: true },
-  total_savings:   { visible: true, calc: "dep" },
-  total_susu:      { visible: true, calc: "dep" },
-  total_fd:        { visible: true },
-  combined_total:  { visible: true },
-  total_revenue:   { visible: true, components: { interest: true, commission: true, susu_fees: true, card_fees: true, sms_charges: true, processing_fees: true } },
-  account_balance: { visible: true },
-  cash_at_hand:    { visible: true },
-  cash_at_bank:    { visible: true },
-};
 
 const DEFAULT_SMS_SETTINGS: SmsSettings = {
   sms_enabled: false,
@@ -61,23 +49,7 @@ export default async function SettingsPage() {
         sms={(byKey.get("sms") as SmsSettings | undefined) ?? DEFAULT_SMS_SETTINGS}
         cardFeeAmount={(byKey.get("card_fee_amount") as number | undefined) ?? 20}
         fdTermsMonths={(byKey.get("fd_terms_months") as number[] | undefined) ?? [3, 6, 9, 12, 18, 24]}
-        overviewKpi={mergeKpi(byKey.get("overview_kpi") as Partial<OverviewKpiSettings> | undefined)}
       />
     </div>
   );
-}
-
-function mergeKpi(raw: Partial<OverviewKpiSettings> | undefined): OverviewKpiSettings {
-  if (!raw) return DEFAULT_KPI;
-  return {
-    ...DEFAULT_KPI,
-    ...raw,
-    total_savings: { ...DEFAULT_KPI.total_savings, ...raw.total_savings },
-    total_susu:    { ...DEFAULT_KPI.total_susu,    ...raw.total_susu },
-    total_revenue: {
-      ...DEFAULT_KPI.total_revenue,
-      ...raw.total_revenue,
-      components: { ...DEFAULT_KPI.total_revenue.components, ...(raw.total_revenue as typeof DEFAULT_KPI.total_revenue | undefined)?.components },
-    },
-  };
 }
