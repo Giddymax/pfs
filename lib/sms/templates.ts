@@ -4,8 +4,8 @@ export const smsTemplates = {
   depositRecorded: (clientName: string, amount: number, balanceAfter: number, accountNumber: string) =>
     `DEPOSIT: ${clientName}, ${formatGHS(amount)} received on acct ${accountNumber}. Bal: ${formatGHS(balanceAfter)}.`,
 
-  withdrawalRecorded: (clientName: string, amount: number, fee: number, balanceAfter: number, accountNumber: string) =>
-    `WITHDRAWAL: ${clientName}, ${formatGHS(amount)}${fee > 0 ? ` (fee ${formatGHS(fee)})` : ""} from acct ${accountNumber}. Bal: ${formatGHS(balanceAfter)}.`,
+  withdrawalRecorded: (clientName: string, amount: number, fee: number, balanceAfter: number, accountNumber: string, proxyName?: string | null) =>
+    `WITHDRAWAL: ${clientName}, ${formatGHS(amount)}${fee > 0 ? ` (fee ${formatGHS(fee)})` : ""} from acct ${accountNumber}. Bal: ${formatGHS(balanceAfter)}.${proxyName ? ` Withdrawn by: ${proxyName}.` : ""}`,
 
   transactionReversed: (clientName: string, amount: number, balanceAfter: number) =>
     `${clientName}, a txn of ${formatGHS(amount)} was reversed. Current bal: ${formatGHS(balanceAfter)}.`,
@@ -19,8 +19,8 @@ export const smsTemplates = {
   susuMultiDayPayment: (clientName: string, days: number, amountPerDay: number, total: number) =>
     `DEPOSIT: ${clientName}, ${formatGHS(total)} susu received, covering ${days} days (${days} × ${formatGHS(amountPerDay)}). Thank you.`,
 
-  susuWithdrawalRecorded: (clientName: string, amount: number, balanceAfter: number) =>
-    `WITHDRAWAL: ${clientName}, susu ${formatGHS(amount)} paid out. Bal: ${formatGHS(balanceAfter)}.`,
+  susuWithdrawalRecorded: (clientName: string, amount: number, balanceAfter: number, proxyName?: string | null) =>
+    `WITHDRAWAL: ${clientName}, susu ${formatGHS(amount)} paid out. Bal: ${formatGHS(balanceAfter)}.${proxyName ? ` Withdrawn by: ${proxyName}.` : ""}`,
 
   susuClaimApproved: (clientName: string, amount: number) =>
     `${clientName}, your susu claim of ${formatGHS(amount)} is approved. Visit your branch to collect.`,
@@ -60,9 +60,9 @@ export const smsTemplates = {
   adminEmergencyClaimAlert: (clientName: string, amount: number, reason?: string) =>
     `${clientName} requested an emergency susu claim of ${formatGHS(amount)}.${reason ? ` Reason: ${reason}.` : ""} Review for approval.`,
 
-  susuEmergencyWithdrawal: (clientName: string, payout: number, companyFee: number, balanceAfter: number) =>
-    `EMERGENCY WITHDRAWAL: ${clientName}, ${formatGHS(payout)} paid out (company fee ${formatGHS(companyFee)} deducted). Bal: ${formatGHS(balanceAfter)}.`,
+  susuEmergencyWithdrawal: (clientName: string, payout: number, companyFee: number, balanceAfter: number, proxyName?: string | null) =>
+    `EMERGENCY WITHDRAWAL: ${clientName}, ${formatGHS(payout)} paid out (company fee ${formatGHS(companyFee)} deducted). Bal: ${formatGHS(balanceAfter)}.${proxyName ? ` Withdrawn by: ${proxyName}.` : ""}`,
 
-  susuEmergencyWithdrawalAdmin: (clientName: string, payout: number, companyFee: number, reason: string, staffName: string) =>
-    `EMERGENCY WITHDRAWAL: ${clientName}, ${formatGHS(payout)} paid out (fee ${formatGHS(companyFee)}).${reason ? ` Reason: ${reason}.` : ""} By: ${staffName}.`,
+  susuEmergencyWithdrawalAdmin: (clientName: string, payout: number, companyFee: number, reason: string, staffName: string, proxyName?: string | null) =>
+    `EMERGENCY WITHDRAWAL: ${clientName}, ${formatGHS(payout)} paid out (fee ${formatGHS(companyFee)}).${reason ? ` Reason: ${reason}.` : ""}${proxyName ? ` Withdrawn by: ${proxyName}.` : ""} By: ${staffName}.`,
 };

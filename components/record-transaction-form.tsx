@@ -103,7 +103,12 @@ export function RecordTransactionForm({
       const res = await fetch(copy.endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ account_id: accountId, amount: amountNum, notes: combinedNotes || null }),
+        body: JSON.stringify({
+          account_id: accountId,
+          amount: amountNum,
+          notes: combinedNotes || null,
+          ...(!isClient && kind === "withdrawal" ? { proxy_name: proxyName.trim() } : {}),
+        }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Could not record this transaction. Try again.");

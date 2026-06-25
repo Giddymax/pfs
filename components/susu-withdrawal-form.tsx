@@ -89,7 +89,12 @@ export function SusuWithdrawalForm({
       const res = await fetch("/api/susu/withdrawal", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ account_id: accountId, amount: amountNum, notes: notes || null }),
+        body: JSON.stringify({
+          account_id: accountId,
+          amount: amountNum,
+          notes: notes || null,
+          ...(!isClient ? { proxy_name: proxyName.trim() } : {}),
+        }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Could not record this withdrawal. Try again.");
@@ -123,6 +128,7 @@ export function SusuWithdrawalForm({
         body: JSON.stringify({
           account_id: accountId,
           reason: proxyReason,
+          ...(!isClient ? { proxy_name: proxyName.trim() } : {}),
         }),
       });
       const json = await res.json();

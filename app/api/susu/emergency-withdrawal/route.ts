@@ -16,6 +16,7 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const accountId = body?.account_id;
   const reason = typeof body?.reason === "string" ? body.reason.trim() : "";
+  const proxyName = typeof body?.proxy_name === "string" ? body.proxy_name.trim() || null : null;
 
   if (!accountId || typeof accountId !== "string") {
     return NextResponse.json({ error: "account_id is required" }, { status: 400 });
@@ -114,6 +115,7 @@ export async function POST(request: Request) {
       payout,
       companyFee,
       0,
+      proxyName,
     );
 
     if (shouldSendClientSms("withdrawal", client, settings)) {
@@ -133,6 +135,7 @@ export async function POST(request: Request) {
         companyFee,
         reason,
         profile?.full_name ?? "Staff",
+        proxyName,
       );
       await sendSms({
         to: settings.sms.company_tel!,

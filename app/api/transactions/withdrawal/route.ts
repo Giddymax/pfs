@@ -18,6 +18,7 @@ export async function POST(request: Request) {
   const accountId = body?.account_id;
   const amount = Number(body?.amount);
   const notes = typeof body?.notes === "string" ? body.notes.trim() || null : null;
+  const proxyName = typeof body?.proxy_name === "string" ? body.proxy_name.trim() || null : null;
 
   if (!accountId || typeof accountId !== "string") {
     return NextResponse.json({ error: "account_id is required" }, { status: 400 });
@@ -37,11 +38,11 @@ export async function POST(request: Request) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-  await notifyWithdrawal(supabase, data);
+  await notifyWithdrawal(supabase, data, proxyName);
   return NextResponse.json({ transaction: data });
 }
 
-async function notifyWithdrawal(supabase: Awaited<ReturnType<typeof createClient>>, txn: Transaction) {
+async function notifyWithdrawal(supabase: Awaited<ReturnType<typeof createClient>>, txn: Transaction, proxyName: string | null) {
   const [{ data: client }, { data: account }] = await Promise.all([
     supabase.from("clients").select("*").eq("id", txn.client_id).single<Client>(),
     supabase.from("accounts").select("*").eq("id", txn.account_id).single<Account>(),
@@ -49,7 +50,7 @@ async function notifyWithdrawal(supabase: Awaited<ReturnType<typeof createClient
   if (!client || !account) return;
 
   const settings = await getSettings();
-  const msg = smsTemplates.withdrawalRecorded(client.full_name, txn.amount, txn.fee, txn.bal_after, account.account_number);
+  const msg = smsTemplates.withdrawalRecorded(client.full_name, txn.amount, txn.fee, txn.bal_after, account.account_number, proxyName);
 
   if (shouldSendClientSms("withdrawal", client, settings)) {
     await sendSms({ to: client.phone, message: msg, event: "withdrawal_recorded", recipientType: "client", relatedClientId: client.id });
