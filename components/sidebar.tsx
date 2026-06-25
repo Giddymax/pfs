@@ -15,7 +15,6 @@ import {
   Settings,
   UsersRound,
   ReceiptText,
-  BarChart2,
   BarChart3,
   Building2,
 } from "lucide-react";
@@ -123,15 +122,6 @@ const ADMIN_NAV = [
     activeIcon: "text-[#0891B2]",
     idle: "group text-[#FFFFFF] hover:bg-[#0891B2]/15 hover:text-[#FFFFFF]",
     idleIcon: "text-[#FFFFFF] transition-colors group-hover:text-[#0891B2]",
-  },
-  {
-    href: "/reports/reconciliation",
-    label: "Reconciliation",
-    icon: BarChart2,
-    active: "bg-[#34D399]/15 text-[#FFFFFF]",
-    activeIcon: "text-[#34D399]",
-    idle: "group text-[#FFFFFF] hover:bg-[#34D399]/15 hover:text-[#FFFFFF]",
-    idleIcon: "text-[#FFFFFF] transition-colors group-hover:text-[#34D399]",
   },
   {
     href: "/settings",
