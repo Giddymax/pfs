@@ -48,9 +48,9 @@ export function InstallPrompt() {
   if (isIos) {
     return (
       <div className="fixed bottom-4 left-4 right-4 z-50 flex items-start gap-3 rounded-xl border border-[#0033AA]/15 bg-white px-4 py-3.5 shadow-lg sm:left-auto sm:max-w-sm">
-        <Download size={20} className="mt-0.5 shrink-0 text-[#177245]" />
+        <Download size={20} className="mt-0.5 shrink-0 text-[#d42020]" />
         <div className="min-w-0 flex-1">
-          <p className="text-[13px] font-semibold text-[#0A2240]">Install PrimeFS</p>
+          <p className="text-[13px] font-semibold text-[#0A2240]">Install PFS</p>
           <p className="mt-0.5 text-[12px] text-[#0A2240]/55">
             Tap the share button <span className="inline-block text-[14px] leading-none">⎙</span> then &quot;Add to Home Screen&quot;.
           </p>
@@ -71,15 +71,15 @@ export function InstallPrompt() {
 
   return (
     <div className="fixed bottom-4 left-4 right-4 z-50 flex items-center gap-3 rounded-xl border border-[#0033AA]/15 bg-white px-4 py-3 shadow-lg sm:left-auto sm:max-w-sm">
-      <Download size={20} className="shrink-0 text-[#177245]" />
+      <Download size={20} className="shrink-0 text-[#d42020]" />
       <div className="min-w-0 flex-1">
-        <p className="text-[13px] font-semibold text-[#0A2240]">Install PrimeFS</p>
+        <p className="text-[13px] font-semibold text-[#0A2240]">Install PFS</p>
         <p className="mt-0.5 text-[12px] text-[#0A2240]/55">Quick access from your home screen.</p>
       </div>
       <button
         type="button"
         onClick={handleInstall}
-        className="shrink-0 rounded-md bg-[#177245] px-3.5 py-1.5 text-[12px] font-semibold text-white hover:bg-[#145f39]"
+        className="shrink-0 rounded-md bg-[#d42020] px-3.5 py-1.5 text-[12px] font-semibold text-white hover:bg-[#b81c1c]"
       >
         Install
       </button>

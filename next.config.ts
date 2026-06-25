@@ -22,7 +22,7 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        source: "/manifest.webmanifest",
+        source: "/manifest.json",
         headers: [
           { key: "Content-Type", value: "application/manifest+json" },
         ],

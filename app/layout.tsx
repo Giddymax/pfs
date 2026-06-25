@@ -16,14 +16,15 @@ const plexSans = IBM_Plex_Sans({
 export const metadata: Metadata = {
   title: "Prime Financial Service",
   description: "Client, savings, susu, loan and repayment management for Prime Financial Service",
+  manifest: "/manifest.json",
   icons: {
     icon: "/favicon.ico",
-    apple: "/icons/icon-192.png",
+    apple: "/icons/apple-touch-icon.png",
   },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "PrimeFS",
+    title: "PFS",
   },
   other: {
     "mobile-web-app-capable": "yes",
@@ -31,7 +32,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#177245",
+  themeColor: "#d42020",
   width: "device-width",
   initialScale: 1,
 };
@@ -44,9 +45,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${plexSans.variable} h-full antialiased`}>
       <head>
-        <link rel="manifest" href="/manifest.webmanifest" />
-        {/* eslint-disable-next-line @next/next/no-head-element */}
-        <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
       </head>
       <body className="min-h-full flex flex-col bg-[#F3F3F4] text-[#0A2240]" suppressHydrationWarning>
         {children}
