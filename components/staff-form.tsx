@@ -232,8 +232,8 @@ function StaffModal({
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               required
-              placeholder="e.g. Ama Mensah"
-              className="w-full rounded-md border border-[#0A2240]/15 px-3 py-2.5 text-[13.5px] text-[#0A2240] placeholder:text-[#0A2240]/30 focus:border-[#0033AA] focus:outline-none focus:ring-1 focus:ring-[#0033AA]/20"
+             
+              className="w-full rounded-md border border-[#0A2240]/15 px-3 py-2.5 text-[13.5px] text-[#0A2240] focus:border-[#0033AA] focus:outline-none focus:ring-1 focus:ring-[#0033AA]/20"
             />
           </Field>
 
@@ -245,8 +245,8 @@ function StaffModal({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  placeholder="staff@example.com"
-                  className="w-full rounded-md border border-[#0A2240]/15 px-3 py-2.5 text-[13.5px] text-[#0A2240] placeholder:text-[#0A2240]/30 focus:border-[#0033AA] focus:outline-none focus:ring-1 focus:ring-[#0033AA]/20"
+                 
+                  className="w-full rounded-md border border-[#0A2240]/15 px-3 py-2.5 text-[13.5px] text-[#0A2240] focus:border-[#0033AA] focus:outline-none focus:ring-1 focus:ring-[#0033AA]/20"
                 />
               </Field>
               <Field label="Password">
@@ -256,8 +256,8 @@ function StaffModal({
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={8}
-                  placeholder="Min. 8 characters"
-                  className="w-full rounded-md border border-[#0A2240]/15 px-3 py-2.5 text-[13.5px] text-[#0A2240] placeholder:text-[#0A2240]/30 focus:border-[#0033AA] focus:outline-none focus:ring-1 focus:ring-[#0033AA]/20"
+                 
+                  className="w-full rounded-md border border-[#0A2240]/15 px-3 py-2.5 text-[13.5px] text-[#0A2240] focus:border-[#0033AA] focus:outline-none focus:ring-1 focus:ring-[#0033AA]/20"
                 />
               </Field>
             </>

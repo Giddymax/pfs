@@ -214,8 +214,8 @@ export function RecordTransactionForm({
                           type="text"
                           value={proxyName}
                           onChange={(e) => setProxyName(e.target.value)}
-                          placeholder="Name of person withdrawing"
-                          className="w-full rounded-md border border-[#0033AA]/15 bg-white px-3.5 py-2.5 text-[14px] outline-none transition-colors placeholder:text-[#0A2240]/35 focus:border-[#0062E1]"
+                         
+                          className="w-full rounded-md border border-[#0033AA]/15 bg-white px-3.5 py-2.5 text-[14px] outline-none transition-colors focus:border-[#0062E1]"
                         />
                       </label>
                       <label className="block">
@@ -224,8 +224,8 @@ export function RecordTransactionForm({
                           type="tel"
                           value={proxyPhone}
                           onChange={(e) => setProxyPhone(e.target.value)}
-                          placeholder="e.g. 024 000 0000"
-                          className="w-full rounded-md border border-[#0033AA]/15 bg-white px-3.5 py-2.5 text-[14px] outline-none transition-colors placeholder:text-[#0A2240]/35 focus:border-[#0062E1]"
+                         
+                          className="w-full rounded-md border border-[#0033AA]/15 bg-white px-3.5 py-2.5 text-[14px] outline-none transition-colors focus:border-[#0062E1]"
                         />
                       </label>
                       <label className="block">
@@ -234,8 +234,8 @@ export function RecordTransactionForm({
                           type="text"
                           value={proxyRelation}
                           onChange={(e) => setProxyRelation(e.target.value)}
-                          placeholder="e.g. Spouse, Sibling, Agent"
-                          className="w-full rounded-md border border-[#0033AA]/15 bg-white px-3.5 py-2.5 text-[14px] outline-none transition-colors placeholder:text-[#0A2240]/35 focus:border-[#0062E1]"
+                         
+                          className="w-full rounded-md border border-[#0033AA]/15 bg-white px-3.5 py-2.5 text-[14px] outline-none transition-colors focus:border-[#0062E1]"
                         />
                       </label>
                     </div>
@@ -249,7 +249,7 @@ export function RecordTransactionForm({
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   rows={2}
-                  placeholder="e.g. Counter deposit"
+                 
                   className="w-full resize-none rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
                 />
               </label>

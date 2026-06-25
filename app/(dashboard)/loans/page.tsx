@@ -93,8 +93,8 @@ export default async function LoansPage({
             type="text"
             name="q"
             defaultValue={q ?? ""}
-            placeholder="Search by loan code or client name…"
-            className="w-full rounded-md border border-[#1D3461]/15 bg-white py-2.5 pl-10 pr-4 text-[14px] outline-none transition-colors placeholder:text-[#0A2240]/35 focus:border-[#2CBFBF]"
+           
+            className="w-full rounded-md border border-[#1D3461]/15 bg-white py-2.5 pl-10 pr-4 text-[14px] outline-none transition-colors focus:border-[#2CBFBF]"
           />
         </div>
       </form>

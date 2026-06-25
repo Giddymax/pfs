@@ -184,7 +184,7 @@ function NewLoanForm() {
                     setShowPicker(true);
                   }}
                   onFocus={() => setShowPicker(true)}
-                  placeholder="Search client by name, phone or code…"
+                 
                   className="w-full rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 py-2.5 pl-10 pr-4 text-[14px] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
                 />
               </div>
@@ -238,7 +238,7 @@ function NewLoanForm() {
                 step="0.01"
                 value={principal}
                 onChange={(e) => setPrincipal(e.target.value)}
-                placeholder="e.g. 2000"
+               
                 className="w-full rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
               />
             </Field>
@@ -280,7 +280,7 @@ function NewLoanForm() {
                 step="0.01"
                 value={processingFee}
                 onChange={(e) => setProcessingFee(e.target.value)}
-                placeholder="e.g. 50"
+               
                 className="w-full rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
               />
             </Field>
@@ -289,7 +289,7 @@ function NewLoanForm() {
                 type="text"
                 value={purpose}
                 onChange={(e) => setPurpose(e.target.value)}
-                placeholder="e.g. Stock for trading business"
+               
                 className="w-full rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
               />
             </Field>

@@ -97,25 +97,24 @@ function Modal({
               min="0.01"
               step="0.01"
               title={isDeposit ? "Deposit amount in GHS" : "Withdrawal amount in GHS"}
-              placeholder="0.00"
+             
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               className="w-full rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
             />
           </div>
 
-          <div>
-            <label className="mb-1.5 block text-[12.5px] font-medium text-[#0033AA]/75">
+          <label className="block">
+            <span className="mb-1.5 block text-[12.5px] font-medium text-[#0033AA]/75">
               Description (optional)
-            </label>
+            </span>
             <input
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder={isDeposit ? "e.g. Daily takings deposited" : "e.g. Cash for client payouts"}
               className="w-full rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
             />
-          </div>
+          </label>
 
           <div className="flex justify-end gap-2.5 pt-1">
             <button

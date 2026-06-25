@@ -186,8 +186,8 @@ export function SettingsForm({
               type="tel"
               value={smsSettings.company_tel ?? ""}
               onChange={(e) => setSmsSettings((s) => ({ ...s, company_tel: e.target.value || null }))}
-              placeholder="e.g. 0244000000"
-              className="w-full rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] text-[#0A2240] outline-none transition-colors placeholder:text-[#0A2240]/30 focus:border-[#0062E1] focus:bg-white"
+             
+              className="w-full rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] text-[#0A2240] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
             />
           </label>
         </div>
@@ -215,8 +215,8 @@ export function SettingsForm({
               type="text"
               value={fdTerms}
               onChange={(e) => setFdTerms(e.target.value)}
-              placeholder="3, 6, 9, 12, 18, 24"
-              className="w-full rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] text-[#0A2240] outline-none transition-colors placeholder:text-[#0A2240]/30 focus:border-[#0062E1] focus:bg-white"
+             
+              className="w-full rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] text-[#0A2240] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
             />
           </label>
         </div>
@@ -313,7 +313,6 @@ function TierInput({
       <input
         type="number"
         value={value ?? ""}
-        placeholder={allowEmpty ? "No limit" : undefined}
         onChange={(e) => {
           const raw = e.target.value;
           if (raw === "" && allowEmpty) {
@@ -323,7 +322,7 @@ function TierInput({
           const parsed = Number(raw);
           onChange(Number.isFinite(parsed) ? parsed : 0);
         }}
-        className="w-full rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3 py-2 text-[13.5px] text-[#0A2240] outline-none transition-colors placeholder:text-[#0A2240]/30 focus:border-[#0062E1] focus:bg-white"
+        className="w-full rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3 py-2 text-[13.5px] text-[#0A2240] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
       />
     </label>
   );

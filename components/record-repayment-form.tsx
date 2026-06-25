@@ -150,7 +150,7 @@ export function RecordRepaymentForm({
                       min="0"
                       step="0.01"
                       title="Repayment amount in GHS"
-                      placeholder="0.00"
+                     
                       value={amount}
                       onChange={(e) => setAmount(e.target.value)}
                       className="w-full rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
@@ -201,7 +201,7 @@ export function RecordRepaymentForm({
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       rows={2}
-                      placeholder="e.g. Paid at branch counter"
+                     
                       className="w-full resize-none rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
                     />
                   </label>

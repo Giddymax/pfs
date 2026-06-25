@@ -229,7 +229,7 @@ export function SusuContributionForm({ accountId, dailyAmount }: { accountId: st
                           type="number"
                           min="0"
                           step="0.01"
-                          placeholder="Amount"
+                         
                           aria-label={`Amount for day ${index + 1}`}
                           value={row.amount}
                           onChange={(e) => updateRow(index, { amount: e.target.value })}

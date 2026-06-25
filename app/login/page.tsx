@@ -75,8 +75,8 @@ export default function LoginPage() {
                   autoComplete="email"
                   autoCapitalize="none"
                   autoCorrect="off"
-                  placeholder="you@primefinancial.com.gh"
-                  className="w-full rounded-none border-0 border-b-2 border-[#1D3461]/15 bg-transparent px-1 py-3 text-[15px] text-[#0A2240] outline-none transition-colors placeholder:text-[#0A2240]/30 focus:border-[#2CBFBF]"
+                 
+                  className="w-full rounded-none border-0 border-b-2 border-[#1D3461]/15 bg-transparent px-1 py-3 text-[15px] text-[#0A2240] outline-none transition-colors focus:border-[#2CBFBF]"
                 />
               </div>
 
@@ -105,8 +105,8 @@ export default function LoginPage() {
                     autoCapitalize="none"
                     autoCorrect="off"
                     spellCheck={false}
-                    placeholder="••••••••••"
-                    className="w-full rounded-none border-0 border-b-2 border-[#1D3461]/15 bg-transparent px-1 py-3 pr-9 text-[15px] text-[#0A2240] outline-none transition-colors placeholder:text-[#0A2240]/30 focus:border-[#2CBFBF]"
+                   
+                    className="w-full rounded-none border-0 border-b-2 border-[#1D3461]/15 bg-transparent px-1 py-3 pr-9 text-[15px] text-[#0A2240] outline-none transition-colors focus:border-[#2CBFBF]"
                   />
                   <button
                     type="button"

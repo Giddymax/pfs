@@ -276,7 +276,7 @@ export default function NewClientPage() {
           <h2 className="mb-4 text-[14px] font-semibold text-[#0033AA]">Personal details</h2>
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <Field label="Full name" required>
-              <Input value={form.full_name} onChange={(v) => update("full_name", v)} placeholder="e.g. Akosua Mensah" />
+              <Input value={form.full_name} onChange={(v) => update("full_name", v)} />
             </Field>
             <Field label="Date of birth">
               <Input type="date" value={form.date_of_birth} onChange={(v) => update("date_of_birth", v)} />
@@ -289,10 +289,10 @@ export default function NewClientPage() {
               </Select>
             </Field>
             <Field label="Occupation">
-              <Input value={form.occupation} onChange={(v) => update("occupation", v)} placeholder="e.g. Trader, Seamstress, Driver" />
+              <Input value={form.occupation} onChange={(v) => update("occupation", v)} />
             </Field>
             <Field label="Ghana Card number">
-              <Input value={form.ghana_card_number} onChange={(v) => update("ghana_card_number", v)} placeholder="GHA-XXXXXXXXX-X" />
+              <Input value={form.ghana_card_number} onChange={(v) => update("ghana_card_number", v)} />
             </Field>
           </div>
         </section>
@@ -302,16 +302,16 @@ export default function NewClientPage() {
           <h2 className="mb-4 text-[14px] font-semibold text-[#0033AA]">Contact &amp; address</h2>
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <Field label="Phone number" required>
-              <Input value={form.phone} onChange={(v) => update("phone", v)} placeholder="0XX XXX XXXX" />
+              <Input value={form.phone} onChange={(v) => update("phone", v)} />
             </Field>
             <Field label="Alternate phone">
-              <Input value={form.alt_phone} onChange={(v) => update("alt_phone", v)} placeholder="0XX XXX XXXX" />
+              <Input value={form.alt_phone} onChange={(v) => update("alt_phone", v)} />
             </Field>
             <Field label="Town">
-              <Input value={form.town} onChange={(v) => update("town", v)} placeholder="e.g. Accra, Kumasi, Tamale" />
+              <Input value={form.town} onChange={(v) => update("town", v)} />
             </Field>
             <Field label="Residential address" full>
-              <Textarea value={form.residential_address} onChange={(v) => update("residential_address", v)} placeholder="House number, street, town/area" />
+              <Textarea value={form.residential_address} onChange={(v) => update("residential_address", v)} />
             </Field>
           </div>
         </section>
@@ -321,10 +321,10 @@ export default function NewClientPage() {
           <h2 className="mb-4 text-[14px] font-semibold text-[#0033AA]">Next of kin</h2>
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <Field label="Full name">
-              <Input value={form.next_of_kin_name} onChange={(v) => update("next_of_kin_name", v)} placeholder="Next of kin's full name" />
+              <Input value={form.next_of_kin_name} onChange={(v) => update("next_of_kin_name", v)} />
             </Field>
             <Field label="Phone number">
-              <Input value={form.next_of_kin_phone} onChange={(v) => update("next_of_kin_phone", v)} placeholder="0XX XXX XXXX" />
+              <Input value={form.next_of_kin_phone} onChange={(v) => update("next_of_kin_phone", v)} />
             </Field>
           </div>
         </section>
@@ -361,7 +361,7 @@ export default function NewClientPage() {
                   type="number"
                   value={form.opening_deposit}
                   onChange={(v) => update("opening_deposit", v)}
-                  placeholder="e.g. 50.00"
+                 
                 />
               </Field>
             )}
@@ -372,7 +372,7 @@ export default function NewClientPage() {
                   type="number"
                   value={form.daily_contribution_amount}
                   onChange={(v) => update("daily_contribution_amount", v)}
-                  placeholder="e.g. 10.00"
+                 
                 />
               </Field>
             )}
@@ -384,7 +384,7 @@ export default function NewClientPage() {
                     type="number"
                     value={form.principal}
                     onChange={(v) => update("principal", v)}
-                    placeholder="e.g. 1000.00"
+                   
                   />
                 </Field>
                 <Field label="Annual interest rate (%)" required>
@@ -392,7 +392,7 @@ export default function NewClientPage() {
                     type="number"
                     value={form.annual_rate_percent}
                     onChange={(v) => update("annual_rate_percent", v)}
-                    placeholder="e.g. 18"
+                   
                   />
                 </Field>
                 <Field label="Term" required>
@@ -468,20 +468,20 @@ function Input({
   value,
   onChange,
   type = "text",
-  placeholder,
+  label,
 }: {
   value: string;
   onChange: (v: string) => void;
   type?: string;
-  placeholder?: string;
+  label?: string;
 }) {
   return (
     <input
       type={type}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      className="w-full rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] text-[#0A2240] outline-none transition-colors placeholder:text-[#0A2240]/30 focus:border-[#0062E1] focus:bg-white"
+      aria-label={label}
+      className="w-full rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] text-[#0A2240] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
     />
   );
 }
@@ -489,19 +489,19 @@ function Input({
 function Textarea({
   value,
   onChange,
-  placeholder,
+  label,
 }: {
   value: string;
   onChange: (v: string) => void;
-  placeholder?: string;
+  label?: string;
 }) {
   return (
     <textarea
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
+      aria-label={label}
       rows={3}
-      className="w-full resize-none rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] text-[#0A2240] outline-none transition-colors placeholder:text-[#0A2240]/30 focus:border-[#0062E1] focus:bg-white"
+      className="w-full resize-none rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] text-[#0A2240] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
     />
   );
 }

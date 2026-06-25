@@ -7,18 +7,16 @@ import { TableFilter, type FilterOption } from "@/components/table-filter";
 import { formatGHS } from "@/lib/loan";
 import type { Account, ProductType } from "@/lib/types";
 
-const PRODUCT_BY_SLUG: Record<string, { product_type: ProductType; label: string; description: string; placeholder: string }> = {
+const PRODUCT_BY_SLUG: Record<string, { product_type: ProductType; label: string; description: string }> = {
   savings: {
     product_type: "savings",
     label: "Savings accounts",
     description: "Clients holding an open-ended savings account.",
-    placeholder: "Search by account number or client name…",
   },
   susu: {
     product_type: "susu",
     label: "Daily Susu accounts",
     description: "Clients on a daily collector-based susu cycle.",
-    placeholder: "Search by account number or client name…",
   },
 };
 
@@ -89,8 +87,8 @@ export async function AccountTypeList({
             type="text"
             name="q"
             defaultValue={q ?? ""}
-            placeholder={product.placeholder}
-            className="w-full rounded-md border border-[#1D3461]/15 bg-white py-2.5 pl-10 pr-4 text-[14px] outline-none transition-colors placeholder:text-[#0A2240]/35 focus:border-[#2CBFBF]"
+            aria-label="Search"
+            className="w-full rounded-md border border-[#1D3461]/15 bg-white py-2.5 pl-10 pr-4 text-[14px] outline-none transition-colors focus:border-[#2CBFBF]"
           />
         </div>
       </form>
