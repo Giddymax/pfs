@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Sans } from "next/font/google";
+import { InstallPrompt } from "@/components/install-prompt";
 import "./globals.css";
 
 // Stanbic Bank's corporate typeface is Benton Sans (licensed); IBM Plex Sans is
@@ -17,6 +18,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   themeColor: "#177245",
   icons: {
+    icon: "/favicon.ico",
     apple: "/icons/icon-192.png",
   },
   appleWebApp: {
@@ -38,6 +40,7 @@ export default function RootLayout({
     <html lang="en" className={`${plexSans.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-[#F3F3F4] text-[#0A2240]" suppressHydrationWarning>
         {children}
+        <InstallPrompt />
         <script
           dangerouslySetInnerHTML={{
             __html: `if("serviceWorker"in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js")})}`,
