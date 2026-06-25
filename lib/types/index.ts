@@ -166,13 +166,26 @@ export interface KpiCardCalcConfig extends KpiCardConfig {
   calc: "balance" | "dep";
 }
 
+export interface RevenueComponents {
+  interest: boolean;
+  commission: boolean;
+  susu_fees: boolean;
+  card_fees: boolean;
+  sms_charges: boolean;
+  processing_fees: boolean;
+}
+
+export interface KpiRevenueConfig extends KpiCardConfig {
+  components: RevenueComponents;
+}
+
 export interface OverviewKpiSettings {
   total_clients: KpiCardConfig;
   total_savings: KpiCardCalcConfig;
   total_susu: KpiCardCalcConfig;
   total_fd: KpiCardConfig;
   combined_total: KpiCardConfig;
-  total_revenue: KpiCardConfig;
+  total_revenue: KpiRevenueConfig;
   account_balance: KpiCardConfig;
   cash_at_hand: KpiCardConfig;
   cash_at_bank: KpiCardConfig;

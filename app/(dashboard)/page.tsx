@@ -74,13 +74,21 @@ export default async function OverviewPage() {
   const combined      = round2(totalSavings + totalSusu + totalFD);
 
   // Revenue components
+  const rc = kpi.total_revenue.components;
   const cardFees        = sum(cardFeeRows,      "amount");
   const smsCharges      = sum(smsRows,          "cost");
   const commission      = sum(commissionRows,   "fee");
   const susuFees        = sum(susuFeeRows,      "amount");
   const processingFees  = sum(processingFeeRows,"processing_fee");
   const loanInterest    = sum(loanInterestRows, "total_interest");
-  const totalRevenue    = round2(loanInterest + commission + susuFees + cardFees + smsCharges + processingFees);
+  const totalRevenue    = round2(
+    (rc.interest        ? loanInterest   : 0) +
+    (rc.commission      ? commission     : 0) +
+    (rc.susu_fees       ? susuFees       : 0) +
+    (rc.card_fees       ? cardFees       : 0) +
+    (rc.sms_charges     ? smsCharges     : 0) +
+    (rc.processing_fees ? processingFees : 0)
+  );
 
   // Cash position
   const accountBalance = reconResult.data?.total ?? round2(combined);
@@ -147,7 +155,14 @@ export default async function OverviewPage() {
           <SummaryCard
             label="Total Revenue"
             value={formatGHS(totalRevenue)}
-            hint={`Interest ${formatGHS(loanInterest)} + Commission ${formatGHS(commission)} + Susu Fees ${formatGHS(susuFees)} + Card Fees ${formatGHS(cardFees)} + SMS ${formatGHS(smsCharges)} + Processing Fees ${formatGHS(processingFees)}`}
+            hint={[
+              rc.interest        && `Interest ${formatGHS(loanInterest)}`,
+              rc.commission      && `Commission ${formatGHS(commission)}`,
+              rc.susu_fees       && `Susu Fees ${formatGHS(susuFees)}`,
+              rc.card_fees       && `Card Fees ${formatGHS(cardFees)}`,
+              rc.sms_charges     && `SMS ${formatGHS(smsCharges)}`,
+              rc.processing_fees && `Processing Fees ${formatGHS(processingFees)}`,
+            ].filter(Boolean).join(" + ")}
             color="bg-[#15803D]"
           />
         )}
