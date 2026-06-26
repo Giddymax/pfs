@@ -216,14 +216,14 @@ button:active,
   background: transparent;
 }
 .sidebar-nav::-webkit-scrollbar-thumb {
-  background: #7C3AED;
+  background: #2563EB;
   border-radius: 2px;
 }
 .sidebar-nav:hover::-webkit-scrollbar-thumb {
-  background: #9333EA;
+  background: #3B82F6;
 }
 /* Firefox */
 .sidebar-nav {
   scrollbar-width: thin;
-  scrollbar-color: #7C3AED transparent;
+  scrollbar-color: #2563EB transparent;
 }
