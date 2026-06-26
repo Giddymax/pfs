@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { BankDepositButton, BankWithdrawalButton } from "@/components/record-bank-transaction-button";
+import { EditBankTransactionButton, DeleteBankTransactionButton } from "@/components/bank-transaction-actions";
 import { Card, PageHeader } from "@/components/ui";
 import { formatGHS, round2 } from "@/lib/loan";
 import type { Profile } from "@/lib/types";
@@ -149,6 +150,7 @@ export default async function BankPage() {
                   <th className="admin-col-secondary px-5 py-3 font-semibold">Description</th>
                   <th className="admin-col-secondary px-5 py-3 font-semibold">Recorded by</th>
                   <th className="px-5 py-3 text-right font-semibold">Amount</th>
+                  <th className="px-5 py-3 font-semibold">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#0033AA]/6">
@@ -186,6 +188,16 @@ export default async function BankPage() {
                       >
                         {isDeposit ? "+" : "−"}{formatGHS(txn.amount)}
                       </td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-1">
+                          <EditBankTransactionButton
+                            id={txn.id}
+                            currentAmount={txn.amount}
+                            currentDescription={txn.description}
+                          />
+                          <DeleteBankTransactionButton id={txn.id} />
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
@@ -194,7 +206,7 @@ export default async function BankPage() {
               {/* Running balance footer */}
               <tfoot>
                 <tr className="border-t-2 border-[#0033AA]/10 bg-[#0033AA]/[0.03]">
-                  <td colSpan={4} className="px-5 py-3.5 text-[13px] font-semibold text-[#0033AA]">
+                  <td colSpan={5} className="px-5 py-3.5 text-[13px] font-semibold text-[#0033AA]">
                     Cash at bank
                   </td>
                   <td className="px-5 py-3.5 text-right text-[15px] font-bold tabular-nums text-[#0033AA]">
