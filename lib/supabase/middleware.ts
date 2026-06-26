@@ -31,7 +31,11 @@ export async function updateSession(request: NextRequest) {
   const isPublicAsset =
     request.nextUrl.pathname.startsWith("/_next") ||
     request.nextUrl.pathname.startsWith("/favicon") ||
-    request.nextUrl.pathname.startsWith("/images");
+    request.nextUrl.pathname.startsWith("/images") ||
+    request.nextUrl.pathname.startsWith("/icons") ||
+    request.nextUrl.pathname === "/manifest.json" ||
+    request.nextUrl.pathname === "/sw.js" ||
+    request.nextUrl.pathname === "/offline.html";
 
   if (!user && !isLoginRoute && !isPublicAsset) {
     const url = request.nextUrl.clone();
