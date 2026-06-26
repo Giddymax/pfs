@@ -83,7 +83,6 @@ export function PrintRegistrationCardButton({
                   <p className="mt-0.5 text-[11px] text-[#0A2240]/45">Tel: 0552315639</p>
                 </div>
               </div>
-              <p className="text-[11px] text-[#0A2240]/35">OM-197</p>
             </div>
             <div className="h-[3px] w-full bg-[#0033AA]" />
             <p className="py-4 text-center text-[14px] font-bold tracking-[0.12em] text-[#0A2240]">
@@ -108,6 +107,7 @@ export function PrintRegistrationCardButton({
                     label="Next of kin"
                     value={[client.next_of_kin_name, client.next_of_kin_phone].filter(Boolean).join(" · ") || "—"}
                   />
+                  <Field label="SMS notifications" value={client.sms_opt_in ? "Opted in" : "Opted out"} />
                 </div>
                 <div className="flex h-28 w-24 shrink-0 items-center justify-center justify-self-start rounded-md border border-dashed border-[#0033AA]/25 bg-[#0033AA]/[0.03] sm:justify-self-end">
                   {client.photo_url ? (

@@ -28,6 +28,7 @@ export default function NewClientPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [smsOptIn, setSmsOptIn] = useState(true);
   const [form, setForm] = useState({
     full_name: "",
     date_of_birth: "",
@@ -138,6 +139,7 @@ export default function NewClientPage() {
           residential_address: form.residential_address.trim() || null,
           next_of_kin_name: form.next_of_kin_name.trim() || null,
           next_of_kin_phone: form.next_of_kin_phone.trim() || null,
+          sms_opt_in: smsOptIn,
           photo_url,
           created_by: user?.id ?? null,
         })
@@ -327,6 +329,31 @@ export default function NewClientPage() {
               <Input value={form.next_of_kin_phone} onChange={(v) => update("next_of_kin_phone", v)} />
             </Field>
           </div>
+        </section>
+
+        {/* SMS notifications */}
+        <section className="rounded-xl border border-[#0033AA]/8 bg-white p-6">
+          <h2 className="mb-4 text-[14px] font-semibold text-[#0033AA]">SMS notifications</h2>
+          <label className="flex items-center justify-between gap-3 text-[13.5px] text-[#0A2240]">
+            <div>
+              <span className="font-medium">Opt in to SMS notifications</span>
+              <p className="mt-0.5 text-[12px] text-[#0A2240]/45">
+                Client will receive transaction alerts. A monthly SMS fee will be deducted from their account.
+              </p>
+            </div>
+            <span
+              onClick={() => setSmsOptIn((v) => !v)}
+              className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                smsOptIn ? "bg-[#0033AA]" : "bg-[#0A2240]/15"
+              }`}
+            >
+              <span
+                className={`inline-block h-4.5 w-4.5 transform rounded-full bg-white shadow transition-transform ${
+                  smsOptIn ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
+            </span>
+          </label>
         </section>
 
         {/* Account to open */}

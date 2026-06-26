@@ -10,16 +10,19 @@ export function SettingsForm({
   sms,
   cardFeeAmount,
   fdTermsMonths,
+  smsMonthlyFee,
 }: {
   commissionTiers: CommissionTier[];
   sms: SmsSettings;
   cardFeeAmount: number;
   fdTermsMonths: number[];
+  smsMonthlyFee: number;
 }) {
   const [tiers, setTiers] = useState<CommissionTier[]>(commissionTiers);
   const [smsSettings, setSmsSettings] = useState<SmsSettings>(sms);
   const [cardFee, setCardFee] = useState(String(cardFeeAmount));
   const [fdTerms, setFdTerms] = useState(fdTermsMonths.join(", "));
+  const [smsFee, setSmsFee] = useState(String(smsMonthlyFee));
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,6 +58,7 @@ export function SettingsForm({
         sms: smsSettings,
         card_fee_amount: Number(cardFee) || 0,
         fd_terms_months: fdTermsParsed,
+        sms_monthly_fee: Number(smsFee) || 0,
       }),
     });
     const json = await res.json().catch(() => ({}));
@@ -155,16 +159,31 @@ export function SettingsForm({
             Susu, fixed-deposit, and reversal notifications follow the client master switch only — they have no
             individual toggle. Every client message additionally requires that client&rsquo;s own opt-in to be on.
           </p>
-          <label className="block max-w-xs border-t border-[#0033AA]/6 pt-4">
-            <span className="mb-1.5 block text-[13px] font-medium text-[#0033AA]/75">Company phone (admin alerts)</span>
-            <input
-              type="tel"
-              value={smsSettings.company_tel ?? ""}
-              onChange={(e) => setSmsSettings((s) => ({ ...s, company_tel: e.target.value || null }))}
-             
-              className="w-full rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] text-[#0A2240] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
-            />
-          </label>
+          <div className="grid grid-cols-1 gap-5 border-t border-[#0033AA]/6 pt-4 sm:grid-cols-2">
+            <label className="block">
+              <span className="mb-1.5 block text-[13px] font-medium text-[#0033AA]/75">Company phone (admin alerts)</span>
+              <input
+                type="tel"
+                value={smsSettings.company_tel ?? ""}
+                onChange={(e) => setSmsSettings((s) => ({ ...s, company_tel: e.target.value || null }))}
+                className="w-full rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] text-[#0A2240] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-[13px] font-medium text-[#0033AA]/75">Monthly SMS fee per client (GHS)</span>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                value={smsFee}
+                onChange={(e) => setSmsFee(e.target.value)}
+                className="w-full rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] text-[#0A2240] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
+              />
+              <p className="mt-1 text-[11.5px] text-[#0A2240]/45">
+                Deducted from opted-in clients&apos; accounts at the start of each month.
+              </p>
+            </label>
+          </div>
         </div>
       </Card>
 

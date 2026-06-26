@@ -199,6 +199,7 @@ export interface Settings {
   fd_terms_months: number[];
   emergency_claim_penalty_basis: "daily_contribution_amount";
   overview_kpi: OverviewKpiSettings;
+  sms_monthly_fee: number;
 }
 
 export type SettingsKey = keyof Settings;

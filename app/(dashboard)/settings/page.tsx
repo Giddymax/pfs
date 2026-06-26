@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui";
 import { SettingsForm } from "@/components/settings-form";
+import { ChargeSmsFeeButton } from "@/components/charge-sms-fees-button";
 import type { CommissionTier, Profile, SettingsRow, SmsSettings } from "@/lib/types";
 
 const DEFAULT_COMMISSION_TIERS: CommissionTier[] = [
@@ -49,7 +50,12 @@ export default async function SettingsPage() {
         sms={(byKey.get("sms") as SmsSettings | undefined) ?? DEFAULT_SMS_SETTINGS}
         cardFeeAmount={(byKey.get("card_fee_amount") as number | undefined) ?? 20}
         fdTermsMonths={(byKey.get("fd_terms_months") as number[] | undefined) ?? [3, 6, 9, 12, 18, 24]}
+        smsMonthlyFee={(byKey.get("sms_monthly_fee") as number | undefined) ?? 2}
       />
+
+      <div className="mt-6">
+        <ChargeSmsFeeButton />
+      </div>
     </div>
   );
 }
