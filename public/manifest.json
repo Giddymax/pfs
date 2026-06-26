@@ -2,28 +2,14 @@
   "id": "/",
   "name": "Prime Financial Service",
   "short_name": "PFS",
-  "description": "Client, savings, susu, loan and repayment management",
+  "description": "Client, savings, susu, loan and repayment management for Prime Financial Service",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#0d0f18",
-  "theme_color": "#d42020",
+  "background_color": "#F3F3F4",
+  "theme_color": "#177245",
   "orientation": "any",
   "prefer_related_applications": false,
-  "shortcuts": [
-    {
-      "name": "POS",
-      "short_name": "POS",
-      "url": "/admin/pos",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Quote",
-      "short_name": "Quote",
-      "url": "/quote",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
-    }
-  ],
   "icons": [
     {
       "src": "/icons/icon-192.png",

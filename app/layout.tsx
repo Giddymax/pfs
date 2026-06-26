@@ -1,12 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans } from "next/font/google";
-import { InstallPrompt } from "@/components/install-prompt";
-import { RegisterSW } from "@/components/register-sw";
 import "./globals.css";
 
-// Stanbic Bank's corporate typeface is Benton Sans (licensed); IBM Plex Sans is
-// the closest freely-licensed match — a clean, corporate grotesque with the same
-// wide weight range.
 const plexSans = IBM_Plex_Sans({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -26,13 +21,10 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "PFS",
   },
-  other: {
-    "mobile-web-app-capable": "yes",
-  },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#d42020",
+  themeColor: "#177245",
   width: "device-width",
   initialScale: 1,
 };
@@ -44,13 +36,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${plexSans.variable} h-full antialiased`}>
-      <head>
-        <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
-      </head>
       <body className="min-h-full flex flex-col bg-[#F3F3F4] text-[#0A2240]" suppressHydrationWarning>
         {children}
-        <InstallPrompt />
-        <RegisterSW />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `if("serviceWorker"in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js",{scope:"/"})})}`
+          }}
+        />
       </body>
     </html>
   );

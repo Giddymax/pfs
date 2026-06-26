@@ -1,16 +1,16 @@
-var CACHE = "seekant-v1";
+var CACHE_VERSION = "pfs-v1";
 
 var PRECACHE_URLS = [
-  "/",
   "/images/logo-mark.png",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
+  "/favicon.ico",
   "/offline.html"
 ];
 
 self.addEventListener("install", function (e) {
   e.waitUntil(
-    caches.open(CACHE).then(function (cache) {
+    caches.open(CACHE_VERSION).then(function (cache) {
       return cache.addAll(PRECACHE_URLS);
     })
   );
@@ -21,8 +21,9 @@ self.addEventListener("activate", function (e) {
   e.waitUntil(
     caches.keys().then(function (keys) {
       return Promise.all(
-        keys.filter(function (k) { return k !== CACHE; })
-            .map(function (k) { return caches.delete(k); })
+        keys
+          .filter(function (k) { return k !== CACHE_VERSION; })
+          .map(function (k) { return caches.delete(k); })
       );
     })
   );
@@ -30,11 +31,15 @@ self.addEventListener("activate", function (e) {
 });
 
 self.addEventListener("fetch", function (e) {
+  // Skip non-GET requests
+  if (e.request.method !== "GET") return;
+
   var url = new URL(e.request.url);
 
-  // Skip API routes and Supabase requests entirely
+  // Skip API routes, Supabase, and other external requests
   if (url.pathname.startsWith("/api/") ||
-      url.hostname.includes("supabase")) {
+      url.hostname.includes("supabase") ||
+      url.origin !== self.location.origin) {
     return;
   }
 
@@ -42,14 +47,16 @@ self.addEventListener("fetch", function (e) {
   if (url.pathname.startsWith("/_next/static/") ||
       url.pathname.startsWith("/icons/") ||
       url.pathname.startsWith("/images/") ||
-      url.pathname.match(/\.(png|jpg|jpeg|svg|gif|ico|woff2?|ttf|otf)$/)) {
+      /\.(png|jpg|jpeg|svg|gif|ico|webp|woff2?|ttf|otf|css|js)$/.test(url.pathname)) {
     e.respondWith(
       caches.match(e.request).then(function (cached) {
         if (cached) return cached;
         return fetch(e.request).then(function (response) {
           if (response.ok) {
             var clone = response.clone();
-            caches.open(CACHE).then(function (cache) { cache.put(e.request, clone); });
+            caches.open(CACHE_VERSION).then(function (cache) {
+              cache.put(e.request, clone);
+            });
           }
           return response;
         });
@@ -58,13 +65,15 @@ self.addEventListener("fetch", function (e) {
     return;
   }
 
-  // Network-first for HTML navigation
-  if (e.request.mode === "navigate" || e.request.headers.get("accept").indexOf("text/html") !== -1) {
+  // Network-first for HTML pages
+  if (e.request.mode === "navigate") {
     e.respondWith(
       fetch(e.request).then(function (response) {
         if (response.ok) {
           var clone = response.clone();
-          caches.open(CACHE).then(function (cache) { cache.put(e.request, clone); });
+          caches.open(CACHE_VERSION).then(function (cache) {
+            cache.put(e.request, clone);
+          });
         }
         return response;
       }).catch(function () {
