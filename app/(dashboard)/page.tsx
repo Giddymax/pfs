@@ -48,6 +48,8 @@ export default async function OverviewPage() {
     // Loan disbursements & repayments
     { data: loanPrincipalRows },
     { data: repaymentRows },
+    // SMS fee deductions
+    { data: smsFeeRows },
     // Cash at bank — sum(deposits) − sum(withdrawals) from bank_transactions
     { data: bankTxnRows },
     // Recent items
@@ -67,6 +69,7 @@ export default async function OverviewPage() {
     supabase.from("transactions").select("amount").eq("type", "withdrawal").is("reversed_at", null),
     supabase.from("loans").select("principal").in("status", ["active", "completed", "defaulted"]),
     supabase.from("loan_repayments").select("amount"),
+    supabase.from("sms_fee_charges").select("amount"),
     supabase.from("bank_transactions").select("type, amount"),
     supabase
       .from("loans")
@@ -113,12 +116,14 @@ export default async function OverviewPage() {
   const totalWithdrawals  = sum(withdrawalRows,    "amount");
   const totalLoansPaid    = sum(loanPrincipalRows, "principal");
   const totalRepayments   = sum(repaymentRows,     "amount");
+  const totalSmsFees      = sum(smsFeeRows,        "amount");
 
-  // Account Balance = Combined Total - (Withdrawals + Commissions) - Susu Fees - Loans + Repayments + Card Fees
+  // Account Balance = Combined Total - (Withdrawals + Commissions) - Susu Fees - SMS Fees - Loans + Repayments + Card Fees
   const accountBalance = round2(
     combined
     - (totalWithdrawals + commission)
     - susuFees
+    - totalSmsFees
     - totalLoansPaid
     + totalRepayments
     + cardFees
@@ -201,7 +206,7 @@ export default async function OverviewPage() {
           <SummaryCard
             label="Account Balance"
             value={formatGHS(accountBalance)}
-            hint={`${formatGHS(combined)} − (Wdr ${formatGHS(totalWithdrawals)} + Comm ${formatGHS(commission)}) − Susu Fees ${formatGHS(susuFees)} − Loans ${formatGHS(totalLoansPaid)} + Repayments ${formatGHS(totalRepayments)} + Card Fees ${formatGHS(cardFees)}`}
+            hint={`${formatGHS(combined)} − (Wdr ${formatGHS(totalWithdrawals)} + Comm ${formatGHS(commission)}) − Susu Fees ${formatGHS(susuFees)} − SMS Fees ${formatGHS(totalSmsFees)} − Loans ${formatGHS(totalLoansPaid)} + Repayments ${formatGHS(totalRepayments)} + Card Fees ${formatGHS(cardFees)}`}
             color="bg-[#9333EA]"
           />
         )}

@@ -1,10 +1,9 @@
 import { redirect } from "next/navigation";
 import { ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { BankDepositButton, BankWithdrawalButton } from "@/components/record-bank-transaction-button";
 import { Card, PageHeader } from "@/components/ui";
-import { formatGHS } from "@/lib/loan";
+import { formatGHS, round2 } from "@/lib/loan";
 import type { Profile } from "@/lib/types";
 
 interface BankTxn {
@@ -15,10 +14,6 @@ interface BankTxn {
   recorded_by: string | null;
   created_at: string;
   recorder?: { full_name: string } | null;
-}
-
-interface Reconciliation {
-  total: number;
 }
 
 function formatDT(iso: string) {
@@ -41,49 +36,59 @@ export default async function BankPage() {
     .from("profiles").select("*").eq("id", user.id).single<Profile>();
   if (!profile || profile.role !== "admin") redirect("/");
 
-  // Fetch all bank transactions, join recorder name
-  const { data: txns } = await supabase
-    .from("bank_transactions")
-    .select("*, recorder:recorded_by(full_name)")
-    .order("created_at", { ascending: false })
-    .returns<BankTxn[]>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sum = (rows: any[] | null, key: string) =>
+    round2((rows ?? []).reduce((s: number, r: Record<string, unknown>) => s + Number(r[key] ?? 0), 0));
 
-  // Fetch reconciliation total (= total company cash position)
-  const { data: recon } = await supabase
-    .rpc("compute_reconciliation")
-    .single<Reconciliation>();
-
-  let rows = txns ?? [];
-
-  // cash_at_bank = sum of deposits − sum of withdrawals
-  let cashAtBank = rows.reduce((acc, t) => {
-    return t.type === "deposit" ? acc + t.amount : acc - t.amount;
-  }, 0);
-
-  const reconTotal = recon?.total ?? 0;
-
-  // Auto-correct: if cash at bank exceeds total funds, insert a bank withdrawal for the excess
-  if (cashAtBank > reconTotal && reconTotal >= 0) {
-    const excess = Math.round((cashAtBank - reconTotal) * 100) / 100;
-    const admin = createAdminClient();
-    const { data: inserted } = await admin
+  const [
+    { data: txns },
+    { data: savingsRows },
+    { data: susuRows },
+    { data: fdRows },
+    { data: cardFeeRows },
+    { data: commissionRows },
+    { data: susuFeeRows },
+    { data: withdrawalRows },
+    { data: loanPrincipalRows },
+    { data: repaymentRows },
+    { data: smsFeeRows },
+  ] = await Promise.all([
+    supabase
       .from("bank_transactions")
-      .insert({
-        type: "withdrawal",
-        amount: excess,
-        description: "Auto-adjustment: account balance dropped below cash at bank",
-        recorded_by: user.id,
-      })
       .select("*, recorder:recorded_by(full_name)")
-      .single<BankTxn>();
+      .order("created_at", { ascending: false })
+      .returns<BankTxn[]>(),
+    supabase.from("accounts").select("dep").eq("product_type", "savings"),
+    supabase.from("accounts").select("dep").eq("product_type", "susu"),
+    supabase.from("fixed_deposits").select("principal").not("status", "in", '("withdrawn","rolled_over")'),
+    supabase.from("card_fees").select("amount"),
+    supabase.from("transactions").select("fee").eq("type", "withdrawal").is("reversed_at", null),
+    supabase.from("susu_payments").select("amount").eq("day_in_cycle", 31),
+    supabase.from("transactions").select("amount").eq("type", "withdrawal").is("reversed_at", null),
+    supabase.from("loans").select("principal").in("status", ["active", "completed", "defaulted"]),
+    supabase.from("loan_repayments").select("amount"),
+    supabase.from("sms_fee_charges").select("amount"),
+  ]);
 
-    if (inserted) {
-      rows = [inserted, ...rows];
-      cashAtBank = reconTotal;
-    }
-  }
+  const rows = txns ?? [];
 
-  const cashAtHand = Math.max(reconTotal - cashAtBank, 0);
+  // Account Balance — same formula as overview KPI
+  const combined = round2(sum(savingsRows, "dep") + sum(susuRows, "dep") + sum(fdRows, "principal"));
+  const accountBalance = round2(
+    combined
+    - (sum(withdrawalRows, "amount") + sum(commissionRows, "fee"))
+    - sum(susuFeeRows, "amount")
+    - sum(smsFeeRows, "amount")
+    - sum(loanPrincipalRows, "principal")
+    + sum(repaymentRows, "amount")
+    + sum(cardFeeRows, "amount")
+  );
+
+  const rawCashAtBank = round2(
+    rows.reduce((acc, t) => (t.type === "deposit" ? acc + t.amount : acc - t.amount), 0)
+  );
+  const cashAtBank = Math.min(rawCashAtBank, accountBalance);
+  const cashAtHand = Math.max(round2(accountBalance - rawCashAtBank), 0);
 
   return (
     <div>
@@ -111,14 +116,14 @@ export default async function BankPage() {
         <BalanceCard
           label="Cash at hand"
           value={cashAtHand}
-          hint="Total company funds minus cash at bank"
+          hint="Money not deposited to bank — account balance minus cash at bank"
           color={cashAtHand >= 0 ? "text-[#0033AA]" : "text-[#963522]"}
           bg="bg-[#0033AA]/[0.04] border-[#0033AA]/12"
         />
         <BalanceCard
-          label="Total funds"
-          value={reconTotal}
-          hint="Cash at hand + Cash at bank (reconciliation total)"
+          label="Account balance"
+          value={accountBalance}
+          hint="Combined deposits − withdrawals − commissions − susu fees − SMS fees − loans + repayments + card fees"
           color="text-[#0A2240]"
           bg="bg-[#0A2240]/[0.04] border-[#0A2240]/10"
         />
