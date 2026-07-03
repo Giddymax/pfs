@@ -23,6 +23,7 @@ export default function EditClientPage({ params }: { params: Promise<{ id: strin
   const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | null>(null);
 
   const [form, setForm] = useState({
+    client_code: "",
     full_name: "",
     date_of_birth: "",
     gender: "",
@@ -61,6 +62,7 @@ export default function EditClientPage({ params }: { params: Promise<{ id: strin
 
       if (!cancelled) {
         setForm({
+          client_code: client.client_code,
           full_name: client.full_name,
           date_of_birth: client.date_of_birth ?? "",
           gender: client.gender ?? "",
@@ -126,9 +128,13 @@ export default function EditClientPage({ params }: { params: Promise<{ id: strin
         photo_url = publicUrlData.publicUrl;
       }
 
+      const clientCode = form.client_code.trim().toUpperCase();
+      if (!clientCode) throw new Error("Client ID cannot be empty.");
+
       const { error: updateError } = await supabase
         .from("clients")
         .update({
+          client_code: clientCode,
           full_name: form.full_name.trim(),
           date_of_birth: form.date_of_birth || null,
           gender: form.gender || null,
@@ -182,6 +188,22 @@ export default function EditClientPage({ params }: { params: Promise<{ id: strin
             {error}
           </div>
         )}
+
+        <section className="rounded-xl border border-[#0033AA]/8 bg-white p-6">
+          <h2 className="mb-1 text-[14px] font-semibold text-[#0033AA]">Client ID</h2>
+          <p className="mb-4 text-[12.5px] text-[#0A2240]/50">Unique identifier printed on the registration card and used across all records.</p>
+          <div className="max-w-xs">
+            <Field label="Client ID" required>
+              <input
+                type="text"
+                title="Client ID"
+                value={form.client_code}
+                onChange={(e) => update("client_code", e.target.value)}
+                className="w-full rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 font-mono text-[14px] uppercase tracking-wide text-[#0A2240] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
+              />
+            </Field>
+          </div>
+        </section>
 
         <section className="rounded-xl border border-[#0033AA]/8 bg-white p-6">
           <h2 className="mb-4 text-[14px] font-semibold text-[#0033AA]">Client photo</h2>

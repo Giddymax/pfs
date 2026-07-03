@@ -7,6 +7,7 @@ import { RecordTransactionForm } from "@/components/record-transaction-form";
 import { EditTransactionButton } from "@/components/edit-transaction-button";
 import { DeleteTransactionButton } from "@/components/delete-transaction-button";
 import { RecalculateAccountButton } from "@/components/recalculate-account-button";
+import { EditCodeButton } from "@/components/edit-code-button";
 import { PrintTransactionHistoryButton, type TxnWithAccount } from "@/components/print-transaction-history-button";
 import { SusuContributionForm } from "@/components/susu-contribution-form";
 import { SusuWithdrawalForm } from "@/components/susu-withdrawal-form";
@@ -252,8 +253,22 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
             <ArrowUpRight size={15} className="shrink-0 text-[#0033AA]/30" />
           </Link>
 
-          <dl className="space-y-4 text-[13.5px]">
-            <DetailRow label="Account number" value={account.account_number} />
+          <div className="space-y-4 text-[13.5px]">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.1em] text-[#0A2240]/40">Account number</p>
+              <p className="flex items-center gap-1.5 text-[#0A2240]">
+                {account.account_number}
+                {isAdmin && (
+                  <EditCodeButton
+                    table="accounts"
+                    id={account.id}
+                    field="account_number"
+                    label="Account number"
+                    currentValue={account.account_number}
+                  />
+                )}
+              </p>
+            </div>
             <DetailRow label="Opening date" value={formatDate(account.opening_date)} />
             {account.product_type === "savings" && (
               <DetailRow
@@ -268,7 +283,7 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
               />
             )}
             {account.branch && <DetailRow label="Branch" value={account.branch} />}
-          </dl>
+          </div>
         </Card>
 
         <Card className="lg:col-span-2">

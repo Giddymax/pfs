@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { UserRound, Calendar, Percent, Wallet, ArrowUpRight } from "lucide-react";
+import { UserRound, Calendar, Percent, Wallet, ArrowUpRight, Hash } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
+import { EditCodeButton } from "@/components/edit-code-button";
 import { RecordRepaymentForm } from "@/components/record-repayment-form";
 import { LoanStatusControl } from "@/components/loan-status-control";
 import { Card, LoanStatusBadge, EmptyState, PageHeader } from "@/components/ui";
@@ -87,7 +88,25 @@ export default async function LoanDetailPage({
               <ArrowUpRight size={15} className="shrink-0 text-[#0033AA]/30" />
             </Link>
 
-            <dl className="space-y-4 text-[13.5px]">
+            <div className="space-y-4 text-[13.5px]">
+              <div className="flex items-start gap-3">
+                <span className="mt-0.5 text-[#0033AA]/35"><Hash size={15} /></span>
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.1em] text-[#0A2240]/40">Loan code</p>
+                  <p className="flex items-center gap-1.5 text-[#0A2240]">
+                    {loan.loan_code}
+                    {isAdmin && (
+                      <EditCodeButton
+                        table="loans"
+                        id={loan.id}
+                        field="loan_code"
+                        label="Loan code"
+                        currentValue={loan.loan_code}
+                      />
+                    )}
+                  </p>
+                </div>
+              </div>
               <DetailRow icon={<Wallet size={15} />} label="Principal" value={formatGHS(loan.principal)} />
               <DetailRow icon={<Percent size={15} />} label="Flat interest rate" value={`${loan.flat_rate_percent}% (${formatGHS(loan.total_interest)} total)`} />
               <DetailRow icon={<Wallet size={15} />} label="Total repayable" value={formatGHS(loan.total_repayable)} />
@@ -98,7 +117,7 @@ export default async function LoanDetailPage({
               {(loan as LoanWithIssuer).issuer?.full_name && (
                 <DetailRow icon={<UserRound size={15} />} label="Issued by" value={(loan as LoanWithIssuer).issuer!.full_name} />
               )}
-            </dl>
+            </div>
           </Card>
 
           <Card className="p-6">
