@@ -27,14 +27,16 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
   const { id } = await params;
   const supabase = await createClient();
 
+  type TxnRow = Transaction & { recorder: { full_name: string } | null };
+
   const [{ data: account }, { data: transactions }, { data: profile }, { data: tierRow }] = await Promise.all([
     supabase.from("accounts").select("*, client:clients(*)").eq("id", id).single<Account & { client: Client }>(),
     supabase
       .from("transactions")
-      .select("*")
+      .select("*, recorder:recorded_by(full_name)")
       .eq("account_id", id)
       .order("created_at", { ascending: false })
-      .returns<Transaction[]>(),
+      .returns<TxnRow[]>(),
     getCurrentProfile(supabase),
     supabase.from("settings").select("value").eq("key", "commission_tiers").maybeSingle<{ value: CommissionTier[] }>(),
   ]);
@@ -296,6 +298,7 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
                     </p>
                     <p className="truncate text-[12px] text-[#0A2240]/45">
                       {formatDateTime(txn.created_at)} · Balance after {formatGHS(txn.bal_after)}
+                      {txn.recorder?.full_name ? ` · by ${txn.recorder.full_name}` : ""}
                       {txn.notes ? ` · ${txn.notes}` : ""}
                     </p>
                   </div>

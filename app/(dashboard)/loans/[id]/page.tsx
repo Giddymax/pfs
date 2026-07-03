@@ -17,14 +17,17 @@ export default async function LoanDetailPage({
   const { id } = await params;
   const supabase = await createClient();
 
+  type LoanWithIssuer = Loan & { client: Client; issuer: { full_name: string } | null };
+  type RepaymentWithRecorder = LoanRepayment & { recorder: { full_name: string } | null };
+
   const [{ data: loan }, { data: repayments }, { data: profile }] = await Promise.all([
-    supabase.from("loans").select("*, client:clients(*)").eq("id", id).single<Loan & { client: Client }>(),
+    supabase.from("loans").select("*, client:clients(*), issuer:issued_by(full_name)").eq("id", id).single<LoanWithIssuer>(),
     supabase
       .from("loan_repayments")
-      .select("*")
+      .select("*, recorder:recorded_by(full_name)")
       .eq("loan_id", id)
       .order("payment_date", { ascending: false })
-      .returns<LoanRepayment[]>(),
+      .returns<RepaymentWithRecorder[]>(),
     getCurrentProfile(supabase),
   ]);
 
@@ -92,6 +95,9 @@ export default async function LoanDetailPage({
               <DetailRow icon={<Calendar size={15} />} label="Disbursed" value={formatDate(loan.disbursement_date)} />
               <DetailRow icon={<Calendar size={15} />} label="Due date" value={formatDate(loan.due_date)} />
               {loan.purpose && <DetailRow icon={<Wallet size={15} />} label="Purpose" value={loan.purpose} />}
+              {(loan as LoanWithIssuer).issuer?.full_name && (
+                <DetailRow icon={<UserRound size={15} />} label="Issued by" value={(loan as LoanWithIssuer).issuer!.full_name} />
+              )}
             </dl>
           </Card>
 
@@ -137,6 +143,7 @@ export default async function LoanDetailPage({
                     <p className="text-[14px] font-medium text-[#0A2240]">{formatGHS(r.amount)}</p>
                     <p className="text-[12px] text-[#0A2240]/45">
                       {formatDate(r.payment_date)}
+                      {r.recorder?.full_name ? ` · by ${r.recorder.full_name}` : ""}
                       {r.notes ? ` · ${r.notes}` : ""}
                     </p>
                   </div>

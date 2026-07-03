@@ -8,6 +8,7 @@ import type { Client, Transaction } from "@/lib/types";
 
 export type TxnWithAccount = Transaction & {
   account: { account_number: string; product_type: string } | null;
+  recorder?: { full_name: string } | null;
 };
 
 function formatDateTime(value: string) {
@@ -129,13 +130,14 @@ export function PrintTransactionHistoryButton({
                     <th className="px-4 py-2.5 text-right">Amount</th>
                     <th className="px-4 py-2.5 text-right">Fee</th>
                     <th className="px-4 py-2.5 text-right">Balance After</th>
+                    <th className="px-4 py-2.5">Recorded By</th>
                     <th className="px-4 py-2.5">Notes</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#0A2240]/6">
                   {transactions.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-4 py-6 text-center text-[#0A2240]/40">
+                      <td colSpan={8} className="px-4 py-6 text-center text-[#0A2240]/40">
                         No transactions recorded.
                       </td>
                     </tr>
@@ -168,6 +170,7 @@ export function PrintTransactionHistoryButton({
                         <td className="px-4 py-2.5 text-right tabular-nums font-medium text-[#0A2240]">
                           {formatGHS(txn.bal_after)}
                         </td>
+                        <td className="px-4 py-2.5 text-[#0A2240]/55">{txn.recorder?.full_name ?? "—"}</td>
                         <td className="px-4 py-2.5 text-[#0A2240]/55">{txn.notes ?? "—"}</td>
                       </tr>
                     ))

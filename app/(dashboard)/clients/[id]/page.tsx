@@ -24,10 +24,10 @@ export default async function ClientDetailPage({
     supabase.from("accounts").select("*").eq("client_id", id).order("created_at", { ascending: false }).returns<Account[]>(),
     supabase
       .from("transactions")
-      .select("*, account:accounts(account_number, product_type)")
+      .select("*, account:accounts(account_number, product_type), recorder:recorded_by(full_name)")
       .eq("client_id", id)
       .order("created_at", { ascending: false })
-      .returns<(Transaction & { account: { account_number: string; product_type: string } | null })[]>(),
+      .returns<(Transaction & { account: { account_number: string; product_type: string } | null; recorder: { full_name: string } | null })[]>(),
   ]);
 
   if (!client) notFound();
