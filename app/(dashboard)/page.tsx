@@ -24,7 +24,7 @@ export default async function OverviewPage() {
     total_susu:      { visible: true, calc: "dep" as const },
     total_fd:        { visible: true },
     combined_total:  { visible: true },
-    total_revenue:   { visible: true, components: { interest: true, commission: true, susu_fees: true, card_fees: true, sms_charges: true, sms_fees: true, processing_fees: true } },
+    total_revenue:   { visible: true, components: { interest: true, commission: true, susu_fees: true, card_fees: true, sms_fees: true, processing_fees: true } },
     account_balance: { visible: true },
     cash_at_hand:    { visible: true },
     cash_at_bank:    { visible: true },
@@ -46,7 +46,6 @@ export default async function OverviewPage() {
     { data: fdRows },
     // Revenue components
     { data: cardFeeRows },
-    { data: smsRows },
     { data: commissionRows },
     { data: susuFeeRows },
     { data: processingFeeRows },
@@ -69,7 +68,6 @@ export default async function OverviewPage() {
     supabase.from("accounts").select("balance, dep").eq("product_type", "susu"),
     supabase.from("fixed_deposits").select("principal").not("status", "in", '("withdrawn","rolled_over")'),
     supabase.from("card_fees").select("amount"),
-    supabase.from("sms_log").select("cost"),
     supabase.from("transactions").select("fee").eq("type", "withdrawal").is("reversed_at", null),
     supabase.from("susu_payments").select("amount").eq("day_in_cycle", 31),
     supabase.from("loans").select("processing_fee"),
@@ -106,7 +104,6 @@ export default async function OverviewPage() {
   // Revenue components
   const rc = kpi.total_revenue.components;
   const cardFees        = sum(cardFeeRows,      "amount");
-  const smsCharges      = sum(smsRows,          "cost");
   const commission      = sum(commissionRows,   "fee");
   const susuFees        = sum(susuFeeRows,      "amount");
   const processingFees  = sum(processingFeeRows,"processing_fee");
@@ -123,7 +120,6 @@ export default async function OverviewPage() {
     (rc.commission      ? commission     : 0) +
     (rc.susu_fees       ? susuFees       : 0) +
     (rc.card_fees       ? cardFees       : 0) +
-    (rc.sms_charges     ? smsCharges     : 0) +
     (rc.sms_fees        ? totalSmsFees   : 0) +
     (rc.processing_fees ? processingFees : 0)
   );
@@ -207,7 +203,6 @@ export default async function OverviewPage() {
               rc.commission      && `Commission ${formatGHS(commission)}`,
               rc.susu_fees       && `Susu Fees ${formatGHS(susuFees)}`,
               rc.card_fees       && `Card Fees ${formatGHS(cardFees)}`,
-              rc.sms_charges     && `SMS Arkesel ${formatGHS(smsCharges)}`,
               rc.sms_fees        && `SMS Fees ${formatGHS(totalSmsFees)}`,
               rc.processing_fees && `Processing Fees ${formatGHS(processingFees)}`,
             ].filter(Boolean).join(" + ")}
