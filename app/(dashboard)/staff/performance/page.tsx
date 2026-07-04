@@ -26,11 +26,9 @@ export default async function StaffPerformancePage() {
     .from("profiles").select("*").eq("id", user.id).single<Profile>();
   if (!profile || profile.role !== "admin") redirect("/");
 
-  const { data: rows } = await supabase
-    .rpc("staff_performance")
-    .returns<StaffPerformanceRow[]>();
+  const { data: rows } = await supabase.rpc("staff_performance");
 
-  const staff = rows ?? [];
+  const staff = (rows ?? []) as StaffPerformanceRow[];
 
   const totalClients  = staff.reduce((s, r) => s + Number(r.clients_registered), 0);
   const totalSavings  = round2(staff.reduce((s, r) => s + Number(r.savings_collected), 0));

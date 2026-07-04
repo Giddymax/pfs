@@ -129,6 +129,8 @@ export interface Transaction {
   edited_at: string | null;
   reversed_by: string | null;
   reversed_at: string | null;
+  time_edited_by: string | null;
+  time_edited_at: string | null;
   created_at: string;
   // joined
   account?: Account;
