@@ -3,6 +3,12 @@ import * as XLSX from "xlsx";
 import { createClient } from "@/lib/supabase/server";
 import type { Client } from "@/lib/types";
 
+const ACCOUNT_TYPE_LABEL: Record<string, string> = {
+  savings: "Savings",
+  susu: "Daily Susu",
+  fixed_deposit: "Fixed Deposit",
+};
+
 export async function GET() {
   const supabase = await createClient();
 
@@ -17,6 +23,37 @@ export async function GET() {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  const clientIds = (clients ?? []).map((c) => c.id);
+
+  // Batch-fetch accounts and active FDs so we can show account type per client
+  const accountTypeByClient = new Map<string, string>();
+  if (clientIds.length > 0) {
+    const [{ data: accounts }, { data: fds }] = await Promise.all([
+      supabase
+        .from("accounts")
+        .select("client_id, product_type")
+        .in("client_id", clientIds)
+        .order("created_at", { ascending: true })
+        .returns<{ client_id: string; product_type: string }[]>(),
+      supabase
+        .from("fixed_deposits")
+        .select("client_id")
+        .in("client_id", clientIds)
+        .not("status", "in", '("withdrawn","rolled_over")')
+        .order("created_at", { ascending: true })
+        .returns<{ client_id: string }[]>(),
+    ]);
+    // Regular accounts take priority; fall back to FD
+    for (const fd of fds ?? []) {
+      if (!accountTypeByClient.has(fd.client_id)) {
+        accountTypeByClient.set(fd.client_id, "fixed_deposit");
+      }
+    }
+    for (const acc of accounts ?? []) {
+      accountTypeByClient.set(acc.client_id, acc.product_type);
+    }
+  }
+
   const rows = (clients ?? []).map((c) => ({
     "Client Code": c.client_code,
     "Full Name": c.full_name,
@@ -30,6 +67,7 @@ export async function GET() {
     "Town": c.town ?? "",
     "Next of Kin Name": c.next_of_kin_name ?? "",
     "Next of Kin Phone": c.next_of_kin_phone ?? "",
+    "Account Type": ACCOUNT_TYPE_LABEL[accountTypeByClient.get(c.id) ?? ""] ?? "",
     "Status": c.status,
     "SMS Opt-in": c.sms_opt_in ? "Yes" : "No",
     "Registered On": new Date(c.created_at).toLocaleDateString("en-GB"),
@@ -42,7 +80,7 @@ export async function GET() {
   ws["!cols"] = [
     { wch: 12 }, { wch: 28 }, { wch: 16 }, { wch: 16 }, { wch: 8 },
     { wch: 14 }, { wch: 20 }, { wch: 20 }, { wch: 30 }, { wch: 18 },
-    { wch: 24 }, { wch: 18 }, { wch: 12 }, { wch: 10 }, { wch: 14 },
+    { wch: 24 }, { wch: 18 }, { wch: 16 }, { wch: 12 }, { wch: 10 }, { wch: 14 },
   ];
 
   XLSX.utils.book_append_sheet(wb, ws, "Clients");

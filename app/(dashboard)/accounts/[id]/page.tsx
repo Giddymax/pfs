@@ -305,8 +305,8 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
                   <div className="min-w-0">
                     <p className="flex items-center gap-2 text-[14px] font-medium text-[#0A2240]">
                       <span className={txn.type === "deposit" ? "text-[#1F6E4A]" : "text-[#963522]"}>
-                        {txn.type === "deposit" ? "+" : "−"}
-                        {formatGHS(txn.amount)}
+                        {txn.type === "deposit" ? "+" : "−"}{formatGHS(txn.amount)}
+                        {txn.type === "fee" && <span className="ml-1 text-[12px] font-normal text-[#0A2240]/40">(SMS fee)</span>}
                       </span>
                       {txn.fee > 0 && <span className="text-[12px] font-normal text-[#0A2240]/45">+ {formatGHS(txn.fee)} commission</span>}
                       <TransactionFlags txn={txn} />

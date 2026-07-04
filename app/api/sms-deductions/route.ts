@@ -34,6 +34,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "month is required (YYYY-MM)" }, { status: 400 });
   }
 
+  // End-of-month constraint
+  const now = new Date();
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  if (month > thisMonth) {
+    return NextResponse.json({ error: "Cannot charge SMS fees for a future month" }, { status: 400 });
+  }
+  if (month === thisMonth) {
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const cutoff = lastDay - 6; // last 7 days
+    if (now.getDate() < cutoff) {
+      return NextResponse.json(
+        { error: `SMS fees for the current month can only be charged from the ${cutoff}th onwards` },
+        { status: 400 }
+      );
+    }
+  }
+
   const settings = await getSettings();
   const fee = settings.sms_monthly_fee;
   if (!fee || fee <= 0) {

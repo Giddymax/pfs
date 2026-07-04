@@ -9,12 +9,35 @@ function currentMonth(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
+function isAllowedToCharge(selectedMonth: string): { allowed: boolean; reason?: string } {
+  const now = new Date();
+  const thisMonth = currentMonth();
+
+  if (selectedMonth > thisMonth) {
+    return { allowed: false, reason: "Cannot charge fees for a future month." };
+  }
+  if (selectedMonth < thisMonth) {
+    return { allowed: true };
+  }
+  // Current month — only allowed from the 25th onwards
+  const today = now.getDate();
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const cutoff = lastDay - 6; // last 7 days
+  if (today < cutoff) {
+    return { allowed: false, reason: `SMS fees for the current month can only be charged from the ${cutoff}th onwards (last 7 days of the month).` };
+  }
+  return { allowed: true };
+}
+
 export function ChargeSmsFeeButton() {
   const [month, setMonth] = useState(currentMonth());
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; charged?: number; skipped?: number; fee?: number; error?: string } | null>(null);
 
+  const chargeCheck = isAllowedToCharge(month);
+
   async function handleCharge() {
+    if (!chargeCheck.allowed) return;
     setLoading(true);
     setResult(null);
 
@@ -51,20 +74,26 @@ export function ChargeSmsFeeButton() {
           <input
             type="month"
             value={month}
-            onChange={(e) => setMonth(e.target.value)}
+            onChange={(e) => { setMonth(e.target.value); setResult(null); }}
             className="rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] text-[#0A2240] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
           />
         </label>
         <button
           type="button"
           onClick={handleCharge}
-          disabled={loading}
-          className="inline-flex items-center gap-2 rounded-md bg-[#0033AA] px-5 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-[#002884] disabled:opacity-60"
+          disabled={loading || !chargeCheck.allowed}
+          className="inline-flex items-center gap-2 rounded-md bg-[#0033AA] px-5 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-[#002884] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
           {loading ? "Charging…" : "Charge SMS fees"}
         </button>
       </div>
+
+      {!chargeCheck.allowed && (
+        <div className="mx-5 mb-5 rounded-md border border-[#B58A2A]/25 bg-[#B58A2A]/[0.07] px-4 py-3 text-[13px] text-[#8A6A1F]">
+          {chargeCheck.reason}
+        </div>
+      )}
 
       {result && (
         <div className={`mx-5 mb-5 rounded-md border px-4 py-3 text-[13px] ${

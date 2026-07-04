@@ -6,6 +6,20 @@ function str(v: unknown): string {
   return v != null ? String(v).trim() : "";
 }
 
+function parseAccountType(v: unknown): "savings" | "susu" | "fixed_deposit" | null {
+  const s = str(v).toLowerCase().replace(/[\s_-]/g, "");
+  if (s === "savings" || s === "sav") return "savings";
+  if (s === "susu" || s === "dailysusu" || s === "sus") return "susu";
+  if (s === "fixeddeposit" || s === "fixed" || s === "fd" || s === "fxd") return "fixed_deposit";
+  return null;
+}
+
+function parseAmount(v: unknown): number | null {
+  if (v == null || str(v) === "") return null;
+  const n = Number(String(v).replace(/[^0-9.]/g, ""));
+  return isFinite(n) && n > 0 ? n : null;
+}
+
 function parseGender(v: unknown): "male" | "female" | null {
   const s = str(v).toLowerCase();
   if (s === "male" || s === "m") return "male";
@@ -163,6 +177,12 @@ export async function POST(request: Request) {
     const smsOptIn = parseSmsOptIn(
       get("SMS Opt-in", "SMS", "SMS Opt In", "SMSOptIn", "Receive SMS", "sms_opt_in")
     );
+    const accountType = parseAccountType(
+      get("Account Type", "AccountType", "Account", "Product Type", "Product")
+    );
+    const dailyContribution = parseAmount(
+      get("Daily Contribution", "Daily Amount", "Contribution", "DailyContribution", "Daily")
+    );
 
     const payload = {
       full_name: fullName,
@@ -183,14 +203,34 @@ export async function POST(request: Request) {
     const { data: inserted, error: insertError } = await supabase
       .from("clients")
       .insert(payload)
-      .select("client_code")
-      .single<{ client_code: string }>();
+      .select("id, client_code")
+      .single<{ id: string; client_code: string }>();
 
     if (insertError) {
       failed.push({ row: rowNum, name: fullName, reason: insertError.message });
-    } else {
-      succeeded.push(inserted.client_code);
+      continue;
     }
+
+    succeeded.push(inserted.client_code);
+
+    // Create account if account type is specified
+    if (accountType === "savings") {
+      await supabase.from("accounts").insert({
+        client_id: inserted.id,
+        product_type: "savings",
+        account_number: "",
+        created_by: user.id,
+      });
+    } else if (accountType === "susu" && dailyContribution) {
+      await supabase.from("accounts").insert({
+        client_id: inserted.id,
+        product_type: "susu",
+        account_number: "",
+        daily_contribution_amount: dailyContribution,
+        created_by: user.id,
+      });
+    }
+    // fixed_deposit requires principal, rate, and term — skipped on bulk import
   }
 
   return NextResponse.json({
@@ -215,6 +255,8 @@ export async function GET() {
     "Town": "Kumasi",
     "Next of Kin Name": "Kofi Owusu",
     "Next of Kin Phone": "0244000002",
+    "Account Type": "savings",
+    "Daily Contribution": "",
     "SMS Opt-in": "Yes",
   }];
 
@@ -223,7 +265,7 @@ export async function GET() {
   ws["!cols"] = [
     { wch: 28 }, { wch: 16 }, { wch: 16 }, { wch: 10 }, { wch: 14 },
     { wch: 20 }, { wch: 20 }, { wch: 32 }, { wch: 18 }, { wch: 24 },
-    { wch: 18 }, { wch: 10 },
+    { wch: 18 }, { wch: 16 }, { wch: 18 }, { wch: 10 },
   ];
   XLSX.utils.book_append_sheet(wb, ws, "Clients");
 
