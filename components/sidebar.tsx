@@ -17,6 +17,7 @@ import {
   ReceiptText,
   BarChart3,
   Building2,
+  TrendingUp,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { signOut } from "@/app/actions";
@@ -140,6 +141,15 @@ const ADMIN_NAV = [
     activeIcon: "text-[#9333EA]",
     idle: "group text-[#FFFFFF] hover:bg-[#9333EA]/15 hover:text-[#FFFFFF]",
     idleIcon: "text-[#FFFFFF] transition-colors group-hover:text-[#9333EA]",
+  },
+  {
+    href: "/staff/performance",
+    label: "Performance",
+    icon: TrendingUp,
+    active: "bg-[#059669]/15 text-[#FFFFFF]",
+    activeIcon: "text-[#059669]",
+    idle: "group text-[#FFFFFF] hover:bg-[#059669]/15 hover:text-[#FFFFFF]",
+    idleIcon: "text-[#FFFFFF] transition-colors group-hover:text-[#059669]",
   },
 ];
 
