@@ -18,6 +18,7 @@ import {
   BarChart3,
   Building2,
   TrendingUp,
+  Wallet,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { signOut } from "@/app/actions";
@@ -97,6 +98,15 @@ const ACCOUNT_NAV = [
 ];
 
 const ADMIN_NAV = [
+  {
+    href: "/finance",
+    label: "Finance",
+    icon: Wallet,
+    active: "bg-[#15803D]/15 text-[#FFFFFF]",
+    activeIcon: "text-[#4ADE80]",
+    idle: "group text-[#FFFFFF] hover:bg-[#15803D]/15 hover:text-[#FFFFFF]",
+    idleIcon: "text-[#FFFFFF] transition-colors group-hover:text-[#4ADE80]",
+  },
   {
     href: "/bank",
     label: "Bank",
