@@ -1,13 +1,21 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getSettings } from "@/lib/settings/cache";
 import { PageHeader, Card, LoanStatusBadge, EmptyState } from "@/components/ui";
 import { formatGHS, round2 } from "@/lib/loan";
-import type { Loan, Client } from "@/lib/types";
+import type { Loan, Client, Profile } from "@/lib/types";
 
 export default async function OverviewPage() {
   const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { data: profile } = await supabase
+    .from("profiles").select("role").eq("id", user.id).single<Pick<Profile, "role">>();
+  if (profile?.role !== "admin") redirect("/clients");
 
   const settings = await getSettings();
   const defaultKpi = {
@@ -16,7 +24,7 @@ export default async function OverviewPage() {
     total_susu:      { visible: true, calc: "dep" as const },
     total_fd:        { visible: true },
     combined_total:  { visible: true },
-    total_revenue:   { visible: true, components: { interest: true, commission: true, susu_fees: true, card_fees: true, sms_charges: true, processing_fees: true } },
+    total_revenue:   { visible: true, components: { interest: true, commission: true, susu_fees: true, card_fees: true, sms_charges: true, sms_fees: true, processing_fees: true } },
     account_balance: { visible: true },
     cash_at_hand:    { visible: true },
     cash_at_bank:    { visible: true },
@@ -27,7 +35,7 @@ export default async function OverviewPage() {
     ...raw,
     total_savings:  { ...defaultKpi.total_savings,  ...raw.total_savings },
     total_susu:     { ...defaultKpi.total_susu,     ...raw.total_susu },
-    total_revenue:  { ...defaultKpi.total_revenue,  ...raw.total_revenue, components: { ...defaultKpi.total_revenue.components, ...raw.total_revenue?.components } },
+    total_revenue:  { ...defaultKpi.total_revenue, ...raw.total_revenue, components: { ...defaultKpi.total_revenue.components, ...raw.total_revenue?.components } },
   };
 
   const [
@@ -103,20 +111,22 @@ export default async function OverviewPage() {
   const susuFees        = sum(susuFeeRows,      "amount");
   const processingFees  = sum(processingFeeRows,"processing_fee");
   const loanInterest    = round2(Number(collectedInterest ?? 0));
-  const totalRevenue    = round2(
-    (rc.interest        ? loanInterest   : 0) +
-    (rc.commission      ? commission     : 0) +
-    (rc.susu_fees       ? susuFees       : 0) +
-    (rc.card_fees       ? cardFees       : 0) +
-    (rc.sms_charges     ? smsCharges     : 0) +
-    (rc.processing_fees ? processingFees : 0)
-  );
 
   // Account balance components
   const totalWithdrawals  = sum(withdrawalRows,    "amount");
   const totalLoansPaid    = sum(loanPrincipalRows, "principal");
   const totalRepayments   = sum(repaymentRows,     "amount");
   const totalSmsFees      = sum(smsFeeRows,        "amount");
+
+  const totalRevenue    = round2(
+    (rc.interest        ? loanInterest   : 0) +
+    (rc.commission      ? commission     : 0) +
+    (rc.susu_fees       ? susuFees       : 0) +
+    (rc.card_fees       ? cardFees       : 0) +
+    (rc.sms_charges     ? smsCharges     : 0) +
+    (rc.sms_fees        ? totalSmsFees   : 0) +
+    (rc.processing_fees ? processingFees : 0)
+  );
 
   // Account Balance = Combined Total - (Withdrawals + Commissions) - Susu Fees - SMS Fees - Loans + Repayments + Card Fees + Processing Fees
   const accountBalance = round2(
@@ -197,7 +207,8 @@ export default async function OverviewPage() {
               rc.commission      && `Commission ${formatGHS(commission)}`,
               rc.susu_fees       && `Susu Fees ${formatGHS(susuFees)}`,
               rc.card_fees       && `Card Fees ${formatGHS(cardFees)}`,
-              rc.sms_charges     && `SMS ${formatGHS(smsCharges)}`,
+              rc.sms_charges     && `SMS Arkesel ${formatGHS(smsCharges)}`,
+              rc.sms_fees        && `SMS Fees ${formatGHS(totalSmsFees)}`,
               rc.processing_fees && `Processing Fees ${formatGHS(processingFees)}`,
             ].filter(Boolean).join(" + ")}
             color="bg-[#15803D]"
