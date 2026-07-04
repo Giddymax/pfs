@@ -35,10 +35,21 @@ export default async function ClientDetailPage({
   const isAdmin = profile?.role === "admin";
   const account = accounts?.[0] ?? null;
 
+  // Fetch agent and registrar names in parallel
+  const lookupIds = [
+    account?.agent_id,
+    client.created_by,
+  ].filter((id): id is string => !!id);
+
   let agentName: string | null = null;
-  if (account?.agent_id) {
-    const { data: agent } = await supabase.from("profiles").select("*").eq("id", account.agent_id).single<Profile>();
-    agentName = agent?.full_name ?? null;
+  let registeredBy: string | null = null;
+
+  if (lookupIds.length > 0) {
+    const { data: profileRows } = await supabase
+      .from("profiles").select("id, full_name").in("id", lookupIds).returns<Pick<Profile, "id" | "full_name">[]>();
+    const byId = new Map((profileRows ?? []).map((p) => [p.id, p.full_name]));
+    agentName = account?.agent_id ? (byId.get(account.agent_id) ?? null) : null;
+    registeredBy = client.created_by ? (byId.get(client.created_by) ?? null) : null;
   }
 
   return (
@@ -61,14 +72,15 @@ export default async function ClientDetailPage({
               transactions={transactions ?? []}
               printedBy={profile?.full_name}
             />
+            <PrintRegistrationCardButton
+              client={client}
+              account={account}
+              agentName={agentName}
+              processedBy={profile?.full_name}
+              registeredBy={registeredBy}
+            />
             {isAdmin && (
               <>
-                <PrintRegistrationCardButton
-                  client={client}
-                  account={account}
-                  agentName={agentName}
-                  processedBy={profile?.full_name}
-                />
                 <Link
                   href={`/clients/${client.id}/edit`}
                   className="inline-flex items-center gap-1.5 rounded-md border border-[#0033AA]/20 px-3 py-1.5 text-[11.5px] font-medium text-[#0033AA] transition-colors hover:bg-[#0033AA]/5"

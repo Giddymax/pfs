@@ -102,6 +102,7 @@ export default async function ClientsPage({
 
   const accountByClient = new Map<string, Account>();
   const agentNameById = new Map<string, string>();
+  const registrarNameById = new Map<string, string>();
   if (clients.length > 0) {
     const { data: accounts } = await supabase
       .from("accounts")
@@ -112,16 +113,22 @@ export default async function ClientsPage({
     for (const acc of accounts ?? []) {
       if (!accountByClient.has(acc.client_id)) accountByClient.set(acc.client_id, acc);
     }
-    const agentIds = [
-      ...new Set((accounts ?? []).map((a) => a.agent_id).filter((id): id is string => !!id)),
-    ];
-    if (agentIds.length > 0) {
-      const { data: agents } = await supabase
+
+    // Collect all profile IDs we need: agents + registrars
+    const agentIds = [...new Set((accounts ?? []).map((a) => a.agent_id).filter((id): id is string => !!id))];
+    const registrarIds = [...new Set(clients.map((c) => c.created_by).filter((id): id is string => !!id))];
+    const allProfileIds = [...new Set([...agentIds, ...registrarIds])];
+
+    if (allProfileIds.length > 0) {
+      const { data: profileRows } = await supabase
         .from("profiles")
-        .select("*")
-        .in("id", agentIds)
-        .returns<Profile[]>();
-      for (const agent of agents ?? []) agentNameById.set(agent.id, agent.full_name);
+        .select("id, full_name")
+        .in("id", allProfileIds)
+        .returns<Pick<Profile, "id" | "full_name">[]>();
+      for (const p of profileRows ?? []) {
+        agentNameById.set(p.id, p.full_name);
+        registrarNameById.set(p.id, p.full_name);
+      }
     }
   }
 
@@ -280,14 +287,15 @@ export default async function ClientsPage({
                       accountBalance={acc?.balance}
                       printedBy={profile?.full_name}
                     />
+                    <PrintRegistrationCardButton
+                      client={client}
+                      account={acc}
+                      agentName={acc?.agent_id ? agentNameById.get(acc.agent_id) ?? null : null}
+                      processedBy={profile?.full_name}
+                      registeredBy={client.created_by ? registrarNameById.get(client.created_by) ?? null : null}
+                    />
                     {isAdmin && (
                       <>
-                        <PrintRegistrationCardButton
-                          client={client}
-                          account={acc}
-                          agentName={acc?.agent_id ? agentNameById.get(acc.agent_id) ?? null : null}
-                          processedBy={profile?.full_name}
-                        />
                         <Link
                           href={`/clients/${client.id}/edit`}
                           className="inline-flex items-center gap-1.5 rounded-md border border-[#1D3461]/20 px-3 py-1.5 text-[11.5px] font-medium text-[#1D3461] transition-colors hover:bg-[#1D3461]/5"
@@ -386,14 +394,15 @@ export default async function ClientsPage({
                             accountBalance={acc?.balance}
                             printedBy={profile?.full_name}
                           />
+                          <PrintRegistrationCardButton
+                            client={client}
+                            account={acc}
+                            agentName={acc?.agent_id ? agentNameById.get(acc.agent_id) ?? null : null}
+                            processedBy={profile?.full_name}
+                            registeredBy={client.created_by ? registrarNameById.get(client.created_by) ?? null : null}
+                          />
                           {isAdmin && (
                             <>
-                              <PrintRegistrationCardButton
-                                client={client}
-                                account={acc}
-                                agentName={acc?.agent_id ? agentNameById.get(acc.agent_id) ?? null : null}
-                                processedBy={profile?.full_name}
-                              />
                               <Link
                                 href={`/clients/${client.id}/edit`}
                                 className="inline-flex items-center gap-1.5 rounded-md border border-[#1D3461]/20 px-3 py-1.5 text-[11.5px] font-medium text-[#1D3461] transition-colors hover:bg-[#1D3461]/5"

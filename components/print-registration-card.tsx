@@ -22,11 +22,13 @@ export function PrintRegistrationCardButton({
   account,
   agentName,
   processedBy,
+  registeredBy,
 }: {
   client: Client;
   account?: Account | null;
   agentName?: string | null;
   processedBy?: string | null;
+  registeredBy?: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const [printedAt, setPrintedAt] = useState<Date | null>(null);
@@ -158,6 +160,7 @@ export function PrintRegistrationCardButton({
                 <Field label="Account number" value={account?.account_number ?? "—"} />
                 <Field label="Branch" value={account?.branch ?? "—"} />
                 <Field label="Name of agent" value={agentName ?? "—"} />
+                <Field label="Registered by" value={registeredBy ?? "—"} />
               </div>
               <div className="mt-6 flex items-end justify-between gap-6 text-[12px] text-[#0A2240]/55">
                 <p className="border-t border-[#0A2240]/25 pt-1.5">Manager&apos;s signature</p>
