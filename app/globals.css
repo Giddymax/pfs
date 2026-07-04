@@ -19,7 +19,8 @@ body {
 }
 
 /* ─── Watermark: invisible on screen but loaded, visible on print ─── */
-/* Using opacity:0 (not display:none) so the browser preloads the image */
+/* opacity:0 (not display:none) ensures the browser preloads the image.
+   position:fixed keeps it centered without affecting document layout.   */
 .pfs-watermark {
   display: block;
   position: fixed;
@@ -113,11 +114,13 @@ body {
     display: none !important;
   }
 
-  /* Watermark — logo centred on every printed page, behind content */
+  /* Watermark — logo centred on every printed page.
+     z-index must exceed the print container (9999) so it paints above the
+     container's white background; 10% opacity keeps text fully readable. */
   .pfs-watermark {
-    opacity: 0.08 !important;
+    opacity: 0.10 !important;
     visibility: visible !important;
-    z-index: 0;
+    z-index: 99999 !important;
   }
 }
 
