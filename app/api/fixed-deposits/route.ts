@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import type { FixedDeposit } from "@/lib/types";
+import { getSettings } from "@/lib/settings/cache";
+import { shouldSendAdminSms, shouldSendClientSms } from "@/lib/sms/gating";
+import { sendSms } from "@/lib/sms/arkesel";
+import { smsTemplates } from "@/lib/sms/templates";
+import type { Client, FixedDeposit } from "@/lib/types";
 
 const TERM_OPTIONS = [3, 6, 9, 12, 18, 24];
 
@@ -43,5 +47,40 @@ export async function POST(request: Request) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
+  await notifyFdOpened(supabase, data, termMonths);
   return NextResponse.json({ fixed_deposit: data });
+}
+
+async function notifyFdOpened(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  fd: FixedDeposit,
+  termMonths: number,
+) {
+  const { data: client } = await supabase.from("clients").select("*").eq("id", fd.client_id).single<Client>();
+  if (!client) return;
+
+  const settings = await getSettings();
+  const maturityDate = fd.maturity_date
+    ? new Date(fd.maturity_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+    : "—";
+
+  if (shouldSendClientSms("fixed_deposit", client, settings)) {
+    await sendSms({
+      to: client.phone,
+      message: smsTemplates.fdOpened(client.full_name, fd.fd_number, fd.principal, maturityDate),
+      event: "fd_opened",
+      recipientType: "client",
+      relatedClientId: client.id,
+    });
+  }
+
+  if (shouldSendAdminSms(settings)) {
+    await sendSms({
+      to: settings.sms.company_tel!,
+      message: smsTemplates.fdOpenedAdmin(client.full_name, fd.fd_number, fd.principal, termMonths),
+      event: "fd_opened_admin",
+      recipientType: "admin",
+      relatedClientId: client.id,
+    });
+  }
 }

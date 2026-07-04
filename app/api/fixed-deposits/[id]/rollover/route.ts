@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getSettings } from "@/lib/settings/cache";
-import { shouldSendClientSms } from "@/lib/sms/gating";
+import { shouldSendAdminSms, shouldSendClientSms } from "@/lib/sms/gating";
 import { sendSms } from "@/lib/sms/arkesel";
 import { smsTemplates } from "@/lib/sms/templates";
 
@@ -62,7 +62,6 @@ async function notifyRolledOver(supabase: Awaited<ReturnType<typeof createClient
   if (!client) return;
 
   const settings = await getSettings();
-  if (!shouldSendClientSms("fixed_deposit", client, settings)) return;
 
   const { data: fds } = await supabase
     .from("fixed_deposits")
@@ -71,11 +70,23 @@ async function notifyRolledOver(supabase: Awaited<ReturnType<typeof createClient
   const oldFdNumber = fds?.find((fd) => fd.id === rollover.old_fd_id)?.fd_number ?? "";
   const newFdNumber = fds?.find((fd) => fd.id === rollover.new_fd_id)?.fd_number ?? "";
 
-  await sendSms({
-    to: rollover.client_phone,
-    message: smsTemplates.fdRolledOver(rollover.client_full_name, oldFdNumber, newFdNumber, rollover.cash_interest_paid),
-    event: "fd_rolled_over",
-    recipientType: "client",
-    relatedClientId: rollover.client_id,
-  });
+  if (shouldSendClientSms("fixed_deposit", client, settings)) {
+    await sendSms({
+      to: rollover.client_phone,
+      message: smsTemplates.fdRolledOver(rollover.client_full_name, oldFdNumber, newFdNumber, rollover.cash_interest_paid),
+      event: "fd_rolled_over",
+      recipientType: "client",
+      relatedClientId: rollover.client_id,
+    });
+  }
+
+  if (shouldSendAdminSms(settings)) {
+    await sendSms({
+      to: settings.sms.company_tel!,
+      message: smsTemplates.fdRolledOverAdmin(rollover.client_full_name, oldFdNumber, newFdNumber),
+      event: "fd_rolled_over_admin",
+      recipientType: "admin",
+      relatedClientId: rollover.client_id,
+    });
+  }
 }

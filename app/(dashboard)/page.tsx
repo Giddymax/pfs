@@ -42,7 +42,7 @@ export default async function OverviewPage() {
     { data: commissionRows },
     { data: susuFeeRows },
     { data: processingFeeRows },
-    { data: loanInterestRows },
+    { data: collectedInterest },
     // Withdrawal amounts (not fees — those are commissionRows)
     { data: withdrawalRows },
     // Loan disbursements & repayments
@@ -65,7 +65,7 @@ export default async function OverviewPage() {
     supabase.from("transactions").select("fee").eq("type", "withdrawal").is("reversed_at", null),
     supabase.from("susu_payments").select("amount").eq("day_in_cycle", 31),
     supabase.from("loans").select("processing_fee"),
-    supabase.from("loans").select("total_interest").in("status", ["active", "completed", "defaulted"]),
+    supabase.rpc("compute_collected_loan_interest"),
     supabase.from("transactions").select("amount").eq("type", "withdrawal").is("reversed_at", null),
     supabase.from("loans").select("principal").in("status", ["active", "completed", "defaulted"]),
     supabase.from("loan_repayments").select("amount"),
@@ -102,7 +102,7 @@ export default async function OverviewPage() {
   const commission      = sum(commissionRows,   "fee");
   const susuFees        = sum(susuFeeRows,      "amount");
   const processingFees  = sum(processingFeeRows,"processing_fee");
-  const loanInterest    = sum(loanInterestRows, "total_interest");
+  const loanInterest    = round2(Number(collectedInterest ?? 0));
   const totalRevenue    = round2(
     (rc.interest        ? loanInterest   : 0) +
     (rc.commission      ? commission     : 0) +
@@ -118,7 +118,7 @@ export default async function OverviewPage() {
   const totalRepayments   = sum(repaymentRows,     "amount");
   const totalSmsFees      = sum(smsFeeRows,        "amount");
 
-  // Account Balance = Combined Total - (Withdrawals + Commissions) - Susu Fees - SMS Fees - Loans + Repayments + Card Fees
+  // Account Balance = Combined Total - (Withdrawals + Commissions) - Susu Fees - SMS Fees - Loans + Repayments + Card Fees + Processing Fees
   const accountBalance = round2(
     combined
     - (totalWithdrawals + commission)
@@ -127,6 +127,7 @@ export default async function OverviewPage() {
     - totalLoansPaid
     + totalRepayments
     + cardFees
+    + processingFees
   );
   const rawCashAtBank = round2(
     (bankTxnRows ?? []).reduce((s, t) => {

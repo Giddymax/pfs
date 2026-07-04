@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getSettings } from "@/lib/settings/cache";
-import { shouldSendClientSms } from "@/lib/sms/gating";
+import { shouldSendAdminSms, shouldSendClientSms } from "@/lib/sms/gating";
 import { sendSms } from "@/lib/sms/arkesel";
 import { smsTemplates } from "@/lib/sms/templates";
 import type { Client, FixedDeposit, Profile } from "@/lib/types";
@@ -35,13 +35,23 @@ async function notifyEarlyWithdrawalRejected(supabase: Awaited<ReturnType<typeof
   if (!client) return;
 
   const settings = await getSettings();
-  if (!shouldSendClientSms("fixed_deposit", client, settings)) return;
+  if (shouldSendClientSms("fixed_deposit", client, settings)) {
+    await sendSms({
+      to: client.phone,
+      message: smsTemplates.fdEarlyWithdrawalRejected(client.full_name, fd.fd_number),
+      event: "fd_early_withdrawal_rejected",
+      recipientType: "client",
+      relatedClientId: client.id,
+    });
+  }
 
-  await sendSms({
-    to: client.phone,
-    message: smsTemplates.fdEarlyWithdrawalRejected(client.full_name, fd.fd_number),
-    event: "fd_early_withdrawal_rejected",
-    recipientType: "client",
-    relatedClientId: client.id,
-  });
+  if (shouldSendAdminSms(settings)) {
+    await sendSms({
+      to: settings.sms.company_tel!,
+      message: smsTemplates.fdEarlyWithdrawalRejectedAdmin(client.full_name, fd.fd_number),
+      event: "fd_early_withdrawal_rejected_admin",
+      recipientType: "admin",
+      relatedClientId: client.id,
+    });
+  }
 }

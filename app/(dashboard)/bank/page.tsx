@@ -53,6 +53,7 @@ export default async function BankPage() {
     { data: loanPrincipalRows },
     { data: repaymentRows },
     { data: smsFeeRows },
+    { data: processingFeeRows },
   ] = await Promise.all([
     supabase
       .from("bank_transactions")
@@ -69,6 +70,7 @@ export default async function BankPage() {
     supabase.from("loans").select("principal").in("status", ["active", "completed", "defaulted"]),
     supabase.from("loan_repayments").select("amount"),
     supabase.from("sms_fee_charges").select("amount"),
+    supabase.from("loans").select("processing_fee"),
   ]);
 
   const rows = txns ?? [];
@@ -83,6 +85,7 @@ export default async function BankPage() {
     - sum(loanPrincipalRows, "principal")
     + sum(repaymentRows, "amount")
     + sum(cardFeeRows, "amount")
+    + sum(processingFeeRows, "processing_fee")
   );
 
   const rawCashAtBank = round2(
