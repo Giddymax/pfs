@@ -158,8 +158,7 @@ export function PrintRegistrationCardButton({
               <div className="grid grid-cols-1 gap-x-8 gap-y-3.5 sm:grid-cols-2">
                 <Field label="Account name" value={client.full_name} />
                 <Field label="Account number" value={account?.account_number ?? "—"} />
-                <Field label="Branch" value={account?.branch ?? "—"} />
-                <Field label="Name of agent" value={agentName ?? "—"} />
+                <Field label="Branch" value={account?.branch ?? "Asuom"} />
                 <Field label="Registered by" value={registeredBy ?? "—"} />
               </div>
               <div className="mt-6 flex items-end justify-between gap-6 text-[12px] text-[#0A2240]/55">
