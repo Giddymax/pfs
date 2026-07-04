@@ -103,15 +103,33 @@ export default async function ClientsPage({
   const accountByClient = new Map<string, Account>();
   const agentNameById = new Map<string, string>();
   const registrarNameById = new Map<string, string>();
+  const fdNumberByClient = new Map<string, string>();
+  const fdByClient = new Map<string, { client_id: string; fd_number: string; principal: number }>();
   if (clients.length > 0) {
-    const { data: accounts } = await supabase
-      .from("accounts")
-      .select("*")
-      .in("client_id", clients.map((c) => c.id))
-      .order("created_at", { ascending: false })
-      .returns<Account[]>();
+    const clientIds = clients.map((c) => c.id);
+
+    const [{ data: accounts }, { data: fdRows }] = await Promise.all([
+      supabase
+        .from("accounts")
+        .select("*")
+        .in("client_id", clientIds)
+        .order("created_at", { ascending: false })
+        .returns<Account[]>(),
+      supabase
+        .from("fixed_deposits")
+        .select("client_id, fd_number, principal")
+        .in("client_id", clientIds)
+        .not("status", "in", '("withdrawn","rolled_over")')
+        .order("created_at", { ascending: false })
+        .returns<{ client_id: string; fd_number: string; principal: number }[]>(),
+    ]);
+
     for (const acc of accounts ?? []) {
       if (!accountByClient.has(acc.client_id)) accountByClient.set(acc.client_id, acc);
+    }
+    for (const fd of fdRows ?? []) {
+      if (!fdNumberByClient.has(fd.client_id)) fdNumberByClient.set(fd.client_id, fd.fd_number);
+      fdByClient.set(fd.client_id, fd);
     }
 
     // Collect all profile IDs we need: agents + registrars
@@ -250,7 +268,10 @@ export default async function ClientsPage({
           <ul className="space-y-3 lg:hidden">
             {clients.map((client) => {
               const acc = accountByClient.get(client.id);
-              const ProductIcon = acc ? PRODUCT_ICON[acc.product_type] : null;
+              const fd = fdByClient.get(client.id);
+              const ProductIcon = acc ? PRODUCT_ICON[acc.product_type] : fd ? Lock : null;
+              const productLabel = acc ? PRODUCT_LABEL[acc.product_type] : fd ? "Fixed Deposit" : null;
+              const displayBalance = acc ? formatGHC(acc.balance) : fd ? formatGHC(fd.principal) : null;
               return (
                 <li key={client.id} className="rounded-xl border border-[#1D3461]/8 bg-white shadow-sm">
                   <Link href={`/clients/${client.id}`} className="flex items-center gap-3 px-4 py-3.5">
@@ -269,13 +290,13 @@ export default async function ClientsPage({
                       </div>
                       <p className="text-[12px] text-[#0A2240]/45">{client.client_code} · {client.phone}</p>
                       <div className="mt-1 flex items-center gap-3 text-[12px] text-[#0A2240]/55">
-                        {acc && ProductIcon && (
+                        {ProductIcon && productLabel && (
                           <span className="inline-flex items-center gap-1">
                             <ProductIcon size={12} />
-                            {PRODUCT_LABEL[acc.product_type]}
+                            {productLabel}
                           </span>
                         )}
-                        {acc && <span className="font-medium text-[#0A2240]">{formatGHC(acc.balance)}</span>}
+                        {displayBalance && <span className="font-medium text-[#0A2240]">{displayBalance}</span>}
                         {client.town && <span>{client.town}</span>}
                       </div>
                     </div>
@@ -293,6 +314,7 @@ export default async function ClientsPage({
                       agentName={acc?.agent_id ? agentNameById.get(acc.agent_id) ?? null : null}
                       processedBy={profile?.full_name}
                       registeredBy={client.created_by ? registrarNameById.get(client.created_by) ?? null : null}
+                      fdNumber={fdNumberByClient.get(client.id) ?? null}
                     />
                     {isAdmin && (
                       <>
@@ -337,7 +359,7 @@ export default async function ClientsPage({
                       "Town"
                     )}
                   </th>
-                  <th className="px-5 py-3 font-semibold">Savings</th>
+                  <th className="px-5 py-3 font-semibold">Balance</th>
                   <th aria-label="Status" className="px-5 py-3 font-semibold">
                     <TableFilter param="status" label="Status" options={STATUS_OPTIONS} current={status} qs={qs} />
                   </th>
@@ -348,7 +370,9 @@ export default async function ClientsPage({
               <tbody className="divide-y divide-[#1D3461]/6">
                 {clients.map((client) => {
                   const acc = accountByClient.get(client.id);
-                  const ProductIcon = acc ? PRODUCT_ICON[acc.product_type] : null;
+                  const fd = fdByClient.get(client.id);
+                  const ProductIcon = acc ? PRODUCT_ICON[acc.product_type] : fd ? Lock : null;
+                  const productLabel = acc ? PRODUCT_LABEL[acc.product_type] : fd ? "Fixed Deposit" : null;
                   return (
                     <tr key={client.id} className="transition-colors hover:bg-[#1D3461]/[0.025]">
                       <td className="px-5 py-3.5">
@@ -369,10 +393,10 @@ export default async function ClientsPage({
                       </td>
                       <td className="px-5 py-3.5 text-[#0A2240]/55">{client.phone}</td>
                       <td className="px-5 py-3.5">
-                        {acc && ProductIcon ? (
+                        {ProductIcon && productLabel ? (
                           <span className="inline-flex items-center gap-1.5 text-[#0A2240]/70">
                             <ProductIcon size={14} className="text-[#1D3461]/55" />
-                            {PRODUCT_LABEL[acc.product_type]}
+                            {productLabel}
                           </span>
                         ) : (
                           <span className="text-[#0A2240]/35">—</span>
@@ -380,7 +404,7 @@ export default async function ClientsPage({
                       </td>
                       <td className="px-5 py-3.5 text-[#0A2240]/55">{client.town ?? "—"}</td>
                       <td className="px-5 py-3.5 font-medium text-[#0A2240]">
-                        {acc ? formatGHC(acc.balance) : "—"}
+                        {acc ? formatGHC(acc.balance) : fd ? formatGHC(fd.principal) : "—"}
                       </td>
                       <td className="px-5 py-3.5">
                         <ClientStatusBadge status={client.status} />
@@ -400,6 +424,7 @@ export default async function ClientsPage({
                             agentName={acc?.agent_id ? agentNameById.get(acc.agent_id) ?? null : null}
                             processedBy={profile?.full_name}
                             registeredBy={client.created_by ? registrarNameById.get(client.created_by) ?? null : null}
+                            fdNumber={fdNumberByClient.get(client.id) ?? null}
                           />
                           {isAdmin && (
                             <>

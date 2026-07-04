@@ -23,12 +23,14 @@ export function PrintRegistrationCardButton({
   agentName,
   processedBy,
   registeredBy,
+  fdNumber,
 }: {
   client: Client;
   account?: Account | null;
   agentName?: string | null;
   processedBy?: string | null;
   registeredBy?: string | null;
+  fdNumber?: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const [printedAt, setPrintedAt] = useState<Date | null>(null);
@@ -41,6 +43,7 @@ export function PrintRegistrationCardButton({
   return (
     <>
       <button
+        type="button"
         onClick={handleOpen}
         className="inline-flex items-center gap-1.5 rounded-md border border-[#0033AA]/20 px-3 py-1.5 text-[11.5px] font-medium text-[#0033AA] transition-colors hover:bg-[#0033AA]/5"
       >
@@ -52,6 +55,7 @@ export function PrintRegistrationCardButton({
         <div className="fixed inset-0 z-50 overflow-y-auto bg-[#061B3A]/55 px-4 py-8 animate-fade-in print:static print:overflow-visible print:bg-transparent print:p-0">
           <div className="mx-auto flex max-w-[760px] justify-end gap-2 pb-3 print:hidden">
             <button
+              type="button"
               onClick={() => window.print()}
               className="inline-flex items-center gap-2 rounded-md bg-[#0033AA] px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[#002884]"
             >
@@ -59,6 +63,7 @@ export function PrintRegistrationCardButton({
               Print
             </button>
             <button
+              type="button"
               onClick={() => setOpen(false)}
               className="inline-flex items-center gap-2 rounded-md border border-white/25 px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-white/10"
             >
@@ -157,7 +162,7 @@ export function PrintRegistrationCardButton({
               <p className="mb-3 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-[#0A2240]/45">Office use</p>
               <div className="grid grid-cols-1 gap-x-8 gap-y-3.5 sm:grid-cols-2">
                 <Field label="Account name" value={client.full_name} />
-                <Field label="Account number" value={account?.account_number ?? "—"} />
+                <Field label="Account number" value={account?.account_number ?? fdNumber ?? "—"} />
                 <Field label="Branch" value={account?.branch ?? "Asuom"} />
                 <Field label="Registered by" value={registeredBy ?? "—"} />
               </div>

@@ -17,7 +17,7 @@ export default async function ClientDetailPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: client }, { data: loans }, { data: profile }, { data: accounts }, { data: transactions }] = await Promise.all([
+  const [{ data: client }, { data: loans }, { data: profile }, { data: accounts }, { data: transactions }, { data: fds }] = await Promise.all([
     supabase.from("clients").select("*").eq("id", id).single<Client>(),
     supabase.from("loans").select("*").eq("client_id", id).order("created_at", { ascending: false }).returns<Loan[]>(),
     getCurrentProfile(supabase),
@@ -28,6 +28,14 @@ export default async function ClientDetailPage({
       .eq("client_id", id)
       .order("created_at", { ascending: false })
       .returns<(Transaction & { account: { account_number: string; product_type: string } | null; recorder: { full_name: string } | null })[]>(),
+    supabase
+      .from("fixed_deposits")
+      .select("fd_number")
+      .eq("client_id", id)
+      .not("status", "in", '("withdrawn","rolled_over")')
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .returns<{ fd_number: string }[]>(),
   ]);
 
   if (!client) notFound();
@@ -78,6 +86,7 @@ export default async function ClientDetailPage({
               agentName={agentName}
               processedBy={profile?.full_name}
               registeredBy={registeredBy}
+              fdNumber={fds?.[0]?.fd_number ?? null}
             />
             {isAdmin && (
               <>
