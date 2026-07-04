@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSettings } from "@/lib/settings/cache";
 import { PageHeader, Card, EmptyState } from "@/components/ui";
 import { AddExpenditureButton, DeleteExpenditureButton } from "@/components/expenditure-actions";
+import { PrintFinanceSummaryButton } from "@/components/print-finance-summary-button";
 import { formatGHS, round2 } from "@/lib/loan";
 import type { Profile } from "@/lib/types";
 
@@ -39,7 +40,7 @@ export default async function FinancePage() {
   if (!user) redirect("/login");
 
   const { data: profile } = await supabase
-    .from("profiles").select("role").eq("id", user.id).single<Pick<Profile, "role">>();
+    .from("profiles").select("role, full_name").eq("id", user.id).single<Pick<Profile, "role" | "full_name">>();
   if (profile?.role !== "admin") redirect("/clients");
 
   // ── Revenue queries (same sources as overview) ──────────────────────────
@@ -108,6 +109,16 @@ export default async function FinancePage() {
         eyebrow="Admin · Finance"
         title="Company Finance"
         description="Revenue earned, expenditures recorded, and net balance."
+        action={
+          <PrintFinanceSummaryButton
+            totalRevenue={totalRevenue}
+            totalExpenditure={totalExpenditure}
+            netBalance={netBalance}
+            revenueItems={revenueItems}
+            expenditures={expenditures ?? []}
+            printedBy={profile?.full_name}
+          />
+        }
       />
 
       {/* ── Summary cards ───────────────────────────────────────── */}
