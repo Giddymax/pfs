@@ -24,7 +24,7 @@ export default async function OverviewPage() {
     total_susu:      { visible: true, calc: "dep" as const },
     total_fd:        { visible: true },
     combined_total:  { visible: true },
-    total_revenue:   { visible: true, components: { interest: true, commission: true, susu_fees: true, card_fees: true, sms_fees: true, processing_fees: true } },
+    total_revenue:   { visible: true, components: { interest: true, commission: true, susu_fees: true, card_fees: true, sms_fees: true, processing_fees: true, investment_revenue: true } },
     account_balance: { visible: true },
     cash_at_hand:    { visible: true },
     cash_at_bank:    { visible: true },
@@ -50,6 +50,7 @@ export default async function OverviewPage() {
     { data: susuFeeRows },
     { data: processingFeeRows },
     { data: collectedInterest },
+    { data: investmentRows },
     // Withdrawal amounts (not fees — those are commissionRows)
     { data: withdrawalRows },
     // Loan disbursements & repayments
@@ -72,6 +73,7 @@ export default async function OverviewPage() {
     supabase.from("susu_payments").select("amount").eq("day_in_cycle", 31),
     supabase.from("loans").select("processing_fee"),
     supabase.rpc("compute_collected_loan_interest"),
+    supabase.from("investments").select("revenue_made"),
     supabase.from("transactions").select("amount").eq("type", "withdrawal").is("reversed_at", null),
     supabase.from("loans").select("principal").in("status", ["active", "completed", "defaulted"]),
     supabase.from("loan_repayments").select("amount"),
@@ -106,8 +108,9 @@ export default async function OverviewPage() {
   const cardFees        = sum(cardFeeRows,      "amount");
   const commission      = sum(commissionRows,   "fee");
   const susuFees        = sum(susuFeeRows,      "amount");
-  const processingFees  = sum(processingFeeRows,"processing_fee");
-  const loanInterest    = round2(Number(collectedInterest ?? 0));
+  const processingFees    = sum(processingFeeRows,"processing_fee");
+  const loanInterest      = round2(Number(collectedInterest ?? 0));
+  const investmentRevenue = sum(investmentRows,   "revenue_made");
 
   // Account balance components
   const totalWithdrawals  = sum(withdrawalRows,    "amount");
@@ -120,8 +123,9 @@ export default async function OverviewPage() {
     (rc.commission      ? commission     : 0) +
     (rc.susu_fees       ? susuFees       : 0) +
     (rc.card_fees       ? cardFees       : 0) +
-    (rc.sms_fees        ? totalSmsFees   : 0) +
-    (rc.processing_fees ? processingFees : 0)
+    (rc.sms_fees           ? totalSmsFees       : 0) +
+    (rc.processing_fees    ? processingFees     : 0) +
+    (rc.investment_revenue ? investmentRevenue  : 0)
   );
 
   // Account Balance = Combined Total - (Withdrawals + Commissions) - Susu Fees - SMS Fees - Loans + Repayments + Card Fees + Processing Fees
@@ -203,8 +207,9 @@ export default async function OverviewPage() {
               rc.commission      && `Commission ${formatGHS(commission)}`,
               rc.susu_fees       && `Susu Fees ${formatGHS(susuFees)}`,
               rc.card_fees       && `Card Fees ${formatGHS(cardFees)}`,
-              rc.sms_fees        && `SMS Fees ${formatGHS(totalSmsFees)}`,
-              rc.processing_fees && `Processing Fees ${formatGHS(processingFees)}`,
+              rc.sms_fees           && `SMS Fees ${formatGHS(totalSmsFees)}`,
+              rc.processing_fees    && `Processing Fees ${formatGHS(processingFees)}`,
+              rc.investment_revenue && `Investment Revenue ${formatGHS(investmentRevenue)}`,
             ].filter(Boolean).join(" + ")}
             color="bg-[#15803D]"
           />

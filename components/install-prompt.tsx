@@ -11,17 +11,17 @@ interface BeforeInstallPromptEvent extends Event {
 export function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [dismissed, setDismissed] = useState(false);
-  const [isIos, setIsIos] = useState(false);
-  const [isStandalone, setIsStandalone] = useState(false);
+  const [isIos] = useState(() => {
+    if (typeof navigator === "undefined") return false;
+    return /iPad|iPhone|iPod/.test(navigator.userAgent);
+  });
+  const [isStandalone] = useState(() => {
+    if (typeof window === "undefined" || typeof navigator === "undefined") return false;
+    return window.matchMedia("(display-mode: standalone)").matches
+      || ("standalone" in navigator && (navigator as unknown as { standalone: boolean }).standalone);
+  });
 
   useEffect(() => {
-    const standalone = window.matchMedia("(display-mode: standalone)").matches
-      || ("standalone" in navigator && (navigator as unknown as { standalone: boolean }).standalone);
-    setIsStandalone(!!standalone);
-
-    const ua = navigator.userAgent;
-    setIsIos(/iPad|iPhone|iPod/.test(ua));
-
     function handler(e: Event) {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSettings } from "@/lib/settings/cache";
 import { PageHeader, Card, EmptyState } from "@/components/ui";
 import { AddExpenditureButton, DeleteExpenditureButton } from "@/components/expenditure-actions";
+import { AddInvestmentButton, DeleteInvestmentButton } from "@/components/investment-actions";
 import { PrintFinanceSummaryButton } from "@/components/print-finance-summary-button";
 import { formatGHS, round2 } from "@/lib/loan";
 import type { Profile } from "@/lib/types";
@@ -12,6 +13,18 @@ interface Expenditure {
   title: string;
   amount: number;
   category: string;
+  date: string;
+  notes: string | null;
+  recorded_by: string | null;
+  created_at: string;
+}
+
+interface Investment {
+  id: string;
+  title: string;
+  investment_type: string;
+  amount_invested: number;
+  revenue_made: number;
   date: string;
   notes: string | null;
   recorded_by: string | null;
@@ -43,7 +56,7 @@ export default async function FinancePage() {
     .from("profiles").select("role, full_name").eq("id", user.id).single<Pick<Profile, "role" | "full_name">>();
   if (profile?.role !== "admin") redirect("/clients");
 
-  // ── Revenue queries (same sources as overview) ──────────────────────────
+  // Revenue queries (same sources as overview)
   const [
     { data: cardFeeRows },
     { data: commissionRows },
@@ -51,7 +64,9 @@ export default async function FinancePage() {
     { data: processingFeeRows },
     { data: collectedInterest },
     { data: smsFeeRows },
+    { data: investmentRows },
     { data: expenditures },
+    { data: investments },
   ] = await Promise.all([
     supabase.from("card_fees").select("amount"),
     supabase.from("transactions").select("fee").eq("type", "withdrawal").is("reversed_at", null),
@@ -59,12 +74,19 @@ export default async function FinancePage() {
     supabase.from("loans").select("processing_fee"),
     supabase.rpc("compute_collected_loan_interest"),
     supabase.from("sms_fee_charges").select("amount"),
+    supabase.from("investments").select("revenue_made"),
     supabase
       .from("expenditures")
       .select("*")
       .order("date", { ascending: false })
       .order("created_at", { ascending: false })
       .returns<Expenditure[]>(),
+    supabase
+      .from("investments")
+      .select("*")
+      .order("date", { ascending: false })
+      .order("created_at", { ascending: false })
+      .returns<Investment[]>(),
   ]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -72,35 +94,47 @@ export default async function FinancePage() {
     round2((rows ?? []).reduce((s: number, r: Record<string, unknown>) => s + Number(r[key] ?? 0), 0));
 
   const settings = await getSettings();
-  const defaultComponents = { interest: true, commission: true, susu_fees: true, card_fees: true, sms_fees: true, processing_fees: true };
+  const defaultComponents = {
+    interest: true,
+    commission: true,
+    susu_fees: true,
+    card_fees: true,
+    sms_fees: true,
+    processing_fees: true,
+    investment_revenue: true,
+  };
   const rc = { ...defaultComponents, ...(settings.overview_kpi?.total_revenue?.components ?? {}) };
 
-  const loanInterest   = round2(Number(collectedInterest ?? 0));
-  const commission     = sum(commissionRows,   "fee");
-  const susuFees       = sum(susuFeeRows,      "amount");
-  const cardFees       = sum(cardFeeRows,      "amount");
-  const totalSmsFees   = sum(smsFeeRows,       "amount");
-  const processingFees = sum(processingFeeRows,"processing_fee");
+  const loanInterest      = round2(Number(collectedInterest ?? 0));
+  const commission        = sum(commissionRows,   "fee");
+  const susuFees          = sum(susuFeeRows,      "amount");
+  const cardFees          = sum(cardFeeRows,      "amount");
+  const totalSmsFees      = sum(smsFeeRows,       "amount");
+  const processingFees    = sum(processingFeeRows,"processing_fee");
+  const investmentRevenue = sum(investmentRows,   "revenue_made");
 
   const totalRevenue = round2(
-    (rc.interest        ? loanInterest   : 0) +
-    (rc.commission      ? commission     : 0) +
-    (rc.susu_fees       ? susuFees       : 0) +
-    (rc.card_fees       ? cardFees       : 0) +
-    (rc.sms_fees        ? totalSmsFees   : 0) +
-    (rc.processing_fees ? processingFees : 0)
+    (rc.interest           ? loanInterest       : 0) +
+    (rc.commission         ? commission         : 0) +
+    (rc.susu_fees          ? susuFees           : 0) +
+    (rc.card_fees          ? cardFees           : 0) +
+    (rc.sms_fees           ? totalSmsFees       : 0) +
+    (rc.processing_fees    ? processingFees     : 0) +
+    (rc.investment_revenue ? investmentRevenue  : 0)
   );
 
   const totalExpenditure = round2((expenditures ?? []).reduce((s, e) => s + Number(e.amount), 0));
+  const totalInvested = round2((investments ?? []).reduce((s, e) => s + Number(e.amount_invested), 0));
   const netBalance = round2(totalRevenue - totalExpenditure);
 
   const revenueItems = [
-    { label: "Loan interest",      value: loanInterest,   visible: rc.interest },
-    { label: "Commission",         value: commission,     visible: rc.commission },
-    { label: "Susu fees",          value: susuFees,       visible: rc.susu_fees },
-    { label: "Card fees",          value: cardFees,       visible: rc.card_fees },
-    { label: "SMS fees",           value: totalSmsFees,   visible: rc.sms_fees },
-    { label: "Processing fees",    value: processingFees, visible: rc.processing_fees },
+    { label: "Loan interest",       value: loanInterest,      visible: rc.interest },
+    { label: "Commission",          value: commission,        visible: rc.commission },
+    { label: "Susu fees",           value: susuFees,          visible: rc.susu_fees },
+    { label: "Card fees",           value: cardFees,          visible: rc.card_fees },
+    { label: "SMS fees",            value: totalSmsFees,      visible: rc.sms_fees },
+    { label: "Processing fees",     value: processingFees,    visible: rc.processing_fees },
+    { label: "Investment revenue",  value: investmentRevenue, visible: rc.investment_revenue },
   ].filter((r) => r.visible);
 
   return (
@@ -108,7 +142,7 @@ export default async function FinancePage() {
       <PageHeader
         eyebrow="Admin · Finance"
         title="Company Finance"
-        description="Revenue earned, expenditures recorded, and net balance."
+        description="Revenue earned, investments made, expenditures recorded, and net balance."
         action={
           <PrintFinanceSummaryButton
             totalRevenue={totalRevenue}
@@ -116,18 +150,26 @@ export default async function FinancePage() {
             netBalance={netBalance}
             revenueItems={revenueItems}
             expenditures={expenditures ?? []}
+            investments={investments ?? []}
+            totalInvested={totalInvested}
+            investmentRevenue={investmentRevenue}
             printedBy={profile?.full_name}
           />
         }
       />
 
-      {/* ── Summary cards ───────────────────────────────────────── */}
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <SummaryCard
           label="Total Revenue"
           value={formatGHS(totalRevenue)}
           color="bg-[#15803D]"
           sub="All earned income to date"
+        />
+        <SummaryCard
+          label="Investment Revenue"
+          value={formatGHS(investmentRevenue)}
+          color="bg-[#1F6E4A]"
+          sub={`${formatGHS(totalInvested)} invested`}
         />
         <SummaryCard
           label="Total Expenditure"
@@ -139,13 +181,12 @@ export default async function FinancePage() {
           label="Net Balance"
           value={formatGHS(Math.abs(netBalance))}
           color={netBalance >= 0 ? "bg-[#0033AA]" : "bg-[#7C3AED]"}
-          sub={netBalance >= 0 ? "Surplus after expenditures" : "Deficit — expenditures exceed revenue"}
-          prefix={netBalance < 0 ? "−" : undefined}
+          sub={netBalance >= 0 ? "Surplus after expenditures" : "Deficit: expenditures exceed revenue"}
+          prefix={netBalance < 0 ? "-" : undefined}
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* ── Revenue breakdown ───────────────────────────────────── */}
+      <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-1">
           <div className="border-b border-[#0033AA]/8 px-5 py-4">
             <h2 className="text-[15px] font-semibold text-[#0033AA]">Revenue breakdown</h2>
@@ -169,61 +210,63 @@ export default async function FinancePage() {
           </div>
         </Card>
 
-        {/* ── Expenditure log ─────────────────────────────────────── */}
         <Card className="lg:col-span-2">
           <div className="flex items-center justify-between border-b border-[#0033AA]/8 px-5 py-4">
             <div>
-              <h2 className="text-[15px] font-semibold text-[#0033AA]">Expenditure log</h2>
+              <h2 className="text-[15px] font-semibold text-[#0033AA]">Investment log</h2>
               <p className="mt-0.5 text-[12px] text-[#0A2240]/45">
-                {(expenditures ?? []).length} entr{(expenditures ?? []).length === 1 ? "y" : "ies"} · {formatGHS(totalExpenditure)} total
+                {(investments ?? []).length} entr{(investments ?? []).length === 1 ? "y" : "ies"} · {formatGHS(totalInvested)} invested · {formatGHS(investmentRevenue)} revenue
               </p>
             </div>
-            <AddExpenditureButton />
+            <AddInvestmentButton />
           </div>
 
-          {!expenditures || expenditures.length === 0 ? (
+          {!investments || investments.length === 0 ? (
             <div className="px-5 py-12">
               <EmptyState
-                title="No expenditures recorded yet"
-                description="Add your first entry to start tracking company costs."
+                title="No investments recorded yet"
+                description="Add your first entry to track investments and the revenue they make."
               />
             </div>
           ) : (
             <>
-              {/* Desktop table */}
               <div className="hidden overflow-x-auto md:block">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-[#0033AA]/8 bg-[#0033AA]/[0.02]">
                       <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0A2240]/45">Date</th>
-                      <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0A2240]/45">Category</th>
-                      <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0A2240]/45">Description</th>
-                      <th className="px-5 py-3 text-right text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0A2240]/45">Amount</th>
+                      <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0A2240]/45">Type</th>
+                      <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0A2240]/45">Investment</th>
+                      <th className="px-5 py-3 text-right text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0A2240]/45">Invested</th>
+                      <th className="px-5 py-3 text-right text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0A2240]/45">Revenue</th>
                       <th className="w-8 px-3 py-3" />
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#0033AA]/6">
-                    {expenditures.map((exp) => (
-                      <tr key={exp.id} className="group hover:bg-[#0033AA]/[0.02]">
+                    {investments.map((investment) => (
+                      <tr key={investment.id} className="group hover:bg-[#0033AA]/[0.02]">
                         <td className="whitespace-nowrap px-5 py-3.5 text-[13px] text-[#0A2240]/60">
-                          {formatDate(exp.date)}
+                          {formatDate(investment.date)}
                         </td>
                         <td className="px-5 py-3.5">
-                          <span className={`inline-block rounded-full px-2.5 py-0.5 text-[11.5px] font-medium ${categoryBadge(exp.category)}`}>
-                            {exp.category}
+                          <span className="inline-block rounded-full bg-[#1F6E4A]/10 px-2.5 py-0.5 text-[11.5px] font-medium text-[#166534]">
+                            {investment.investment_type}
                           </span>
                         </td>
                         <td className="px-5 py-3.5">
-                          <p className="text-[13.5px] font-medium text-[#0A2240]">{exp.title}</p>
-                          {exp.notes && (
-                            <p className="mt-0.5 text-[12px] text-[#0A2240]/45">{exp.notes}</p>
+                          <p className="text-[13.5px] font-medium text-[#0A2240]">{investment.title}</p>
+                          {investment.notes && (
+                            <p className="mt-0.5 text-[12px] text-[#0A2240]/45">{investment.notes}</p>
                           )}
                         </td>
-                        <td className="whitespace-nowrap px-5 py-3.5 text-right text-[14px] font-semibold tabular-nums text-[#B3432B]">
-                          {formatGHS(exp.amount)}
+                        <td className="whitespace-nowrap px-5 py-3.5 text-right text-[14px] font-semibold tabular-nums text-[#0A2240]">
+                          {formatGHS(investment.amount_invested)}
+                        </td>
+                        <td className="whitespace-nowrap px-5 py-3.5 text-right text-[14px] font-semibold tabular-nums text-[#15803D]">
+                          {formatGHS(investment.revenue_made)}
                         </td>
                         <td className="px-3 py-3.5">
-                          <DeleteExpenditureButton id={exp.id} title={exp.title} />
+                          <DeleteInvestmentButton id={investment.id} title={investment.title} />
                         </td>
                       </tr>
                     ))}
@@ -231,8 +274,11 @@ export default async function FinancePage() {
                   <tfoot>
                     <tr className="border-t-2 border-[#0033AA]/12 bg-[#0033AA]/[0.03]">
                       <td colSpan={3} className="px-5 py-3.5 text-[13px] font-semibold text-[#0A2240]">Total</td>
-                      <td className="px-5 py-3.5 text-right text-[15px] font-bold tabular-nums text-[#B3432B]">
-                        {formatGHS(totalExpenditure)}
+                      <td className="px-5 py-3.5 text-right text-[15px] font-bold tabular-nums text-[#0A2240]">
+                        {formatGHS(totalInvested)}
+                      </td>
+                      <td className="px-5 py-3.5 text-right text-[15px] font-bold tabular-nums text-[#15803D]">
+                        {formatGHS(investmentRevenue)}
                       </td>
                       <td />
                     </tr>
@@ -240,35 +286,131 @@ export default async function FinancePage() {
                 </table>
               </div>
 
-              {/* Mobile cards */}
               <ul className="divide-y divide-[#0033AA]/6 md:hidden">
-                {expenditures.map((exp) => (
-                  <li key={exp.id} className="flex items-start justify-between gap-3 px-5 py-4">
+                {investments.map((investment) => (
+                  <li key={investment.id} className="flex items-start justify-between gap-3 px-5 py-4">
                     <div className="min-w-0 flex-1">
                       <div className="mb-1 flex flex-wrap items-center gap-2">
-                        <span className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-medium ${categoryBadge(exp.category)}`}>
-                          {exp.category}
+                        <span className="inline-block rounded-full bg-[#1F6E4A]/10 px-2.5 py-0.5 text-[11px] font-medium text-[#166534]">
+                          {investment.investment_type}
                         </span>
-                        <span className="text-[12px] text-[#0A2240]/45">{formatDate(exp.date)}</span>
+                        <span className="text-[12px] text-[#0A2240]/45">{formatDate(investment.date)}</span>
                       </div>
-                      <p className="text-[13.5px] font-medium text-[#0A2240]">{exp.title}</p>
-                      {exp.notes && <p className="mt-0.5 text-[12px] text-[#0A2240]/45">{exp.notes}</p>}
+                      <p className="text-[13.5px] font-medium text-[#0A2240]">{investment.title}</p>
+                      <p className="mt-0.5 text-[12px] text-[#0A2240]/55">
+                        Invested {formatGHS(investment.amount_invested)} · Revenue {formatGHS(investment.revenue_made)}
+                      </p>
+                      {investment.notes && <p className="mt-0.5 text-[12px] text-[#0A2240]/45">{investment.notes}</p>}
                     </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <span className="text-[14px] font-semibold tabular-nums text-[#B3432B]">{formatGHS(exp.amount)}</span>
-                      <DeleteExpenditureButton id={exp.id} title={exp.title} />
-                    </div>
+                    <DeleteInvestmentButton id={investment.id} title={investment.title} />
                   </li>
                 ))}
                 <li className="flex items-center justify-between bg-[#0033AA]/[0.03] px-5 py-4">
-                  <span className="text-[13.5px] font-semibold text-[#0A2240]">Total expenditure</span>
-                  <span className="text-[15px] font-bold tabular-nums text-[#B3432B]">{formatGHS(totalExpenditure)}</span>
+                  <span className="text-[13.5px] font-semibold text-[#0A2240]">Investment revenue</span>
+                  <span className="text-[15px] font-bold tabular-nums text-[#15803D]">{formatGHS(investmentRevenue)}</span>
                 </li>
               </ul>
             </>
           )}
         </Card>
       </div>
+
+      <Card>
+        <div className="flex items-center justify-between border-b border-[#0033AA]/8 px-5 py-4">
+          <div>
+            <h2 className="text-[15px] font-semibold text-[#0033AA]">Expenditure log</h2>
+            <p className="mt-0.5 text-[12px] text-[#0A2240]/45">
+              {(expenditures ?? []).length} entr{(expenditures ?? []).length === 1 ? "y" : "ies"} · {formatGHS(totalExpenditure)} total
+            </p>
+          </div>
+          <AddExpenditureButton />
+        </div>
+
+        {!expenditures || expenditures.length === 0 ? (
+          <div className="px-5 py-12">
+            <EmptyState
+              title="No expenditures recorded yet"
+              description="Add your first entry to start tracking company costs."
+            />
+          </div>
+        ) : (
+          <>
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-[#0033AA]/8 bg-[#0033AA]/[0.02]">
+                    <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0A2240]/45">Date</th>
+                    <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0A2240]/45">Category</th>
+                    <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0A2240]/45">Description</th>
+                    <th className="px-5 py-3 text-right text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0A2240]/45">Amount</th>
+                    <th className="w-8 px-3 py-3" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#0033AA]/6">
+                  {expenditures.map((exp) => (
+                    <tr key={exp.id} className="group hover:bg-[#0033AA]/[0.02]">
+                      <td className="whitespace-nowrap px-5 py-3.5 text-[13px] text-[#0A2240]/60">
+                        {formatDate(exp.date)}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <span className={`inline-block rounded-full px-2.5 py-0.5 text-[11.5px] font-medium ${categoryBadge(exp.category)}`}>
+                          {exp.category}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <p className="text-[13.5px] font-medium text-[#0A2240]">{exp.title}</p>
+                        {exp.notes && (
+                          <p className="mt-0.5 text-[12px] text-[#0A2240]/45">{exp.notes}</p>
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap px-5 py-3.5 text-right text-[14px] font-semibold tabular-nums text-[#B3432B]">
+                        {formatGHS(exp.amount)}
+                      </td>
+                      <td className="px-3 py-3.5">
+                        <DeleteExpenditureButton id={exp.id} title={exp.title} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 border-[#0033AA]/12 bg-[#0033AA]/[0.03]">
+                    <td colSpan={3} className="px-5 py-3.5 text-[13px] font-semibold text-[#0A2240]">Total</td>
+                    <td className="px-5 py-3.5 text-right text-[15px] font-bold tabular-nums text-[#B3432B]">
+                      {formatGHS(totalExpenditure)}
+                    </td>
+                    <td />
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+            <ul className="divide-y divide-[#0033AA]/6 md:hidden">
+              {expenditures.map((exp) => (
+                <li key={exp.id} className="flex items-start justify-between gap-3 px-5 py-4">
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-1 flex flex-wrap items-center gap-2">
+                      <span className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-medium ${categoryBadge(exp.category)}`}>
+                        {exp.category}
+                      </span>
+                      <span className="text-[12px] text-[#0A2240]/45">{formatDate(exp.date)}</span>
+                    </div>
+                    <p className="text-[13.5px] font-medium text-[#0A2240]">{exp.title}</p>
+                    {exp.notes && <p className="mt-0.5 text-[12px] text-[#0A2240]/45">{exp.notes}</p>}
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="text-[14px] font-semibold tabular-nums text-[#B3432B]">{formatGHS(exp.amount)}</span>
+                    <DeleteExpenditureButton id={exp.id} title={exp.title} />
+                  </div>
+                </li>
+              ))}
+              <li className="flex items-center justify-between bg-[#0033AA]/[0.03] px-5 py-4">
+                <span className="text-[13.5px] font-semibold text-[#0A2240]">Total expenditure</span>
+                <span className="text-[15px] font-bold tabular-nums text-[#B3432B]">{formatGHS(totalExpenditure)}</span>
+              </li>
+            </ul>
+          </>
+        )}
+      </Card>
     </div>
   );
 }

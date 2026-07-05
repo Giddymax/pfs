@@ -174,8 +174,10 @@ export interface RevenueComponents {
   commission: boolean;
   susu_fees: boolean;
   card_fees: boolean;
-  sms_charges: boolean;
+  sms_fees: boolean;
+  sms_charges?: boolean;
   processing_fees: boolean;
+  investment_revenue: boolean;
 }
 
 export interface KpiRevenueConfig extends KpiCardConfig {
