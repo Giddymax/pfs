@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSettings } from "@/lib/settings/cache";
 import { PageHeader, Card, EmptyState } from "@/components/ui";
 import { AddExpenditureButton, DeleteExpenditureButton } from "@/components/expenditure-actions";
-import { AddInvestmentButton, DeleteInvestmentButton } from "@/components/investment-actions";
+import { AddInvestmentButton, DeleteInvestmentButton, ReturnInvestmentButton } from "@/components/investment-actions";
 import { PrintFinanceSummaryButton } from "@/components/print-finance-summary-button";
 import { formatGHS, round2 } from "@/lib/loan";
 import type { Profile } from "@/lib/types";
@@ -19,13 +19,19 @@ interface Expenditure {
   created_at: string;
 }
 
+type InvestmentStatus = "active" | "returned";
+
 interface Investment {
   id: string;
   title: string;
   investment_type: string;
   amount_invested: number;
   revenue_made: number;
+  status: InvestmentStatus;
   date: string;
+  return_date: string | null;
+  returned_by: string | null;
+  returned_at: string | null;
   notes: string | null;
   recorded_by: string | null;
   created_at: string;
@@ -56,7 +62,6 @@ export default async function FinancePage() {
     .from("profiles").select("role, full_name").eq("id", user.id).single<Pick<Profile, "role" | "full_name">>();
   if (profile?.role !== "admin") redirect("/clients");
 
-  // Revenue queries (same sources as overview)
   const [
     { data: cardFeeRows },
     { data: commissionRows },
@@ -64,7 +69,6 @@ export default async function FinancePage() {
     { data: processingFeeRows },
     { data: collectedInterest },
     { data: smsFeeRows },
-    { data: investmentRows },
     { data: expenditures },
     { data: investments },
   ] = await Promise.all([
@@ -74,7 +78,6 @@ export default async function FinancePage() {
     supabase.from("loans").select("processing_fee"),
     supabase.rpc("compute_collected_loan_interest"),
     supabase.from("sms_fee_charges").select("amount"),
-    supabase.from("investments").select("revenue_made"),
     supabase
       .from("expenditures")
       .select("*")
@@ -105,44 +108,55 @@ export default async function FinancePage() {
   };
   const rc = { ...defaultComponents, ...(settings.overview_kpi?.total_revenue?.components ?? {}) };
 
-  const loanInterest      = round2(Number(collectedInterest ?? 0));
-  const commission        = sum(commissionRows,   "fee");
-  const susuFees          = sum(susuFeeRows,      "amount");
-  const cardFees          = sum(cardFeeRows,      "amount");
-  const totalSmsFees      = sum(smsFeeRows,       "amount");
-  const processingFees    = sum(processingFeeRows,"processing_fee");
-  const investmentRevenue = sum(investmentRows,   "revenue_made");
+  const loanInterest   = round2(Number(collectedInterest ?? 0));
+  const commission     = sum(commissionRows, "fee");
+  const susuFees       = sum(susuFeeRows, "amount");
+  const cardFees       = sum(cardFeeRows, "amount");
+  const totalSmsFees   = sum(smsFeeRows, "amount");
+  const processingFees = sum(processingFeeRows, "processing_fee");
 
-  const totalRevenue = round2(
-    (rc.interest           ? loanInterest       : 0) +
-    (rc.commission         ? commission         : 0) +
-    (rc.susu_fees          ? susuFees           : 0) +
-    (rc.card_fees          ? cardFees           : 0) +
-    (rc.sms_fees           ? totalSmsFees       : 0) +
-    (rc.processing_fees    ? processingFees     : 0) +
-    (rc.investment_revenue ? investmentRevenue  : 0)
+  const investmentList = investments ?? [];
+  const totalInvested = round2(investmentList.reduce((s, e) => s + Number(e.amount_invested), 0));
+  const activeInvestmentTotal = round2(
+    investmentList.filter((e) => e.status === "active").reduce((s, e) => s + Number(e.amount_invested), 0)
+  );
+  const returnedInvestmentRevenue = round2(
+    investmentList.filter((e) => e.status === "returned").reduce((s, e) => s + Number(e.revenue_made), 0)
   );
 
+  const revenueBeforeInvestments = round2(
+    (rc.interest           ? loanInterest               : 0) +
+    (rc.commission         ? commission                 : 0) +
+    (rc.susu_fees          ? susuFees                   : 0) +
+    (rc.card_fees          ? cardFees                   : 0) +
+    (rc.sms_fees           ? totalSmsFees               : 0) +
+    (rc.processing_fees    ? processingFees             : 0) +
+    (rc.investment_revenue ? returnedInvestmentRevenue  : 0)
+  );
+  const investmentDeductedFromRevenue = round2(Math.min(activeInvestmentTotal, revenueBeforeInvestments));
+  const investmentDeductedFromAccount = round2(Math.max(activeInvestmentTotal - revenueBeforeInvestments, 0));
+  const totalRevenue = round2(revenueBeforeInvestments - investmentDeductedFromRevenue);
+
   const totalExpenditure = round2((expenditures ?? []).reduce((s, e) => s + Number(e.amount), 0));
-  const totalInvested = round2((investments ?? []).reduce((s, e) => s + Number(e.amount_invested), 0));
   const netBalance = round2(totalRevenue - totalExpenditure);
 
   const revenueItems = [
-    { label: "Loan interest",       value: loanInterest,      visible: rc.interest },
-    { label: "Commission",          value: commission,        visible: rc.commission },
-    { label: "Susu fees",           value: susuFees,          visible: rc.susu_fees },
-    { label: "Card fees",           value: cardFees,          visible: rc.card_fees },
-    { label: "SMS fees",            value: totalSmsFees,      visible: rc.sms_fees },
-    { label: "Processing fees",     value: processingFees,    visible: rc.processing_fees },
-    { label: "Investment revenue",  value: investmentRevenue, visible: rc.investment_revenue },
+    { label: "Loan interest",              value: loanInterest,                   visible: rc.interest },
+    { label: "Commission",                 value: commission,                     visible: rc.commission },
+    { label: "Susu fees",                  value: susuFees,                       visible: rc.susu_fees },
+    { label: "Card fees",                  value: cardFees,                       visible: rc.card_fees },
+    { label: "SMS fees",                   value: totalSmsFees,                   visible: rc.sms_fees },
+    { label: "Processing fees",            value: processingFees,                 visible: rc.processing_fees },
+    { label: "Returned investment revenue", value: returnedInvestmentRevenue,     visible: rc.investment_revenue },
+    { label: "Active investments deducted", value: -investmentDeductedFromRevenue, visible: investmentDeductedFromRevenue > 0 },
   ].filter((r) => r.visible);
 
   return (
     <div>
       <PageHeader
-        eyebrow="Admin · Finance"
+        eyebrow="Admin - Finance"
         title="Company Finance"
-        description="Revenue earned, investments made, expenditures recorded, and net balance."
+        description="Revenue earned, active investments, expenditures recorded, and net balance."
         action={
           <PrintFinanceSummaryButton
             totalRevenue={totalRevenue}
@@ -150,26 +164,41 @@ export default async function FinancePage() {
             netBalance={netBalance}
             revenueItems={revenueItems}
             expenditures={expenditures ?? []}
-            investments={investments ?? []}
+            investments={investmentList}
             totalInvested={totalInvested}
-            investmentRevenue={investmentRevenue}
+            activeInvestmentTotal={activeInvestmentTotal}
+            investmentDeductedFromRevenue={investmentDeductedFromRevenue}
+            investmentDeductedFromAccount={investmentDeductedFromAccount}
+            investmentRevenue={returnedInvestmentRevenue}
             printedBy={profile?.full_name}
           />
         }
       />
 
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <SummaryCard
           label="Total Revenue"
           value={formatGHS(totalRevenue)}
           color="bg-[#15803D]"
-          sub="All earned income to date"
+          sub="After active investment deductions"
         />
         <SummaryCard
-          label="Investment Revenue"
-          value={formatGHS(investmentRevenue)}
+          label="Returned Investment Revenue"
+          value={formatGHS(returnedInvestmentRevenue)}
           color="bg-[#1F6E4A]"
-          sub={`${formatGHS(totalInvested)} invested`}
+          sub="Added only after return"
+        />
+        <SummaryCard
+          label="Active Investments"
+          value={formatGHS(activeInvestmentTotal)}
+          color="bg-[#0D9488]"
+          sub={`${formatGHS(investmentDeductedFromRevenue)} from revenue`}
+        />
+        <SummaryCard
+          label="Account Balance Used"
+          value={formatGHS(investmentDeductedFromAccount)}
+          color="bg-[#D97706]"
+          sub="Overflow after revenue is used"
         />
         <SummaryCard
           label="Total Expenditure"
@@ -190,17 +219,25 @@ export default async function FinancePage() {
         <Card className="lg:col-span-1">
           <div className="border-b border-[#0033AA]/8 px-5 py-4">
             <h2 className="text-[15px] font-semibold text-[#0033AA]">Revenue breakdown</h2>
-            <p className="mt-0.5 text-[12px] text-[#0A2240]/45">All-time earned income by source</p>
+            <p className="mt-0.5 text-[12px] text-[#0A2240]/45">Investment principal is deducted before totals</p>
           </div>
           <div className="divide-y divide-[#0033AA]/6">
             {revenueItems.map((item) => (
               <div key={item.label} className="flex items-center justify-between px-5 py-3.5">
                 <span className="text-[13.5px] text-[#0A2240]/70">{item.label}</span>
-                <span className="text-[14px] font-semibold tabular-nums text-[#0A2240]">
+                <span className={`text-[14px] font-semibold tabular-nums ${item.value < 0 ? "text-[#B3432B]" : "text-[#0A2240]"}`}>
                   {formatGHS(item.value)}
                 </span>
               </div>
             ))}
+            {investmentDeductedFromAccount > 0 && (
+              <div className="flex items-center justify-between px-5 py-3.5">
+                <span className="text-[13.5px] text-[#0A2240]/70">Taken from account balance</span>
+                <span className="text-[14px] font-semibold tabular-nums text-[#D97706]">
+                  {formatGHS(investmentDeductedFromAccount)}
+                </span>
+              </div>
+            )}
             <div className="flex items-center justify-between bg-[#0033AA]/[0.03] px-5 py-3.5">
               <span className="text-[13.5px] font-semibold text-[#0033AA]">Total</span>
               <span className="text-[15px] font-bold tabular-nums text-[#0033AA]">
@@ -215,17 +252,17 @@ export default async function FinancePage() {
             <div>
               <h2 className="text-[15px] font-semibold text-[#0033AA]">Investment log</h2>
               <p className="mt-0.5 text-[12px] text-[#0A2240]/45">
-                {(investments ?? []).length} entr{(investments ?? []).length === 1 ? "y" : "ies"} · {formatGHS(totalInvested)} invested · {formatGHS(investmentRevenue)} revenue
+                {investmentList.length} entr{investmentList.length === 1 ? "y" : "ies"} - {formatGHS(activeInvestmentTotal)} active - {formatGHS(returnedInvestmentRevenue)} returned revenue
               </p>
             </div>
             <AddInvestmentButton />
           </div>
 
-          {!investments || investments.length === 0 ? (
+          {investmentList.length === 0 ? (
             <div className="px-5 py-12">
               <EmptyState
                 title="No investments recorded yet"
-                description="Add your first entry to track investments and the revenue they make."
+                description="Add your first entry to track investments, then mark it returned when revenue is received."
               />
             </div>
           ) : (
@@ -235,26 +272,30 @@ export default async function FinancePage() {
                   <thead>
                     <tr className="border-b border-[#0033AA]/8 bg-[#0033AA]/[0.02]">
                       <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0A2240]/45">Date</th>
-                      <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0A2240]/45">Type</th>
+                      <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0A2240]/45">Status</th>
                       <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0A2240]/45">Investment</th>
                       <th className="px-5 py-3 text-right text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0A2240]/45">Invested</th>
                       <th className="px-5 py-3 text-right text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0A2240]/45">Revenue</th>
-                      <th className="w-8 px-3 py-3" />
+                      <th className="w-24 px-3 py-3" />
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#0033AA]/6">
-                    {investments.map((investment) => (
+                    {investmentList.map((investment) => (
                       <tr key={investment.id} className="group hover:bg-[#0033AA]/[0.02]">
                         <td className="whitespace-nowrap px-5 py-3.5 text-[13px] text-[#0A2240]/60">
                           {formatDate(investment.date)}
                         </td>
                         <td className="px-5 py-3.5">
-                          <span className="inline-block rounded-full bg-[#1F6E4A]/10 px-2.5 py-0.5 text-[11.5px] font-medium text-[#166534]">
-                            {investment.investment_type}
+                          <span className={`inline-block rounded-full px-2.5 py-0.5 text-[11.5px] font-medium ${investment.status === "returned" ? "bg-[#1F6E4A]/10 text-[#166534]" : "bg-[#D97706]/10 text-[#B45309]"}`}>
+                            {investment.status === "returned" ? "Returned" : "Active"}
                           </span>
+                          {investment.return_date && (
+                            <p className="mt-1 text-[11px] text-[#0A2240]/45">{formatDate(investment.return_date)}</p>
+                          )}
                         </td>
                         <td className="px-5 py-3.5">
                           <p className="text-[13.5px] font-medium text-[#0A2240]">{investment.title}</p>
+                          <p className="mt-0.5 text-[12px] text-[#0A2240]/45">{investment.investment_type}</p>
                           {investment.notes && (
                             <p className="mt-0.5 text-[12px] text-[#0A2240]/45">{investment.notes}</p>
                           )}
@@ -266,7 +307,10 @@ export default async function FinancePage() {
                           {formatGHS(investment.revenue_made)}
                         </td>
                         <td className="px-3 py-3.5">
-                          <DeleteInvestmentButton id={investment.id} title={investment.title} />
+                          <div className="flex items-center justify-end gap-2">
+                            {investment.status === "active" && <ReturnInvestmentButton id={investment.id} title={investment.title} />}
+                            <DeleteInvestmentButton id={investment.id} title={investment.title} />
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -278,7 +322,7 @@ export default async function FinancePage() {
                         {formatGHS(totalInvested)}
                       </td>
                       <td className="px-5 py-3.5 text-right text-[15px] font-bold tabular-nums text-[#15803D]">
-                        {formatGHS(investmentRevenue)}
+                        {formatGHS(returnedInvestmentRevenue)}
                       </td>
                       <td />
                     </tr>
@@ -287,27 +331,32 @@ export default async function FinancePage() {
               </div>
 
               <ul className="divide-y divide-[#0033AA]/6 md:hidden">
-                {investments.map((investment) => (
+                {investmentList.map((investment) => (
                   <li key={investment.id} className="flex items-start justify-between gap-3 px-5 py-4">
                     <div className="min-w-0 flex-1">
                       <div className="mb-1 flex flex-wrap items-center gap-2">
-                        <span className="inline-block rounded-full bg-[#1F6E4A]/10 px-2.5 py-0.5 text-[11px] font-medium text-[#166534]">
-                          {investment.investment_type}
+                        <span className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-medium ${investment.status === "returned" ? "bg-[#1F6E4A]/10 text-[#166534]" : "bg-[#D97706]/10 text-[#B45309]"}`}>
+                          {investment.status === "returned" ? "Returned" : "Active"}
                         </span>
                         <span className="text-[12px] text-[#0A2240]/45">{formatDate(investment.date)}</span>
                       </div>
                       <p className="text-[13.5px] font-medium text-[#0A2240]">{investment.title}</p>
+                      <p className="mt-0.5 text-[12px] text-[#0A2240]/45">{investment.investment_type}</p>
                       <p className="mt-0.5 text-[12px] text-[#0A2240]/55">
-                        Invested {formatGHS(investment.amount_invested)} · Revenue {formatGHS(investment.revenue_made)}
+                        Invested {formatGHS(investment.amount_invested)} - Revenue {formatGHS(investment.revenue_made)}
                       </p>
+                      {investment.return_date && <p className="mt-0.5 text-[12px] text-[#0A2240]/45">Returned {formatDate(investment.return_date)}</p>}
                       {investment.notes && <p className="mt-0.5 text-[12px] text-[#0A2240]/45">{investment.notes}</p>}
                     </div>
-                    <DeleteInvestmentButton id={investment.id} title={investment.title} />
+                    <div className="flex shrink-0 items-center gap-2">
+                      {investment.status === "active" && <ReturnInvestmentButton id={investment.id} title={investment.title} />}
+                      <DeleteInvestmentButton id={investment.id} title={investment.title} />
+                    </div>
                   </li>
                 ))}
                 <li className="flex items-center justify-between bg-[#0033AA]/[0.03] px-5 py-4">
-                  <span className="text-[13.5px] font-semibold text-[#0A2240]">Investment revenue</span>
-                  <span className="text-[15px] font-bold tabular-nums text-[#15803D]">{formatGHS(investmentRevenue)}</span>
+                  <span className="text-[13.5px] font-semibold text-[#0A2240]">Returned investment revenue</span>
+                  <span className="text-[15px] font-bold tabular-nums text-[#15803D]">{formatGHS(returnedInvestmentRevenue)}</span>
                 </li>
               </ul>
             </>
@@ -320,7 +369,7 @@ export default async function FinancePage() {
           <div>
             <h2 className="text-[15px] font-semibold text-[#0033AA]">Expenditure log</h2>
             <p className="mt-0.5 text-[12px] text-[#0A2240]/45">
-              {(expenditures ?? []).length} entr{(expenditures ?? []).length === 1 ? "y" : "ies"} · {formatGHS(totalExpenditure)} total
+              {(expenditures ?? []).length} entr{(expenditures ?? []).length === 1 ? "y" : "ies"} - {formatGHS(totalExpenditure)} total
             </p>
           </div>
           <AddExpenditureButton />
@@ -427,7 +476,7 @@ function SummaryCard({
   return (
     <div className={`rounded-xl ${color} p-5 text-white`}>
       <p className="text-[10.5px] font-semibold uppercase tracking-[0.18em] text-white/75">{label}</p>
-      <p className="mt-2 break-words text-[1.8rem] font-bold tabular-nums leading-none">
+      <p className="mt-2 break-words text-[1.45rem] font-bold tabular-nums leading-none">
         {prefix}{value}
       </p>
       <p className="mt-2 text-[11.5px] leading-snug text-white/70">{sub}</p>

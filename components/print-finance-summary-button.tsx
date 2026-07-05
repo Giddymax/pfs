@@ -19,13 +19,17 @@ interface Expenditure {
   notes: string | null;
 }
 
+type InvestmentStatus = "active" | "returned";
+
 interface Investment {
   id: string;
   title: string;
   investment_type: string;
   amount_invested: number;
   revenue_made: number;
+  status: InvestmentStatus;
   date: string;
+  return_date: string | null;
   notes: string | null;
 }
 
@@ -37,6 +41,9 @@ export function PrintFinanceSummaryButton({
   expenditures,
   investments,
   totalInvested,
+  activeInvestmentTotal,
+  investmentDeductedFromRevenue,
+  investmentDeductedFromAccount,
   investmentRevenue,
   printedBy,
 }: {
@@ -47,6 +54,9 @@ export function PrintFinanceSummaryButton({
   expenditures: Expenditure[];
   investments: Investment[];
   totalInvested: number;
+  activeInvestmentTotal: number;
+  investmentDeductedFromRevenue: number;
+  investmentDeductedFromAccount: number;
   investmentRevenue: number;
   printedBy?: string | null;
 }) {
@@ -125,10 +135,11 @@ export function PrintFinanceSummaryButton({
               COMPANY FINANCE SUMMARY
             </p>
 
-            <div className="mb-6 grid grid-cols-4 gap-3">
+            <div className="mb-6 grid grid-cols-5 gap-3">
               <SummaryBox label="Total Revenue" value={formatGHS(totalRevenue)} color="#15803D" />
-              <SummaryBox label="Investment Revenue" value={formatGHS(investmentRevenue)} color="#1F6E4A" />
-              <SummaryBox label="Total Expenditure" value={formatGHS(totalExpenditure)} color="#B3432B" />
+              <SummaryBox label="Returned Investment Revenue" value={formatGHS(investmentRevenue)} color="#1F6E4A" />
+              <SummaryBox label="Active Investments" value={formatGHS(activeInvestmentTotal)} color="#0D9488" sub={`${formatGHS(investmentDeductedFromRevenue)} from revenue`} />
+              <SummaryBox label="Account Balance Used" value={formatGHS(investmentDeductedFromAccount)} color="#D97706" />
               <SummaryBox
                 label="Net Balance"
                 value={(surplus ? "" : "-") + formatGHS(Math.abs(netBalance))}
@@ -150,14 +161,23 @@ export function PrintFinanceSummaryButton({
                   {revenueItems.map((item) => (
                     <tr key={item.label}>
                       <td className="px-4 py-2.5 text-[#0A2240]/70">{item.label}</td>
-                      <td className="px-4 py-2.5 text-right tabular-nums font-medium text-[#0A2240]">
+                      <td className={`px-4 py-2.5 text-right tabular-nums font-medium ${item.value < 0 ? "text-[#B3432B]" : "text-[#0A2240]"}`}>
                         {formatGHS(item.value)}
                       </td>
                       <td className="px-4 py-2.5 text-right tabular-nums text-[#0A2240]/50">
-                        {totalRevenue > 0 ? ((item.value / totalRevenue) * 100).toFixed(1) + "%" : "-"}
+                        {totalRevenue > 0 && item.value > 0 ? ((item.value / totalRevenue) * 100).toFixed(1) + "%" : "-"}
                       </td>
                     </tr>
                   ))}
+                  {investmentDeductedFromAccount > 0 && (
+                    <tr>
+                      <td className="px-4 py-2.5 text-[#0A2240]/70">Taken from account balance</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums font-medium text-[#D97706]">
+                        {formatGHS(investmentDeductedFromAccount)}
+                      </td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-[#0A2240]/50">-</td>
+                    </tr>
+                  )}
                 </tbody>
                 <tfoot>
                   <tr className="border-t-2 border-[#0A2240]/15 bg-[#0A2240]/[0.03]">
@@ -179,7 +199,7 @@ export function PrintFinanceSummaryButton({
                   <thead>
                     <tr className="border-b border-[#0A2240]/10 bg-[#0A2240]/[0.04]">
                       <th className="px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#0A2240]/50">Date</th>
-                      <th className="px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#0A2240]/50">Type</th>
+                      <th className="px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#0A2240]/50">Status</th>
                       <th className="px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#0A2240]/50">Investment</th>
                       <th className="px-4 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.1em] text-[#0A2240]/50">Invested</th>
                       <th className="px-4 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.1em] text-[#0A2240]/50">Revenue</th>
@@ -191,9 +211,13 @@ export function PrintFinanceSummaryButton({
                         <td className="whitespace-nowrap px-4 py-2.5 text-[#0A2240]/60">
                           {formatDate(investment.date)}
                         </td>
-                        <td className="px-4 py-2.5 text-[#0A2240]/70">{investment.investment_type}</td>
+                        <td className="px-4 py-2.5 text-[#0A2240]/70">
+                          {investment.status === "returned" ? "Returned" : "Active"}
+                          {investment.return_date && <p className="text-[11px] text-[#0A2240]/45">{formatDate(investment.return_date)}</p>}
+                        </td>
                         <td className="px-4 py-2.5">
                           <p className="font-medium text-[#0A2240]">{investment.title}</p>
+                          <p className="text-[11px] text-[#0A2240]/45">{investment.investment_type}</p>
                           {investment.notes && (
                             <p className="text-[11px] text-[#0A2240]/45">{investment.notes}</p>
                           )}
@@ -306,11 +330,11 @@ export function PrintFinanceSummaryButton({
 function SummaryBox({ label, value, color, sub }: { label: string; value: string; color: string; sub?: string }) {
   return (
     <div
-      className="rounded-lg px-4 py-3.5 text-white"
+      className="rounded-lg px-3 py-3 text-white"
       style={{ backgroundColor: color }}
     >
-      <p className="text-[9.5px] font-semibold uppercase tracking-[0.16em] text-white/70">{label}</p>
-      <p className="mt-1 text-[1.05rem] font-bold tabular-nums leading-tight">{value}</p>
+      <p className="text-[8.5px] font-semibold uppercase tracking-[0.12em] text-white/70">{label}</p>
+      <p className="mt-1 text-[0.9rem] font-bold tabular-nums leading-tight">{value}</p>
       {sub && <p className="mt-0.5 text-[10px] text-white/65">{sub}</p>}
     </div>
   );

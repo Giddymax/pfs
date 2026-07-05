@@ -73,7 +73,7 @@ export default async function OverviewPage() {
     supabase.from("susu_payments").select("amount").eq("day_in_cycle", 31),
     supabase.from("loans").select("processing_fee"),
     supabase.rpc("compute_collected_loan_interest"),
-    supabase.from("investments").select("revenue_made"),
+    supabase.from("investments").select("amount_invested, revenue_made, status"),
     supabase.from("transactions").select("amount").eq("type", "withdrawal").is("reversed_at", null),
     supabase.from("loans").select("principal").in("status", ["active", "completed", "defaulted"]),
     supabase.from("loan_repayments").select("amount"),
@@ -108,9 +108,15 @@ export default async function OverviewPage() {
   const cardFees        = sum(cardFeeRows,      "amount");
   const commission      = sum(commissionRows,   "fee");
   const susuFees        = sum(susuFeeRows,      "amount");
-  const processingFees    = sum(processingFeeRows,"processing_fee");
-  const loanInterest      = round2(Number(collectedInterest ?? 0));
-  const investmentRevenue = sum(investmentRows,   "revenue_made");
+  const processingFees  = sum(processingFeeRows, "processing_fee");
+  const loanInterest    = round2(Number(collectedInterest ?? 0));
+  const investmentList = (investmentRows ?? []) as { amount_invested: number; revenue_made: number; status: string }[];
+  const activeInvestmentTotal = round2(
+    investmentList.filter((e) => e.status === "active").reduce((s, e) => s + Number(e.amount_invested), 0)
+  );
+  const returnedInvestmentRevenue = round2(
+    investmentList.filter((e) => e.status === "returned").reduce((s, e) => s + Number(e.revenue_made), 0)
+  );
 
   // Account balance components
   const totalWithdrawals  = sum(withdrawalRows,    "amount");
@@ -118,15 +124,18 @@ export default async function OverviewPage() {
   const totalRepayments   = sum(repaymentRows,     "amount");
   const totalSmsFees      = sum(smsFeeRows,        "amount");
 
-  const totalRevenue    = round2(
-    (rc.interest        ? loanInterest   : 0) +
-    (rc.commission      ? commission     : 0) +
-    (rc.susu_fees       ? susuFees       : 0) +
-    (rc.card_fees       ? cardFees       : 0) +
-    (rc.sms_fees           ? totalSmsFees       : 0) +
-    (rc.processing_fees    ? processingFees     : 0) +
-    (rc.investment_revenue ? investmentRevenue  : 0)
+  const revenueBeforeInvestments = round2(
+    (rc.interest           ? loanInterest               : 0) +
+    (rc.commission         ? commission                 : 0) +
+    (rc.susu_fees          ? susuFees                   : 0) +
+    (rc.card_fees          ? cardFees                   : 0) +
+    (rc.sms_fees           ? totalSmsFees               : 0) +
+    (rc.processing_fees    ? processingFees             : 0) +
+    (rc.investment_revenue ? returnedInvestmentRevenue  : 0)
   );
+  const investmentDeductedFromRevenue = round2(Math.min(activeInvestmentTotal, revenueBeforeInvestments));
+  const investmentDeductedFromAccount = round2(Math.max(activeInvestmentTotal - revenueBeforeInvestments, 0));
+  const totalRevenue = round2(revenueBeforeInvestments - investmentDeductedFromRevenue);
 
   // Account Balance = Combined Total - (Withdrawals + Commissions) - Susu Fees - SMS Fees - Loans + Repayments + Card Fees + Processing Fees
   const accountBalance = round2(
@@ -138,6 +147,8 @@ export default async function OverviewPage() {
     + totalRepayments
     + cardFees
     + processingFees
+    + returnedInvestmentRevenue
+    - investmentDeductedFromAccount
   );
   const rawCashAtBank = round2(
     (bankTxnRows ?? []).reduce((s, t) => {
@@ -209,7 +220,9 @@ export default async function OverviewPage() {
               rc.card_fees       && `Card Fees ${formatGHS(cardFees)}`,
               rc.sms_fees           && `SMS Fees ${formatGHS(totalSmsFees)}`,
               rc.processing_fees    && `Processing Fees ${formatGHS(processingFees)}`,
-              rc.investment_revenue && `Investment Revenue ${formatGHS(investmentRevenue)}`,
+              rc.investment_revenue && `Returned Investment Revenue ${formatGHS(returnedInvestmentRevenue)}`,
+              investmentDeductedFromRevenue > 0 && `Active Investments -${formatGHS(investmentDeductedFromRevenue)}`,
+              investmentDeductedFromAccount > 0 && `Account Balance Used ${formatGHS(investmentDeductedFromAccount)}`,
             ].filter(Boolean).join(" + ")}
             color="bg-[#15803D]"
           />
@@ -218,7 +231,7 @@ export default async function OverviewPage() {
           <SummaryCard
             label="Account Balance"
             value={formatGHS(accountBalance)}
-            hint={`${formatGHS(combined)} − (Wdr ${formatGHS(totalWithdrawals)} + Comm ${formatGHS(commission)}) − Susu Fees ${formatGHS(susuFees)} − SMS Fees ${formatGHS(totalSmsFees)} − Loans ${formatGHS(totalLoansPaid)} + Repayments ${formatGHS(totalRepayments)} + Card Fees ${formatGHS(cardFees)}`}
+            hint={`${formatGHS(combined)} - Wdr/Comm ${formatGHS(totalWithdrawals + commission)} - Susu Fees ${formatGHS(susuFees)} - SMS Fees ${formatGHS(totalSmsFees)} - Loans ${formatGHS(totalLoansPaid)} + Repayments ${formatGHS(totalRepayments)} + Card Fees ${formatGHS(cardFees)} + Returned Investment Revenue ${formatGHS(returnedInvestmentRevenue)} - Investment Overflow ${formatGHS(investmentDeductedFromAccount)}`}
             color="bg-[#9333EA]"
           />
         )}

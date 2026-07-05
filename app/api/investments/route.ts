@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => null);
-  const { title, investment_type, amount_invested, revenue_made, date, notes } = body ?? {};
+  const { title, investment_type, amount_invested, date, notes } = body ?? {};
 
   if (!title || typeof title !== "string" || !title.trim()) {
     return NextResponse.json({ error: "Investment name is required" }, { status: 400 });
@@ -29,16 +29,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Amount invested must be a positive number" }, { status: 400 });
   }
 
-  const revenue = Number(revenue_made ?? 0);
-  if (!isFinite(revenue) || revenue < 0) {
-    return NextResponse.json({ error: "Revenue made cannot be negative" }, { status: 400 });
-  }
-
   const { data, error } = await supabase.from("investments").insert({
     title: title.trim(),
     investment_type: investment_type.trim(),
     amount_invested: invested,
-    revenue_made: revenue,
+    revenue_made: 0,
+    status: "active",
     date: date || new Date().toISOString().slice(0, 10),
     notes: notes?.trim() || null,
     recorded_by: user.id,

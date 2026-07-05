@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Plus, Trash2, X } from "lucide-react";
+import { CheckCircle2, Loader2, Plus, Trash2, X } from "lucide-react";
 
 function todayLocal() {
   const d = new Date();
@@ -18,7 +18,6 @@ export function AddInvestmentButton() {
   const [title, setTitle] = useState("");
   const [investmentType, setInvestmentType] = useState("");
   const [amountInvested, setAmountInvested] = useState("");
-  const [revenueMade, setRevenueMade] = useState("");
   const [date, setDate] = useState(todayLocal());
   const [notes, setNotes] = useState("");
 
@@ -28,7 +27,6 @@ export function AddInvestmentButton() {
     setTitle("");
     setInvestmentType("");
     setAmountInvested("");
-    setRevenueMade("");
     setDate(todayLocal());
     setNotes("");
   }
@@ -46,7 +44,6 @@ export function AddInvestmentButton() {
           title,
           investment_type: investmentType,
           amount_invested: Number(amountInvested),
-          revenue_made: Number(revenueMade || 0),
           date,
           notes,
         }),
@@ -126,29 +123,15 @@ export function AddInvestmentButton() {
                   />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-[12.5px] font-medium text-[#0033AA]/75">Revenue made (GHS) *</label>
+                  <label className="mb-1.5 block text-[12.5px] font-medium text-[#0033AA]/75">Date *</label>
                   <input
-                    type="number"
+                    type="date"
                     required
-                    min="0"
-                    step="0.01"
-                    value={revenueMade}
-                    onChange={(e) => setRevenueMade(e.target.value)}
-                    placeholder="0.00"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
                     className="w-full rounded-md border border-[#0033AA]/15 bg-white px-3.5 py-2.5 text-[14px] text-[#0A2240] outline-none transition-colors focus:border-[#0062E1]"
                   />
                 </div>
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-[12.5px] font-medium text-[#0033AA]/75">Date *</label>
-                <input
-                  type="date"
-                  required
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="w-full rounded-md border border-[#0033AA]/15 bg-white px-3.5 py-2.5 text-[14px] text-[#0A2240] outline-none transition-colors focus:border-[#0062E1]"
-                />
               </div>
 
               <div>
@@ -183,6 +166,126 @@ export function AddInvestmentButton() {
                 >
                   {submitting && <Loader2 size={13} className="animate-spin" />}
                   {submitting ? "Saving..." : "Save"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+export function ReturnInvestmentButton({ id, title }: { id: string; title: string }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [revenueMade, setRevenueMade] = useState("");
+  const [returnDate, setReturnDate] = useState(todayLocal());
+
+  function handleClose() {
+    setOpen(false);
+    setError(null);
+    setRevenueMade("");
+    setReturnDate(todayLocal());
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      const res = await fetch(`/api/investments/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ revenue_made: Number(revenueMade || 0), return_date: returnDate }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json.error ?? "Failed to mark returned");
+      } else {
+        handleClose();
+        router.refresh();
+      }
+    } catch {
+      setError("Network error");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="inline-flex items-center gap-1 rounded-md border border-[#1F6E4A]/20 px-2.5 py-1.5 text-[11.5px] font-semibold text-[#1F6E4A] transition-colors hover:bg-[#1F6E4A]/5"
+      >
+        <CheckCircle2 size={13} />
+        Return
+      </button>
+
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#061B3A]/50 px-4 animate-fade-in">
+          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-[15px] font-semibold text-[#0033AA]">Return investment</h3>
+                <p className="mt-1 text-[12.5px] text-[#0A2240]/55">Record the revenue made from &ldquo;{title}&rdquo;.</p>
+              </div>
+              <button type="button" onClick={handleClose} className="text-[#0A2240]/35 hover:text-[#0A2240]">
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="mb-1.5 block text-[12.5px] font-medium text-[#0033AA]/75">Revenue made (GHS) *</label>
+                <input
+                  type="number"
+                  required
+                  min="0"
+                  step="0.01"
+                  value={revenueMade}
+                  onChange={(e) => setRevenueMade(e.target.value)}
+                  placeholder="0.00"
+                  className="w-full rounded-md border border-[#0033AA]/15 bg-white px-3.5 py-2.5 text-[14px] text-[#0A2240] outline-none transition-colors focus:border-[#0062E1]"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-[12.5px] font-medium text-[#0033AA]/75">Return date *</label>
+                <input
+                  type="date"
+                  required
+                  value={returnDate}
+                  onChange={(e) => setReturnDate(e.target.value)}
+                  className="w-full rounded-md border border-[#0033AA]/15 bg-white px-3.5 py-2.5 text-[14px] text-[#0A2240] outline-none transition-colors focus:border-[#0062E1]"
+                />
+              </div>
+
+              {error && (
+                <div className="rounded-md border border-[#B3432B]/25 bg-[#B3432B]/[0.06] px-3.5 py-2.5 text-[12.5px] text-[#963522]">
+                  {error}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2.5 pt-1">
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="rounded-md px-4 py-2 text-[13px] font-medium text-[#0A2240]/55 hover:text-[#0A2240]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="inline-flex items-center gap-2 rounded-md bg-[#1F6E4A] px-5 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[#17583A] disabled:opacity-60"
+                >
+                  {submitting && <Loader2 size={13} className="animate-spin" />}
+                  {submitting ? "Saving..." : "Mark returned"}
                 </button>
               </div>
             </form>
