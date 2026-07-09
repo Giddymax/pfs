@@ -108,15 +108,30 @@ export function PrintTransactionHistoryButton({
             <div className="h-[3px] w-full bg-[#0033AA]" />
 
             {/* Client / account summary */}
-            <div className="mt-4 grid grid-cols-2 gap-x-8 gap-y-2 rounded-md border border-[#0A2240]/10 bg-[#0A2240]/[0.025] px-5 py-3.5 text-[12.5px]">
-              <SummaryField label="Client name" value={client.full_name} />
-              <SummaryField label="Client code" value={client.client_code} />
-              <SummaryField label="Phone" value={client.phone} />
-              <SummaryField label="Total transactions" value={String(transactions.length)} />
-              {accountNumber && <SummaryField label="Account number" value={accountNumber} />}
-              {accountBalance != null && (
-                <SummaryField label="Current balance" value={formatGHS(accountBalance)} bold />
+            <div className="mt-4 flex gap-4 rounded-md border border-[#0A2240]/10 bg-[#0A2240]/[0.025] px-5 py-3.5 text-[12.5px]">
+              {/* Square client photo */}
+              {client.photo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={client.photo_url}
+                  alt={client.full_name}
+                  className="h-[72px] w-[72px] shrink-0 rounded-sm object-cover"
+                />
+              ) : (
+                <div className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-sm bg-[#0033AA]/10 text-[24px] font-bold text-[#0033AA]/40">
+                  {client.full_name.charAt(0).toUpperCase()}
+                </div>
               )}
+              <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-8 gap-y-2">
+                <SummaryField label="Client name" value={client.full_name} />
+                <SummaryField label="Client code" value={client.client_code} />
+                <SummaryField label="Phone" value={client.phone} />
+                <SummaryField label="Total transactions" value={String(transactions.length)} />
+                {accountNumber && <SummaryField label="Account number" value={accountNumber} />}
+                {accountBalance != null && (
+                  <SummaryField label="Current balance" value={formatGHS(accountBalance)} bold />
+                )}
+              </div>
             </div>
 
             {/* Transaction table */}

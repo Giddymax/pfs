@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { CommissionTier, OverviewKpiSettings, Settings, SettingsRow, SmsSettings } from "@/lib/types";
 
-const TTL_MS = 5 * 60 * 1000;
+const TTL_MS = 30 * 1000;
 
 const DEFAULTS: Settings = {
   commission_tiers: [
