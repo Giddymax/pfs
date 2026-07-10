@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SummaryControls } from "@/components/summary-controls";
 import { PrintButton } from "@/components/print-button";
 import { Logo } from "@/components/logo";
+import { PrintWatermark } from "@/components/print-watermark";
 import { formatGHS } from "@/lib/loan";
 import type { Profile } from "@/lib/types";
 
@@ -98,7 +99,7 @@ export default async function SummaryPage({
 
         {/* Watermark (print only) */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/images/logo-mark.png" alt="" aria-hidden="true" className="pfs-watermark" />
+        <PrintWatermark />
 
         {/* Print-only letterhead */}
         <div className="hidden print:flex print:items-start print:justify-between print:pb-4">

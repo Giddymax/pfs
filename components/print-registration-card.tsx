@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Printer, X, UserRound } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { PrintWatermark } from "@/components/print-watermark";
 import { formatGHS } from "@/lib/loan";
 import type { Account, Client, ProductType } from "@/lib/types";
 
@@ -78,7 +79,7 @@ export function PrintRegistrationCardButton({
           >
             {/* Watermark (hidden on screen, visible on print via globals.css) */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/images/logo-mark.png" alt="" aria-hidden="true" className="pfs-watermark" />
+            <PrintWatermark />
 
             {/* Letterhead */}
             <div className="flex items-start justify-between gap-6 pb-5">

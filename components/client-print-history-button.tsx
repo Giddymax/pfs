@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Printer, Loader2, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/logo";
+import { PrintWatermark } from "@/components/print-watermark";
 import { formatGHS } from "@/lib/loan";
 import type { Client, Transaction } from "@/lib/types";
 
@@ -99,7 +100,7 @@ export function ClientPrintHistoryButton({
             className="mx-auto max-w-[820px] rounded-lg bg-white px-10 py-9 text-[#0A2240] shadow-2xl"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/images/logo-mark.png" alt="" aria-hidden="true" className="pfs-watermark" />
+            <PrintWatermark />
 
             {/* Letterhead */}
             <div className="flex items-start justify-between gap-6 pb-5">
