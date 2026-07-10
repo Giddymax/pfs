@@ -117,7 +117,8 @@ export default async function StaffPage({
 
           {/* ── Desktop table (hidden on mobile) ─────────────────────── */}
           <div className="hidden overflow-hidden rounded-xl border border-[#1D3461]/8 bg-white shadow-sm lg:block">
-            <table className="w-full text-left text-[14px]">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-left text-[14px]">
               <thead>
                 <tr className="border-b border-[#1D3461]/8 bg-[#1D3461]/[0.02] text-[11px] uppercase tracking-[0.1em] text-[#0A2240]/45">
                   <th className="px-5 py-3 font-semibold">Name</th>
@@ -177,6 +178,7 @@ export default async function StaffPage({
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         </>
       )}

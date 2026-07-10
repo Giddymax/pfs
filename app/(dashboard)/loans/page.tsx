@@ -248,7 +248,8 @@ export default async function LoansPage({
 
           {/* ── Desktop table ── */}
           <Card className="hidden overflow-hidden lg:block">
-            <table className="w-full text-left text-[14px]">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[860px] text-left text-[14px]">
               <thead>
                 <tr className="border-b border-[#1D3461]/8 bg-[#1D3461]/[0.02] text-[11px] uppercase tracking-[0.1em] text-[#0A2240]/45">
                   <th className="px-5 py-3 font-semibold">Loan</th>
@@ -303,6 +304,7 @@ export default async function LoansPage({
                 })}
               </tbody>
             </table>
+            </div>
           </Card>
         </>
       )}

@@ -317,7 +317,7 @@ export default async function FinancePage() {
           ) : (
             <>
               <div className="hidden overflow-x-auto md:block">
-                <table className="w-full">
+                <table className="w-full min-w-[620px]">
                   <thead>
                     <tr className="border-b border-[#0033AA]/8 bg-[#0033AA]/[0.02]">
                       <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0A2240]/45">Date</th>
@@ -434,7 +434,7 @@ export default async function FinancePage() {
         ) : (
           <>
             <div className="hidden overflow-x-auto md:block">
-              <table className="w-full">
+              <table className="w-full min-w-[520px]">
                 <thead>
                   <tr className="border-b border-[#0033AA]/8 bg-[#0033AA]/[0.02]">
                     <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0A2240]/45">Date</th>
