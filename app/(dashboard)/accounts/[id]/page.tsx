@@ -9,6 +9,8 @@ import { DeleteTransactionButton } from "@/components/delete-transaction-button"
 import { RecalculateAccountButton } from "@/components/recalculate-account-button";
 import { EditCodeButton } from "@/components/edit-code-button";
 import { PrintTransactionHistoryButton, type TxnWithAccount } from "@/components/print-transaction-history-button";
+import { PrintAccountStatementButton } from "@/components/print-account-statement-button";
+import { ExportCsvButton } from "@/components/export-csv-button";
 import { SusuContributionForm } from "@/components/susu-contribution-form";
 import { SusuWithdrawalForm } from "@/components/susu-withdrawal-form";
 import { SusuClaimRequestButton } from "@/components/susu-claim-request-button";
@@ -121,6 +123,18 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
               )}
               {isAdmin && account.product_type !== "fixed_deposit" && <RecalculateAccountButton accountId={account.id} />}
               {isAdmin && <ClearTransactionsButton accountId={account.id} />}
+              <ExportCsvButton
+                endpoint="/api/export/transactions"
+                filename={`transactions-${account.account_number}.csv`}
+                label="Export CSV"
+                params={{ account_id: account.id }}
+              />
+              <PrintAccountStatementButton
+                client={account.client}
+                accountId={account.id}
+                accountNumber={account.account_number}
+                printedBy={profile?.full_name ?? null}
+              />
               <PrintTransactionHistoryButton
                 client={account.client}
                 transactions={txnsWithAccount}

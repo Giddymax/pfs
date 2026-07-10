@@ -19,6 +19,7 @@ import {
   Building2,
   TrendingUp,
   Wallet,
+  CalendarClock,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { signOut } from "@/app/actions";
@@ -64,6 +65,15 @@ const NAV = [
     activeIcon: "text-[#DB2777]",
     idle: "group text-[#FFFFFF] hover:bg-[#DB2777]/15 hover:text-[#FFFFFF]",
     idleIcon: "text-[#FFFFFF] transition-colors group-hover:text-[#DB2777]",
+  },
+  {
+    href: "/upcoming",
+    label: "Upcoming",
+    icon: CalendarClock,
+    active: "bg-[#0891B2]/15 text-[#FFFFFF]",
+    activeIcon: "text-[#0891B2]",
+    idle: "group text-[#FFFFFF] hover:bg-[#0891B2]/15 hover:text-[#FFFFFF]",
+    idleIcon: "text-[#FFFFFF] transition-colors group-hover:text-[#0891B2]",
   },
 ];
 

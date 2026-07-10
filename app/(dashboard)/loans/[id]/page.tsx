@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { UserRound, Calendar, Percent, Wallet, ArrowUpRight, Hash } from "lucide-react";
+import { UserRound, Calendar, Percent, Wallet, ArrowUpRight, Hash, CheckCircle2, XCircle, Clock } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { EditCodeButton } from "@/components/edit-code-button";
@@ -143,37 +143,92 @@ export default async function LoanDetailPage({
           </Card>
         </div>
 
-        {/* Repayment history */}
-        <Card className="lg:col-span-2">
-          <div className="flex items-center justify-between border-b border-[#0033AA]/8 px-5 py-4">
-            <h2 className="text-[15px] font-semibold text-[#0033AA]">Repayment history</h2>
-            <span className="text-[12.5px] text-[#0A2240]/45">{allRepayments.length} payment{allRepayments.length === 1 ? "" : "s"} recorded</span>
-          </div>
-
-          {allRepayments.length === 0 ? (
-            <div className="px-5 py-12">
-              <EmptyState title="No repayments recorded yet" description="Repayments logged for this loan will appear here in chronological order." />
-            </div>
-          ) : (
-            <ul className="divide-y divide-[#0033AA]/6">
-              {allRepayments.map((r) => (
-                <li key={r.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-5 py-4">
-                  <div className="min-w-0">
-                    <p className="text-[14px] font-medium text-[#0A2240]">{formatGHS(r.amount)}</p>
-                    <p className="text-[12px] text-[#0A2240]/45">
-                      {formatDate(r.payment_date)}
-                      {r.recorder?.full_name ? ` · by ${r.recorder.full_name}` : ""}
-                      {r.notes ? ` · ${r.notes}` : ""}
-                    </p>
-                  </div>
-                  <span className="rounded-full border border-[#1D3461]/12 px-2.5 py-1 text-[11px] font-medium capitalize text-[#0A2240]/55">
-                    {methodLabel(r.method)}
-                  </span>
-                </li>
-              ))}
-            </ul>
+        {/* Right column: schedule + history */}
+        <div className="space-y-6 lg:col-span-2">
+          {/* Repayment schedule */}
+          {loan.disbursement_date && loan.tenor_months > 0 && (
+            <Card>
+              <div className="flex items-center justify-between border-b border-[#0033AA]/8 px-5 py-4">
+                <h2 className="text-[15px] font-semibold text-[#0033AA]">Repayment schedule</h2>
+                <span className="text-[12.5px] text-[#0A2240]/45">{loan.tenor_months} installments</span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-[12.5px]">
+                  <thead>
+                    <tr className="border-b border-[#0A2240]/8 bg-[#0A2240]/[0.02] text-[10px] font-semibold uppercase tracking-[0.1em] text-[#0A2240]/45">
+                      <th className="px-5 py-2.5">#</th>
+                      <th className="px-5 py-2.5">Due date</th>
+                      <th className="px-5 py-2.5 text-right">Expected</th>
+                      <th className="px-5 py-2.5 text-right">Paid</th>
+                      <th className="px-5 py-2.5">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#0A2240]/6">
+                    {buildSchedule(loan.disbursement_date, loan.tenor_months, Number(loan.monthly_installment), allRepayments).map((slot) => (
+                      <tr key={slot.month} className={slot.status === "missed" ? "bg-[#FEF2F0]/60" : ""}>
+                        <td className="px-5 py-3 text-[#0A2240]/40">{slot.month}</td>
+                        <td className="px-5 py-3 text-[#0A2240]/70">{slot.dueDate}</td>
+                        <td className="px-5 py-3 text-right tabular-nums text-[#0A2240]">{formatGHS(slot.expected)}</td>
+                        <td className="px-5 py-3 text-right tabular-nums text-[#0A2240]/55">
+                          {slot.paid > 0 ? formatGHS(slot.paid) : "—"}
+                        </td>
+                        <td className="px-5 py-3">
+                          {slot.status === "paid" && (
+                            <span className="inline-flex items-center gap-1 text-[11.5px] font-medium text-[#1F6E4A]">
+                              <CheckCircle2 size={13} /> Paid
+                            </span>
+                          )}
+                          {slot.status === "missed" && (
+                            <span className="inline-flex items-center gap-1 text-[11.5px] font-medium text-[#B91C1C]">
+                              <XCircle size={13} /> Missed
+                            </span>
+                          )}
+                          {slot.status === "upcoming" && (
+                            <span className="inline-flex items-center gap-1 text-[11.5px] font-medium text-[#0A2240]/40">
+                              <Clock size={13} /> Upcoming
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
           )}
-        </Card>
+
+          {/* Repayment history */}
+          <Card>
+            <div className="flex items-center justify-between border-b border-[#0033AA]/8 px-5 py-4">
+              <h2 className="text-[15px] font-semibold text-[#0033AA]">Repayment history</h2>
+              <span className="text-[12.5px] text-[#0A2240]/45">{allRepayments.length} payment{allRepayments.length === 1 ? "" : "s"} recorded</span>
+            </div>
+
+            {allRepayments.length === 0 ? (
+              <div className="px-5 py-12">
+                <EmptyState title="No repayments recorded yet" description="Repayments logged for this loan will appear here in chronological order." />
+              </div>
+            ) : (
+              <ul className="divide-y divide-[#0033AA]/6">
+                {allRepayments.map((r) => (
+                  <li key={r.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-5 py-4">
+                    <div className="min-w-0">
+                      <p className="text-[14px] font-medium text-[#0A2240]">{formatGHS(r.amount)}</p>
+                      <p className="text-[12px] text-[#0A2240]/45">
+                        {formatDate(r.payment_date)}
+                        {r.recorder?.full_name ? ` · by ${r.recorder.full_name}` : ""}
+                        {r.notes ? ` · ${r.notes}` : ""}
+                      </p>
+                    </div>
+                    <span className="rounded-full border border-[#1D3461]/12 px-2.5 py-1 text-[11px] font-medium capitalize text-[#0A2240]/55">
+                      {methodLabel(r.method)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        </div>
       </div>
     </div>
   );
@@ -206,4 +261,52 @@ async function getCurrentProfile(supabase: Awaited<ReturnType<typeof createClien
   } = await supabase.auth.getUser();
   if (!user) return { data: null };
   return supabase.from("profiles").select("*").eq("id", user.id).single<Profile>();
+}
+
+type ScheduleSlot = {
+  month: number;
+  dueDate: string;
+  expected: number;
+  paid: number;
+  status: "paid" | "missed" | "upcoming";
+};
+
+function buildSchedule(
+  disbursementDate: string,
+  tenorMonths: number,
+  monthlyInstallment: number,
+  repayments: { amount: number; payment_date: string }[]
+): ScheduleSlot[] {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Sort repayments chronologically and use them slot by slot
+  const sorted = [...repayments].sort((a, b) => a.payment_date.localeCompare(b.payment_date));
+  let repaymentIdx = 0;
+
+  return Array.from({ length: tenorMonths }, (_, i) => {
+    const month = i + 1;
+    const due = new Date(disbursementDate);
+    due.setMonth(due.getMonth() + month);
+
+    const isPast = due <= today;
+    let paid = 0;
+    let status: ScheduleSlot["status"] = "upcoming";
+
+    if (isPast && repaymentIdx < sorted.length) {
+      paid = Number(sorted[repaymentIdx].amount);
+      repaymentIdx++;
+      status = "paid";
+    } else if (isPast) {
+      status = "missed";
+    }
+
+    return {
+      month,
+      dueDate: due.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
+      expected: monthlyInstallment,
+      paid,
+      status,
+    };
+  });
 }

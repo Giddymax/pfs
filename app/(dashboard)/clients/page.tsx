@@ -6,6 +6,7 @@ import { PrintRegistrationCardButton } from "@/components/print-registration-car
 import { ClientPrintHistoryButton } from "@/components/client-print-history-button";
 import { ClientExcelButtons } from "@/components/client-excel-buttons";
 import { TableFilter, type FilterOption } from "@/components/table-filter";
+import { ExportCsvButton } from "@/components/export-csv-button";
 import { PageHeader, ClientStatusBadge, EmptyState } from "@/components/ui";
 import type { Client, Account, ProductType, Profile } from "@/lib/types";
 
@@ -161,6 +162,7 @@ export default async function ClientsPage({
         description="Search, review, and open a client's profile to manage their loans."
         action={
           <div className="flex flex-wrap items-center gap-2">
+            <ExportCsvButton endpoint="/api/export/clients" filename="clients.csv" label="Export CSV" />
             {isAdmin && <ClientExcelButtons />}
             <Link
               href="/clients/new"
