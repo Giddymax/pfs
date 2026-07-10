@@ -218,7 +218,7 @@ export default async function FinancePage() {
       {/* Revenue by product */}
       <div className="mb-6">
         <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#0A2240]/40">Revenue by product</p>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6">
           <ProductRevenueCard
             label="Savings"
             sublabel="Withdrawal commission"
@@ -228,8 +228,8 @@ export default async function FinancePage() {
           />
           <ProductRevenueCard
             label="Loans"
-            sublabel="Collected interest"
-            value={loanInterest}
+            sublabel="Interest + processing fees"
+            value={round2(loanInterest + processingFees)}
             accent="border-l-[#15803D]"
             valueColor="text-[#15803D]"
           />
@@ -246,6 +246,20 @@ export default async function FinancePage() {
             value={returnedInvestmentRevenue}
             accent="border-l-[#7C3AED]"
             valueColor="text-[#7C3AED]"
+          />
+          <ProductRevenueCard
+            label="Card Fees"
+            sublabel="Registration card fees"
+            value={cardFees}
+            accent="border-l-[#D97706]"
+            valueColor="text-[#D97706]"
+          />
+          <ProductRevenueCard
+            label="SMS Fees"
+            sublabel="Monthly SMS charges"
+            value={totalSmsFees}
+            accent="border-l-[#DB2777]"
+            valueColor="text-[#DB2777]"
           />
         </div>
       </div>
