@@ -19,6 +19,8 @@ export async function POST(request: Request) {
   const amount = Number(body?.amount);
   const notes = typeof body?.notes === "string" ? body.notes.trim() || null : null;
   const proxyName = typeof body?.proxy_name === "string" ? body.proxy_name.trim() || null : null;
+  const rawTs = typeof body?.created_at === "string" ? body.created_at.trim() : null;
+  const customTs = rawTs && !isNaN(new Date(rawTs).getTime()) ? new Date(rawTs).toISOString() : null;
 
   if (!accountId || typeof accountId !== "string") {
     return NextResponse.json({ error: "account_id is required" }, { status: 400 });
@@ -33,6 +35,7 @@ export async function POST(request: Request) {
       p_amount: amount,
       p_recorded_by: user.id,
       p_notes: notes,
+      p_created_at: customTs,
     })
     .single<Transaction>();
 

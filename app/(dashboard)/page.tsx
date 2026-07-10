@@ -5,7 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getSettings } from "@/lib/settings/cache";
 import { PageHeader, Card, LoanStatusBadge, EmptyState } from "@/components/ui";
 import { formatGHS, round2 } from "@/lib/loan";
-import type { Loan, Client, Profile } from "@/lib/types";
+import { ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
+import type { Loan, Client, Profile, Transaction } from "@/lib/types";
 
 export default async function OverviewPage() {
   const supabase = await createClient();
@@ -63,6 +64,7 @@ export default async function OverviewPage() {
     // Recent items
     { data: loans },
     { data: recentClients },
+    { data: recentTxns },
   ] = await Promise.all([
     supabase.from("clients").select("*", { count: "exact", head: true }),
     supabase.from("accounts").select("balance, dep").eq("product_type", "savings"),
@@ -91,6 +93,12 @@ export default async function OverviewPage() {
       .order("created_at", { ascending: false })
       .limit(5)
       .returns<Client[]>(),
+    supabase
+      .from("transactions")
+      .select("*, account:accounts(account_number, product_type), client:clients(full_name, photo_url, client_code)")
+      .is("reversed_at", null)
+      .order("created_at", { ascending: false })
+      .limit(5),
   ]);
 
   // Per-category totals
@@ -160,6 +168,12 @@ export default async function OverviewPage() {
   const cashAtHand = Math.max(round2(accountBalance - rawCashAtBank), 0);
 
   const recentLoans = loans ?? [];
+
+  type TxnRow = Transaction & {
+    account: { account_number: string; product_type: string } | null;
+    client: { full_name: string; photo_url: string | null; client_code: string } | null;
+  };
+  const latestTxns = (recentTxns ?? []) as TxnRow[];
 
   return (
     <div>
@@ -252,6 +266,60 @@ export default async function OverviewPage() {
           />
         )}
       </div>
+
+      {/* Recent transactions */}
+      <Card className="mb-6">
+        <div className="flex items-center justify-between border-b border-[#0033AA]/8 px-5 py-4">
+          <h2 className="text-[15px] font-semibold text-[#0033AA]">Recent transactions</h2>
+          <Link href="/accounts/savings" className="flex items-center gap-1 text-[12.5px] font-medium text-[#0033AA]/55 hover:text-[#0062E1]">
+            View accounts <ArrowUpRight size={13} />
+          </Link>
+        </div>
+        {latestTxns.length === 0 ? (
+          <div className="px-5 py-10">
+            <EmptyState title="No transactions yet" description="Deposits and withdrawals across all accounts will appear here." />
+          </div>
+        ) : (
+          <ul className="divide-y divide-[#0033AA]/6">
+            {latestTxns.map((txn) => {
+              const isDeposit = txn.type === "deposit";
+              const dt = new Date(txn.created_at);
+              const dateStr = dt.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+              const timeStr = dt.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+              return (
+                <li key={txn.id} className="flex flex-wrap items-center gap-3 px-5 py-3.5">
+                  <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${isDeposit ? "bg-[#1F6E4A]/10" : "bg-[#B3432B]/10"}`}>
+                    {isDeposit
+                      ? <ArrowDownToLine size={14} className="text-[#1F6E4A]" />
+                      : <ArrowUpFromLine size={14} className="text-[#B3432B]" />}
+                  </span>
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#0033AA]/10 bg-[#0033AA]/5 text-[11px] font-semibold text-[#0033AA]">
+                    {txn.client?.photo_url
+                      // eslint-disable-next-line @next/next/no-img-element
+                      ? <img src={txn.client.photo_url} alt={txn.client.full_name} className="h-full w-full object-cover" />
+                      : (txn.client?.full_name ?? "?").charAt(0).toUpperCase()}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13.5px] font-medium text-[#0A2240]">
+                      {txn.client?.full_name ?? "—"}
+                      <span className="ml-1.5 text-[11.5px] font-normal text-[#0A2240]/40">{txn.account?.account_number}</span>
+                    </p>
+                    <p className="text-[11.5px] text-[#0A2240]/45 capitalize">{txn.account?.product_type ?? "—"} · {dateStr} · {timeStr}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className={`text-[14px] font-semibold tabular-nums ${isDeposit ? "text-[#1F6E4A]" : "text-[#B3432B]"}`}>
+                      {isDeposit ? "+" : "−"}{formatGHS(txn.amount)}
+                    </p>
+                    {txn.fee > 0 && (
+                      <p className="text-[11px] text-[#0A2240]/40">fee {formatGHS(txn.fee)}</p>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </Card>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         <Card className="lg:col-span-3">

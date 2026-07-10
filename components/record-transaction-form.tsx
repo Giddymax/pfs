@@ -43,9 +43,15 @@ export function RecordTransactionForm({
   const copy = KIND_COPY[kind];
   const Icon = kind === "deposit" ? ArrowDownToLine : ArrowUpFromLine;
 
+  // Default to today's date and current time (updated when modal opens)
+  function todayStr() { return new Date().toISOString().slice(0, 10); }
+  function nowTimeStr() { const d = new Date(); return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; }
+
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
+  const [txnDate, setTxnDate] = useState(todayStr);
+  const [txnTime, setTxnTime] = useState(nowTimeStr);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,6 +62,12 @@ export function RecordTransactionForm({
 
   const amountNum = Number(amount) || 0;
   const fee = kind === "withdrawal" ? computeCommission(amountNum, commissionTiers ?? []) : 0;
+
+  function handleOpen() {
+    setTxnDate(todayStr());
+    setTxnTime(nowTimeStr());
+    setOpen(true);
+  }
 
   function handleClose() {
     setOpen(false);
@@ -98,6 +110,9 @@ export function RecordTransactionForm({
       combinedNotes = combinedNotes ? `${proxyInfo} | ${combinedNotes}` : proxyInfo;
     }
 
+    // Build ISO timestamp from the date + time inputs
+    const customTs = txnDate && txnTime ? `${txnDate}T${txnTime}:00` : null;
+
     setSubmitting(true);
     try {
       const res = await fetch(copy.endpoint, {
@@ -107,6 +122,7 @@ export function RecordTransactionForm({
           account_id: accountId,
           amount: amountNum,
           notes: combinedNotes || null,
+          created_at: customTs,
           ...(!isClient && kind === "withdrawal" ? { proxy_name: proxyName.trim() } : {}),
         }),
       });
@@ -126,7 +142,7 @@ export function RecordTransactionForm({
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={handleOpen}
         className={`inline-flex items-center gap-2 rounded-md px-4 py-2.5 text-[13px] font-semibold text-white transition-colors ${copy.accent}`}
       >
         <Icon size={15} />
@@ -149,6 +165,29 @@ export function RecordTransactionForm({
                   {error}
                 </div>
               )}
+
+              {/* Date + time row */}
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block">
+                  <span className="mb-1.5 block text-[12.5px] font-medium text-[#0033AA]/75">Date</span>
+                  <input
+                    type="date"
+                    value={txnDate}
+                    max={todayStr()}
+                    onChange={(e) => setTxnDate(e.target.value)}
+                    className="w-full rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3 py-2.5 text-[13.5px] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
+                  />
+                </label>
+                <label className="block">
+                  <span className="mb-1.5 block text-[12.5px] font-medium text-[#0033AA]/75">Time</span>
+                  <input
+                    type="time"
+                    value={txnTime}
+                    onChange={(e) => setTxnTime(e.target.value)}
+                    className="w-full rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3 py-2.5 text-[13.5px] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
+                  />
+                </label>
+              </div>
 
               <label className="block">
                 <span className="mb-1.5 block text-[12.5px] font-medium text-[#0033AA]/75">Amount (GHS)</span>
