@@ -248,7 +248,7 @@ export default async function LoansPage({
 
           {/* ── Desktop table ── */}
           <Card className="hidden overflow-hidden lg:block">
-            <div className="overflow-x-auto">
+            <div className="pfs-table-scroll">
             <table className="w-full min-w-[860px] text-left text-[14px]">
               <thead>
                 <tr className="border-b border-[#1D3461]/8 bg-[#1D3461]/[0.02] text-[11px] uppercase tracking-[0.1em] text-[#0A2240]/45">

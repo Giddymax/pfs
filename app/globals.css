@@ -201,9 +201,37 @@ button:active,
   opacity: 0.75;
 }
 
-/* Admin tables: horizontal scroll wrapper */
+/* ─── Table horizontal scroll ─────────────────────────────────────── */
+/* .pfs-table-scroll and .admin-table-wrap both use this pattern:
+   scrollbar is always rendered (not just on hover) so users can see
+   there is content to scroll to, even before they try.                */
+.pfs-table-scroll,
 .admin-table-wrap {
   overflow-x: auto;
+  scrollbar-width: thin;                          /* Firefox */
+  scrollbar-color: rgba(10,34,64,0.22) transparent; /* Firefox */
+}
+
+.pfs-table-scroll::-webkit-scrollbar,
+.admin-table-wrap::-webkit-scrollbar {
+  height: 7px;
+}
+
+.pfs-table-scroll::-webkit-scrollbar-track,
+.admin-table-wrap::-webkit-scrollbar-track {
+  background: rgba(10,34,64,0.05);
+  border-radius: 0 0 12px 12px;
+}
+
+.pfs-table-scroll::-webkit-scrollbar-thumb,
+.admin-table-wrap::-webkit-scrollbar-thumb {
+  background: rgba(10,34,64,0.22);
+  border-radius: 4px;
+}
+
+.pfs-table-scroll::-webkit-scrollbar-thumb:hover,
+.admin-table-wrap::-webkit-scrollbar-thumb:hover {
+  background: rgba(10,34,64,0.40);
 }
 
 @media (max-width: 640px) {

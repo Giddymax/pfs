@@ -152,7 +152,7 @@ export default async function LoanDetailPage({
                 <h2 className="text-[15px] font-semibold text-[#0033AA]">Repayment schedule</h2>
                 <span className="text-[12.5px] text-[#0A2240]/45">{loan.tenor_months} installments</span>
               </div>
-              <div className="overflow-x-auto">
+              <div className="pfs-table-scroll">
                 <table className="w-full text-left text-[12.5px]">
                   <thead>
                     <tr className="border-b border-[#0A2240]/8 bg-[#0A2240]/[0.02] text-[10px] font-semibold uppercase tracking-[0.1em] text-[#0A2240]/45">

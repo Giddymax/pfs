@@ -316,7 +316,7 @@ export default async function FinancePage() {
             </div>
           ) : (
             <>
-              <div className="hidden overflow-x-auto md:block">
+              <div className="pfs-table-scroll hidden md:block">
                 <table className="w-full min-w-[620px]">
                   <thead>
                     <tr className="border-b border-[#0033AA]/8 bg-[#0033AA]/[0.02]">
@@ -433,7 +433,7 @@ export default async function FinancePage() {
           </div>
         ) : (
           <>
-            <div className="hidden overflow-x-auto md:block">
+            <div className="pfs-table-scroll hidden md:block">
               <table className="w-full min-w-[520px]">
                 <thead>
                   <tr className="border-b border-[#0033AA]/8 bg-[#0033AA]/[0.02]">
