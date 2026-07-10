@@ -215,6 +215,41 @@ export default async function FinancePage() {
         />
       </div>
 
+      {/* Revenue by product */}
+      <div className="mb-6">
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#0A2240]/40">Revenue by product</p>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <ProductRevenueCard
+            label="Savings"
+            sublabel="Withdrawal commission"
+            value={commission}
+            accent="border-l-[#0033AA]"
+            valueColor="text-[#0033AA]"
+          />
+          <ProductRevenueCard
+            label="Loans"
+            sublabel="Collected interest"
+            value={loanInterest}
+            accent="border-l-[#15803D]"
+            valueColor="text-[#15803D]"
+          />
+          <ProductRevenueCard
+            label="Daily Susu"
+            sublabel="One-day contribution"
+            value={susuFees}
+            accent="border-l-[#0891B2]"
+            valueColor="text-[#0891B2]"
+          />
+          <ProductRevenueCard
+            label="Investments"
+            sublabel="Return on investment"
+            value={returnedInvestmentRevenue}
+            accent="border-l-[#7C3AED]"
+            valueColor="text-[#7C3AED]"
+          />
+        </div>
+      </div>
+
       <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-1">
           <div className="border-b border-[#0033AA]/8 px-5 py-4">
@@ -480,6 +515,26 @@ function SummaryCard({
         {prefix}{value}
       </p>
       <p className="mt-2 text-[11.5px] leading-snug text-white/70">{sub}</p>
+    </div>
+  );
+}
+
+function ProductRevenueCard({
+  label, sublabel, value, accent, valueColor,
+}: {
+  label: string;
+  sublabel: string;
+  value: number;
+  accent: string;
+  valueColor: string;
+}) {
+  return (
+    <div className={`rounded-xl border border-[#0A2240]/10 border-l-4 ${accent} bg-white px-5 py-4 shadow-sm`}>
+      <p className="text-[10.5px] font-semibold uppercase tracking-[0.15em] text-[#0A2240]/45">{label}</p>
+      <p className={`mt-2 text-[1.35rem] font-bold tabular-nums leading-none ${valueColor}`}>
+        {formatGHS(value)}
+      </p>
+      <p className="mt-1.5 text-[11.5px] text-[#0A2240]/50">{sublabel}</p>
     </div>
   );
 }
