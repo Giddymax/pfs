@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
-import { Camera, Loader2, ShieldCheck, UserRound, X } from "lucide-react";
+import { useRef, useState, useEffect, type FormEvent } from "react";
+import { Camera, Eye, EyeOff, KeyRound, Loader2, ShieldCheck, UserRound, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { PageHeader, Card } from "@/components/ui";
 import type { Profile } from "@/lib/types";
@@ -91,6 +91,130 @@ export default function ProfilePage() {
   }
 
   if (!profile) return null;
+
+  // Render the self-service password change card (stateful, extracted below)
+  function ChangePasswordCard() {
+    const [newPw, setNewPw] = useState("");
+    const [confirmPw, setConfirmPw] = useState("");
+    const [showNew, setShowNew] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [pwError, setPwError] = useState<string | null>(null);
+    const [pwSuccess, setPwSuccess] = useState(false);
+
+    async function handleSubmit(e: FormEvent) {
+      e.preventDefault();
+      setPwError(null);
+      setPwSuccess(false);
+
+      if (newPw.length < 8) {
+        setPwError("Password must be at least 8 characters.");
+        return;
+      }
+      if (newPw !== confirmPw) {
+        setPwError("Passwords do not match.");
+        return;
+      }
+
+      setSaving(true);
+      try {
+        const res = await fetch("/api/profile/password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password: newPw }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error ?? "Failed to change password.");
+        setPwSuccess(true);
+        setNewPw("");
+        setConfirmPw("");
+      } catch (err) {
+        setPwError(err instanceof Error ? err.message : "Failed to change password.");
+      } finally {
+        setSaving(false);
+      }
+    }
+
+    return (
+      <Card className="mt-6">
+        <div className="flex items-center gap-2 border-b border-[#0033AA]/8 px-5 py-4">
+          <KeyRound size={15} className="text-[#0033AA]/60" />
+          <h2 className="text-[15px] font-semibold text-[#0033AA]">Change password</h2>
+        </div>
+        <form onSubmit={handleSubmit} className="px-5 py-5 space-y-4">
+          {pwError && (
+            <div className="rounded-md border border-[#B3432B]/25 bg-[#B3432B]/[0.06] px-3.5 py-2.5 text-[12.5px] text-[#963522]">
+              {pwError}
+            </div>
+          )}
+          {pwSuccess && (
+            <div className="rounded-md border border-[#1F6E4A]/25 bg-[#1F6E4A]/[0.06] px-3.5 py-2.5 text-[12.5px] text-[#1F6E4A]">
+              Password updated successfully.
+            </div>
+          )}
+
+          <div>
+            <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-[0.1em] text-[#0A2240]/50">
+              New password
+            </label>
+            <div className="relative">
+              <input
+                type={showNew ? "text" : "password"}
+                value={newPw}
+                onChange={(e) => setNewPw(e.target.value)}
+                minLength={8}
+                required
+                className="w-full rounded-md border border-[#0A2240]/15 px-3.5 py-2.5 pr-10 text-[13.5px] text-[#0A2240] outline-none transition-colors focus:border-[#0033AA] focus:ring-1 focus:ring-[#0033AA]/20"
+              />
+              <button
+                type="button"
+                onClick={() => setShowNew((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0A2240]/35 hover:text-[#0A2240]/70"
+                aria-label={showNew ? "Hide password" : "Show password"}
+              >
+                {showNew ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+            </div>
+            <p className="mt-1 text-[11.5px] text-[#0A2240]/40">Minimum 8 characters.</p>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-[0.1em] text-[#0A2240]/50">
+              Confirm new password
+            </label>
+            <div className="relative">
+              <input
+                type={showConfirm ? "text" : "password"}
+                value={confirmPw}
+                onChange={(e) => setConfirmPw(e.target.value)}
+                required
+                className="w-full rounded-md border border-[#0A2240]/15 px-3.5 py-2.5 pr-10 text-[13.5px] text-[#0A2240] outline-none transition-colors focus:border-[#0033AA] focus:ring-1 focus:ring-[#0033AA]/20"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirm((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0A2240]/35 hover:text-[#0A2240]/70"
+                aria-label={showConfirm ? "Hide password" : "Show password"}
+              >
+                {showConfirm ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-1">
+            <button
+              type="submit"
+              disabled={saving}
+              className="inline-flex items-center gap-2 rounded-md bg-[#0033AA] px-5 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[#002884] disabled:opacity-60"
+            >
+              {saving && <Loader2 size={14} className="animate-spin" />}
+              {saving ? "Saving…" : "Update password"}
+            </button>
+          </div>
+        </form>
+      </Card>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -195,6 +319,8 @@ export default function ProfilePage() {
           </div>
         </div>
       </Card>
+
+      <ChangePasswordCard />
     </div>
   );
 }

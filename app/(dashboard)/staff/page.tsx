@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { PageHeader, EmptyState } from "@/components/ui";
 import { TableFilter, type FilterOption } from "@/components/table-filter";
 import { StaffStatusToggle } from "@/components/staff-status-toggle";
-import { AddStaffButton, EditStaffButton, DeleteStaffButton } from "@/components/staff-form";
+import { AddStaffButton, EditStaffButton, DeleteStaffButton, ChangePasswordButton } from "@/components/staff-form";
 import type { Profile } from "@/lib/types";
 
 const ROLE_OPTIONS: FilterOption[] = [
@@ -106,6 +106,7 @@ export default async function StaffPage({
                   <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[#1D3461]/6 pt-3">
                     <StaffStatusToggle profileId={member.id} isActive={member.is_active} isSelf={member.id === profile.id} />
                     <EditStaffButton profileId={member.id} fullName={member.full_name} role={member.role} />
+                    <ChangePasswordButton profileId={member.id} fullName={member.full_name} />
                     {member.id !== profile.id && (
                       <DeleteStaffButton profileId={member.id} fullName={member.full_name} />
                     )}
@@ -169,6 +170,7 @@ export default async function StaffPage({
                       <div className="flex items-center gap-1.5">
                         <StaffStatusToggle profileId={member.id} isActive={member.is_active} isSelf={member.id === profile.id} />
                         <EditStaffButton profileId={member.id} fullName={member.full_name} role={member.role} />
+                        <ChangePasswordButton profileId={member.id} fullName={member.full_name} />
                         {member.id !== profile.id && (
                           <DeleteStaffButton profileId={member.id} fullName={member.full_name} />
                         )}
