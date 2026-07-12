@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import clsx from "clsx";
 import type { LoanStatus, ClientStatus, AccountStatus } from "@/lib/types";
 
@@ -6,15 +8,26 @@ export function PageHeader({
   title,
   description,
   action,
+  back,
 }: {
   eyebrow?: string;
   title: string;
   description?: string;
   action?: React.ReactNode;
+  back?: string;
 }) {
   return (
     <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
+        {back && (
+          <Link
+            href={back}
+            className="mb-2 inline-flex items-center gap-0.5 text-[12px] font-medium text-[#0033AA]/45 transition-colors hover:text-[#0033AA]"
+          >
+            <ChevronLeft size={14} />
+            Back
+          </Link>
+        )}
         {eyebrow && (
           <p className="mb-1.5 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#0033AA]/45">
             <span className="h-px w-6 bg-[#0062E1]" />

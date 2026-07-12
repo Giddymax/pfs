@@ -74,6 +74,7 @@ export default async function FixedDepositsPage({
   return (
     <div>
       <PageHeader
+        back="/"
         eyebrow="Accounts"
         title="Fixed Deposit accounts"
         description="Lump-sum term placements with maturity, early-withdrawal and rollover lifecycles."

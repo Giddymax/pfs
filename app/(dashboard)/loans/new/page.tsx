@@ -132,7 +132,7 @@ function NewLoanForm() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeader eyebrow="Loans" title="Issue a new loan" description="Set the principal, flat interest rate and tenor — the repayment schedule is calculated automatically." />
+      <PageHeader back="/loans" eyebrow="Loans" title="Issue a new loan" description="Set the principal, flat interest rate and tenor — the repayment schedule is calculated automatically." />
 
       <form onSubmit={handleSubmit} className="space-y-8">
         {error && (

@@ -97,6 +97,7 @@ export default async function BankPage() {
   return (
     <div>
       <PageHeader
+        back="/"
         eyebrow="Finance"
         title="Bank account"
         description="Track cash deposited into and withdrawn from the company bank account."

@@ -63,6 +63,7 @@ export default async function ClientDetailPage({
   return (
     <div>
       <PageHeader
+        back="/clients"
         eyebrow="Client profile"
         title={client.full_name}
         description={`${client.client_code} · Registered ${new Date(client.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`}

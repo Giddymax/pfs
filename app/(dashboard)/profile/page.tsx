@@ -219,6 +219,7 @@ export default function ProfilePage() {
   return (
     <div className="mx-auto max-w-2xl">
       <PageHeader
+        back="/"
         eyebrow="Account"
         title="My Profile"
         description="Update your profile photo. This photo is shown in the sidebar and visible to other staff."

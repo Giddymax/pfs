@@ -37,6 +37,7 @@ export default async function StaffPerformancePage() {
   return (
     <div>
       <PageHeader
+        back="/staff"
         eyebrow="Administration"
         title="Staff performance"
         description="Track how much each staff member has contributed — clients registered, savings deposits collected, and daily susu contributions recorded."

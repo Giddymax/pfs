@@ -180,7 +180,7 @@ export default function EditClientPage({ params }: { params: Promise<{ id: strin
 
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeader eyebrow="Clients" title="Edit client details" description="Update the client's information. Changes are saved immediately." />
+      <PageHeader back={`/clients/${id}`} eyebrow="Clients" title="Edit client details" description="Update the client's information. Changes are saved immediately." />
 
       <form onSubmit={handleSubmit} className="space-y-8">
         {error && (

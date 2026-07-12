@@ -216,6 +216,7 @@ export default function NewClientPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader
+        back="/clients"
         eyebrow="Clients"
         title="Register a new client"
         description="Capture the client's details and a clear photo for identification."

@@ -157,6 +157,7 @@ export default async function ClientsPage({
   return (
     <div>
       <PageHeader
+        back="/"
         eyebrow="Clients"
         title="All clients"
         description="Search, review, and open a client's profile to manage their loans."

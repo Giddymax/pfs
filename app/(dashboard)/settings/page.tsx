@@ -40,6 +40,7 @@ export default async function SettingsPage() {
   return (
     <div>
       <PageHeader
+        back="/"
         eyebrow="Administration"
         title="Settings"
         description="Configure commission tiers, SMS notifications, the registration card fee, and fixed-deposit terms. These values apply across the system immediately."

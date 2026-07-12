@@ -100,6 +100,7 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
   return (
     <div>
       <PageHeader
+        back={account.product_type === "fixed_deposit" ? "/fixed-deposits" : `/accounts/${account.product_type}`}
         eyebrow={PRODUCT_LABEL[account.product_type]}
         title={account.account_number}
         description={`Opened ${formatDate(account.opening_date)} · ${account.client.full_name}`}

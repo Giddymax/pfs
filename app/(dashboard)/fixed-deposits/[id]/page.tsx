@@ -66,6 +66,7 @@ export default async function FixedDepositDetailPage({ params }: { params: Promi
   return (
     <div>
       <PageHeader
+        back="/fixed-deposits"
         eyebrow="Fixed deposit account"
         title={fd.fd_number}
         description={`Opened ${formatDate(fd.start_date)} · ${fd.client.full_name}`}

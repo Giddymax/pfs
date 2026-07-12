@@ -154,6 +154,7 @@ export default async function FinancePage() {
   return (
     <div>
       <PageHeader
+        back="/"
         eyebrow="Admin - Finance"
         title="Company Finance"
         description="Revenue earned, active investments, expenditures recorded, and net balance."

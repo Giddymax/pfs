@@ -43,6 +43,7 @@ export default async function LoanDetailPage({
   return (
     <div>
       <PageHeader
+        back="/loans"
         eyebrow="Loans"
         title={loan.loan_code}
         description={`Issued to ${loan.client.full_name} on ${formatDate(loan.disbursement_date)}`}

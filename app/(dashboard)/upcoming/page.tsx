@@ -108,6 +108,7 @@ export default async function UpcomingPage() {
   return (
     <div>
       <PageHeader
+        back="/"
         eyebrow="Events"
         title="Upcoming Events"
         description="Loans due, fixed deposit maturities, and susu cycles completing in the next 30 days."

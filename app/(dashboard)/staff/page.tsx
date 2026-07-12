@@ -51,6 +51,7 @@ export default async function StaffPage({
   return (
     <div>
       <PageHeader
+        back="/"
         eyebrow="Administration"
         title="Staff accounts"
         description="Manage who has access to Prime Financial Service. Create new accounts, update names or roles, activate or deactivate login, or remove accounts entirely."

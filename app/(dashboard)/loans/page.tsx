@@ -92,6 +92,7 @@ export default async function LoansPage({
   return (
     <div>
       <PageHeader
+        back="/"
         eyebrow="Loans"
         title="All loans"
         description="Track issued loans, their repayment status and outstanding balances."

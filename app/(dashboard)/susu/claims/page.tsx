@@ -32,6 +32,7 @@ export default async function SusuClaimsPage() {
   return (
     <div>
       <PageHeader
+        back="/"
         eyebrow="Daily Susu"
         title="Claims worklist"
         description="Emergency claims requested mid-cycle require admin review before payout. Normal claims are auto-approved and only need to be paid out."
