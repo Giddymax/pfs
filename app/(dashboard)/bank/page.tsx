@@ -46,7 +46,7 @@ export default async function BankPage() {
     { data: savingsRows },
     { data: susuRows },
     { data: fdRows },
-    { data: cardFeeRows },
+    { count: clientCount },
     { data: commissionRows },
     { data: susuFeeRows },
     { data: withdrawalRows },
@@ -63,7 +63,7 @@ export default async function BankPage() {
     supabase.from("accounts").select("dep").eq("product_type", "savings"),
     supabase.from("accounts").select("dep").eq("product_type", "susu"),
     supabase.from("fixed_deposits").select("principal").not("status", "in", '("withdrawn","rolled_over")'),
-    supabase.from("card_fees").select("amount"),
+    supabase.from("clients").select("*", { count: "exact", head: true }),
     supabase.from("transactions").select("fee").eq("type", "withdrawal").is("reversed_at", null),
     supabase.from("susu_payments").select("amount").eq("day_in_cycle", 31),
     supabase.from("transactions").select("amount").eq("type", "withdrawal").is("reversed_at", null),
@@ -84,7 +84,7 @@ export default async function BankPage() {
     - sum(smsFeeRows, "amount")
     - sum(loanPrincipalRows, "principal")
     + sum(repaymentRows, "amount")
-    + sum(cardFeeRows, "amount")
+    + round2((clientCount ?? 0) * 20)
     + sum(processingFeeRows, "processing_fee")
   );
 

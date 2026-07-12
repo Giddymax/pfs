@@ -46,7 +46,6 @@ export default async function OverviewPage() {
     { data: susuRows },
     { data: fdRows },
     // Revenue components
-    { data: cardFeeRows },
     { data: commissionRows },
     { data: susuFeeRows },
     { data: processingFeeRows },
@@ -70,7 +69,6 @@ export default async function OverviewPage() {
     supabase.from("accounts").select("balance, dep").eq("product_type", "savings"),
     supabase.from("accounts").select("balance, dep").eq("product_type", "susu"),
     supabase.from("fixed_deposits").select("principal").not("status", "in", '("withdrawn","rolled_over")'),
-    supabase.from("card_fees").select("amount"),
     supabase.from("transactions").select("fee").eq("type", "withdrawal").is("reversed_at", null),
     supabase.from("susu_payments").select("amount").eq("day_in_cycle", 31),
     supabase.from("loans").select("processing_fee"),
@@ -113,7 +111,7 @@ export default async function OverviewPage() {
 
   // Revenue components
   const rc = kpi.total_revenue.components;
-  const cardFees        = sum(cardFeeRows,      "amount");
+  const cardFees        = round2((clientCount ?? 0) * 20);
   const commission      = sum(commissionRows,   "fee");
   const susuFees        = sum(susuFeeRows,      "amount");
   const processingFees  = sum(processingFeeRows, "processing_fee");
