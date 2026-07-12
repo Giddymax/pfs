@@ -185,25 +185,27 @@ export default function NewClientPage() {
         if (accountError) throw new Error("Client saved, but opening the account failed: " + accountError.message);
       }
 
-      // Flat registration/card fee — recorded to the card_fees ledger for the
-      // dashboard reconciliation. Per spec this must be non-blocking: a
-      // failure here must never stop a registration that has already
-      // succeeded, so it's fire-and-forget with no user-facing error.
+      // Flat registration/card fee — recorded to the card_fees ledger for
+      // dashboard reconciliation. This must be non-blocking (a failure must
+      // not roll back a completed registration), but we surface any error
+      // as a non-fatal warning so it can be investigated and backfilled.
       try {
         const { data: feeSetting } = await supabase
           .from("settings")
           .select("value")
           .eq("key", "card_fee_amount")
           .maybeSingle<{ value: number }>();
-        const cardFeeAmount = typeof feeSetting?.value === "number" ? feeSetting.value : 20;
+        const rawFee = feeSetting?.value;
+        const cardFeeAmount = typeof rawFee === "number" ? rawFee : typeof rawFee === "string" ? Number(rawFee) : 20;
 
-        await supabase.from("card_fees").insert({
+        const { error: feeError } = await supabase.from("card_fees").insert({
           client_id: inserted.id,
           amount: cardFeeAmount,
           charged_by: user?.id ?? null,
         });
-      } catch {
-        // Swallowed intentionally — see comment above.
+        if (feeError) console.error("card_fees insert failed:", feeError.message);
+      } catch (feeErr) {
+        console.error("card_fees block threw:", feeErr);
       }
 
       window.location.href = `/clients/${inserted.id}`;
