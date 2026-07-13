@@ -269,8 +269,12 @@ function detailColumnLabel(productType: ProductType) {
 
 function detailColumnValue(account: Account) {
   switch (account.product_type) {
-    case "savings":
-      return (account as unknown as { client?: { phone?: string | null } }).client?.phone ?? "—";
+    case "savings": {
+      const phone = (account as unknown as { client?: { phone?: string | null } }).client?.phone;
+      return phone
+        ? <a href={`tel:${phone}`} className="text-[#0033AA] hover:underline">{phone}</a>
+        : "—";
+    }
     case "susu":
       return account.daily_contribution_amount != null ? `${formatGHS(account.daily_contribution_amount)} / day` : "—";
     case "fixed_deposit":
