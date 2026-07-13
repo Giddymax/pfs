@@ -12,9 +12,8 @@ type AccountRow = {
   product_type: string;
   balance: number;
   status: string;
-  interest_rate_annual?: number | null;
   daily_contribution_amount?: number | null;
-  client?: { full_name: string } | null;
+  client?: { full_name: string; phone?: string | null } | null;
 };
 
 function KpiBox({ label, value }: { label: string; value: string }) {
@@ -58,7 +57,7 @@ export function PrintAccountListButton({
 
   function detailValue(account: AccountRow) {
     if (account.product_type === "savings") {
-      return account.interest_rate_annual != null ? `${account.interest_rate_annual}% p.a.` : "—";
+      return account.client?.phone ?? "—";
     }
     return account.daily_contribution_amount != null
       ? `${formatGHS(account.daily_contribution_amount)}/day`
@@ -143,7 +142,7 @@ export function PrintAccountListButton({
                     <th className="px-4 py-2.5">#</th>
                     <th className="px-4 py-2.5">Client</th>
                     <th className="px-4 py-2.5">Account No.</th>
-                    <th className="px-4 py-2.5">{isSavings ? "Interest Rate" : "Daily Amount"}</th>
+                    <th className="px-4 py-2.5">{isSavings ? "Phone" : "Daily Amount"}</th>
                     <th className="px-4 py-2.5 text-right">Balance</th>
                     <th className="px-4 py-2.5">Status</th>
                   </tr>

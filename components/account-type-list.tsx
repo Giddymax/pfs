@@ -259,7 +259,7 @@ export async function AccountTypeList({
 function detailColumnLabel(productType: ProductType) {
   switch (productType) {
     case "savings":
-      return "Interest rate";
+      return "Phone";
     case "susu":
       return "Daily contribution";
     case "fixed_deposit":
@@ -270,7 +270,7 @@ function detailColumnLabel(productType: ProductType) {
 function detailColumnValue(account: Account) {
   switch (account.product_type) {
     case "savings":
-      return account.interest_rate_annual != null ? `${account.interest_rate_annual}% p.a.` : "—";
+      return (account as unknown as { client?: { phone?: string | null } }).client?.phone ?? "—";
     case "susu":
       return account.daily_contribution_amount != null ? `${formatGHS(account.daily_contribution_amount)} / day` : "—";
     case "fixed_deposit":
