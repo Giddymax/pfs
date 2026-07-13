@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { PageHeader, AccountStatusBadge, EmptyState, StatCard } from "@/components/ui";
 import { TableFilter, type FilterOption } from "@/components/table-filter";
 import { formatGHS, round2 } from "@/lib/loan";
+import { getSettings } from "@/lib/settings/cache";
+import { PrintAccountListButton } from "@/components/print-account-list-button";
 import type { Account, ProductType } from "@/lib/types";
 
 const PRODUCT_BY_SLUG: Record<string, { product_type: ProductType; label: string; description: string }> = {
@@ -69,12 +71,15 @@ export async function AccountTypeList({
     }
   }
 
-  const [{ data: accounts }, { count: totalCount }, { data: statsRows }] = await Promise.all([
+  const [{ data: accounts }, { count: totalCount }, { data: statsRows }, settings] = await Promise.all([
     query.returns<Account[]>(),
     supabase.from("accounts").select("*", { count: "exact", head: true }).eq("product_type", product.product_type),
     supabase.from("accounts").select("balance, dep, wdr, comm").eq("product_type", product.product_type)
       .returns<{ balance: number; dep: number; wdr: number; comm: number }[]>(),
+    getSettings(),
   ]);
+
+  const companyPhone = settings.sms.company_tel ?? null;
 
   const sum = (key: "balance" | "dep" | "wdr" | "comm") =>
     round2((statsRows ?? []).reduce((s, r) => s + Number(r[key] ?? 0), 0));
@@ -89,7 +94,24 @@ export async function AccountTypeList({
 
   return (
     <div>
-      <PageHeader eyebrow="Accounts" title={product.label} description={product.description} />
+      <PageHeader
+        eyebrow="Accounts"
+        title={product.label}
+        description={product.description}
+        action={
+          <PrintAccountListButton
+            productType={product.product_type as "savings" | "susu"}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            accounts={(accounts ?? []) as any[]}
+            totalCount={totalCount ?? 0}
+            totalBalance={totalBalance}
+            totalDep={totalDep}
+            totalWdr={totalWdr}
+            totalComm={totalComm}
+            companyPhone={companyPhone}
+          />
+        }
+      />
 
       {/* KPI */}
       {product.product_type === "savings" ? (

@@ -4,7 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { PageHeader, LoanStatusBadge, EmptyState, Card, StatCard } from "@/components/ui";
 import { TableFilter, type FilterOption } from "@/components/table-filter";
 import { ExportCsvButton } from "@/components/export-csv-button";
+import { PrintLoanListButton } from "@/components/print-loan-list-button";
 import { formatGHS, round2 } from "@/lib/loan";
+import { getSettings } from "@/lib/settings/cache";
 import type { Client, Loan, LoanStatus } from "@/lib/types";
 
 const STATUS_PILLS: { label: string; value: LoanStatus | "all" }[] = [
@@ -53,7 +55,7 @@ export default async function LoansPage({
 
   // Fetch overdue active loans for the at-risk banner (always, regardless of filter)
   const today = new Date().toISOString().slice(0, 10);
-  const [{ data: overdueLoans }, { data: allClientIds }] = await Promise.all([
+  const [{ data: overdueLoans }, { data: allClientIds }, settings] = await Promise.all([
     supabase
       .from("loans")
       .select("*, client:clients(full_name, phone, client_code)")
@@ -63,7 +65,10 @@ export default async function LoansPage({
       .returns<(Loan & { client: Pick<Client, "full_name" | "phone" | "client_code"> | null })[]>(),
     supabase.from("loans").select("client_id, principal, current_balance, status")
       .returns<{ client_id: string; principal: number; current_balance: number | null; status: string }[]>(),
+    getSettings(),
   ]);
+
+  const companyPhone = settings.sms.company_tel ?? null;
 
   const allLoans = allClientIds ?? [];
   const clientCount      = new Set(allLoans.map((r) => r.client_id)).size;
@@ -111,6 +116,17 @@ export default async function LoansPage({
         action={
           <div className="flex flex-wrap items-center gap-2">
             <ExportCsvButton endpoint="/api/export/loans" filename="loans.csv" label="Export CSV" />
+            <PrintLoanListButton
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              loans={(loans ?? []) as any[]}
+              clientCount={clientCount}
+              totalPrincipal={totalPrincipal}
+              totalOutstanding={totalOutstanding}
+              activeCount={activeCount}
+              completedCount={completedCount}
+              defaultedCount={defaultedCount}
+              companyPhone={companyPhone}
+            />
             <Link
               href="/loans/new"
               className="inline-flex items-center gap-2 rounded-md bg-[#1D3461] px-5 py-2.5 text-[13.5px] font-semibold text-[#FFFFFF] transition-colors hover:bg-[#152847]"

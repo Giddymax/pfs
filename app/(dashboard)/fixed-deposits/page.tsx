@@ -3,7 +3,9 @@ import { Search, Users, Banknote, TrendingUp, Clock, CheckCircle } from "lucide-
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader, EmptyState, StatCard } from "@/components/ui";
 import { TableFilter, type FilterOption } from "@/components/table-filter";
+import { PrintFdListButton } from "@/components/print-fd-list-button";
 import { formatGHS, round2 } from "@/lib/loan";
+import { getSettings } from "@/lib/settings/cache";
 import type { Client, FdStatus, FixedDeposit } from "@/lib/types";
 
 const FD_STATUS_STYLE: Record<FdStatus, string> = {
@@ -39,10 +41,15 @@ export default async function FixedDepositsPage({
 
   await supabase.rpc("sync_matured_fds");
 
-  const { data: allStats } = await supabase
-    .from("fixed_deposits")
-    .select("client_id, principal, expected_payout, status")
-    .returns<{ client_id: string; principal: number; expected_payout: number; status: string }[]>();
+  const [{ data: allStats }, settings] = await Promise.all([
+    supabase
+      .from("fixed_deposits")
+      .select("client_id, principal, expected_payout, status")
+      .returns<{ client_id: string; principal: number; expected_payout: number; status: string }[]>(),
+    getSettings(),
+  ]);
+
+  const companyPhone = settings.sms.company_tel ?? null;
 
   const allFds          = allStats ?? [];
   const clientCount     = new Set(allFds.map((r) => r.client_id)).size;
@@ -90,6 +97,18 @@ export default async function FixedDepositsPage({
         eyebrow="Accounts"
         title="Fixed Deposit accounts"
         description="Lump-sum term placements with maturity, early-withdrawal and rollover lifecycles."
+        action={
+          <PrintFdListButton
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            deposits={rows as any[]}
+            clientCount={clientCount}
+            totalPrincipal={totalPrincipal}
+            totalPayout={totalPayout}
+            activeCount={activeFds.length}
+            maturedCount={maturedFds.length}
+            companyPhone={companyPhone}
+          />
+        }
       />
 
       {/* KPI */}
