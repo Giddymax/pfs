@@ -384,7 +384,7 @@ export default async function OverviewPage() {
                     </span>
                     <div className="min-w-0">
                       <p className="truncate text-[14px] font-medium text-[#0A2240]">{client.full_name}</p>
-                      <p className="text-[12px] text-[#0A2240]/45">{client.client_code} · {client.phone}</p>
+                      <p className="text-[12px] text-[#0A2240]/45">{client.client_code} · <a href={`tel:${client.phone}`} className="hover:text-[#0033AA] hover:underline">{client.phone}</a></p>
                     </div>
                   </Link>
                 </li>

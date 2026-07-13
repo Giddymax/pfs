@@ -267,7 +267,7 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[14px] font-medium text-[#0A2240]">{account.client.full_name}</span>
               <span className="block text-[12px] text-[#0A2240]/45">
-                {account.client.client_code} · {account.client.phone}
+                {account.client.client_code} · <a href={`tel:${account.client.phone}`} className="hover:text-[#0033AA] hover:underline">{account.client.phone}</a>
               </span>
             </span>
             <ArrowUpRight size={15} className="shrink-0 text-[#0033AA]/30" />

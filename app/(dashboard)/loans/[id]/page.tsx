@@ -84,7 +84,7 @@ export default async function LoanDetailPage({
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[14px] font-medium text-[#0A2240]">{loan.client.full_name}</span>
-                <span className="block text-[12px] text-[#0A2240]/45">{loan.client.client_code} · {loan.client.phone}</span>
+                <span className="block text-[12px] text-[#0A2240]/45">{loan.client.client_code} · <a href={`tel:${loan.client.phone}`} className="hover:text-[#0033AA] hover:underline">{loan.client.phone}</a></span>
               </span>
               <ArrowUpRight size={15} className="shrink-0 text-[#0033AA]/30" />
             </Link>

@@ -118,7 +118,7 @@ export default async function FixedDepositDetailPage({ params }: { params: Promi
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[14px] font-medium text-[#0A2240]">{fd.client.full_name}</span>
               <span className="block text-[12px] text-[#0A2240]/45">
-                {fd.client.client_code} · {fd.client.phone}
+                {fd.client.client_code} · <a href={`tel:${fd.client.phone}`} className="hover:text-[#0033AA] hover:underline">{fd.client.phone}</a>
               </span>
             </span>
             <ArrowUpRight size={15} className="shrink-0 text-[#0033AA]/30" />

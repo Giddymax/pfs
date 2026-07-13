@@ -138,8 +138,8 @@ export default async function ClientDetailPage({
           </div>
 
           <dl className="space-y-4 px-6 py-6 text-[13.5px]">
-            <DetailRow icon={<Phone size={15} />} label="Phone" value={client.phone} />
-            {client.alt_phone && <DetailRow icon={<Phone size={15} />} label="Alternate phone" value={client.alt_phone} />}
+            <DetailRow icon={<Phone size={15} />} label="Phone" value={<a href={`tel:${client.phone}`} className="hover:text-[#0033AA] hover:underline">{client.phone}</a>} />
+            {client.alt_phone && <DetailRow icon={<Phone size={15} />} label="Alternate phone" value={<a href={`tel:${client.alt_phone}`} className="hover:text-[#0033AA] hover:underline">{client.alt_phone}</a>} />}
             {client.ghana_card_number && <DetailRow icon={<IdCard size={15} />} label="Ghana Card" value={client.ghana_card_number} />}
             {client.occupation && <DetailRow icon={<Briefcase size={15} />} label="Occupation" value={client.occupation} />}
             {client.residential_address && <DetailRow icon={<MapPin size={15} />} label="Address" value={client.residential_address} />}
@@ -147,7 +147,12 @@ export default async function ClientDetailPage({
               <DetailRow
                 icon={<HeartHandshake size={15} />}
                 label="Next of kin"
-                value={[client.next_of_kin_name, client.next_of_kin_phone].filter(Boolean).join(" · ")}
+                value={
+                  <>
+                    {client.next_of_kin_name}{client.next_of_kin_name && client.next_of_kin_phone && " · "}
+                    {client.next_of_kin_phone && <a href={`tel:${client.next_of_kin_phone}`} className="hover:text-[#0033AA] hover:underline">{client.next_of_kin_phone}</a>}
+                  </>
+                }
               />
             )}
             {client.gender && <DetailRow icon={<UserRound size={15} />} label="Gender" value={client.gender === "male" ? "Male" : "Female"} />}
@@ -216,7 +221,7 @@ export default async function ClientDetailPage({
   );
 }
 
-function DetailRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function DetailRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-start gap-3">
       <span className="mt-0.5 text-[#0033AA]/35">{icon}</span>

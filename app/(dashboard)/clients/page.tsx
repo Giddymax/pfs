@@ -296,7 +296,7 @@ export default async function ClientsPage({
                         <p className="truncate text-[14px] font-semibold text-[#0A2240]">{client.full_name}</p>
                         <ClientStatusBadge status={client.status} />
                       </div>
-                      <p className="text-[12px] text-[#0A2240]/45">{client.client_code} · {client.phone}</p>
+                      <p className="text-[12px] text-[#0A2240]/45">{client.client_code} · <a href={`tel:${client.phone}`} className="hover:text-[#0033AA] hover:underline">{client.phone}</a></p>
                       <div className="mt-1 flex items-center gap-3 text-[12px] text-[#0A2240]/55">
                         {ProductIcon && productLabel && (
                           <span className="inline-flex items-center gap-1">
@@ -401,7 +401,7 @@ export default async function ClientsPage({
                           </span>
                         </Link>
                       </td>
-                      <td className="px-5 py-3.5 text-[#0A2240]/55">{client.phone}</td>
+                      <td className="px-5 py-3.5 text-[#0A2240]/55"><a href={`tel:${client.phone}`} className="hover:text-[#0033AA] hover:underline">{client.phone}</a></td>
                       <td className="px-5 py-3.5">
                         {ProductIcon && productLabel ? (
                           <span className="inline-flex items-center gap-1.5 text-[#0A2240]/70">
