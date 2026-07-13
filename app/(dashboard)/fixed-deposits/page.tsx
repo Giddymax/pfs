@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { Search, Users } from "lucide-react";
+import { Search, Users, Banknote, TrendingUp, Clock, CheckCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader, EmptyState, StatCard } from "@/components/ui";
 import { TableFilter, type FilterOption } from "@/components/table-filter";
-import { formatGHS } from "@/lib/loan";
+import { formatGHS, round2 } from "@/lib/loan";
 import type { Client, FdStatus, FixedDeposit } from "@/lib/types";
 
 const FD_STATUS_STYLE: Record<FdStatus, string> = {
@@ -39,11 +39,17 @@ export default async function FixedDepositsPage({
 
   await supabase.rpc("sync_matured_fds");
 
-  const { data: allClientIds } = await supabase
+  const { data: allStats } = await supabase
     .from("fixed_deposits")
-    .select("client_id")
-    .returns<{ client_id: string }[]>();
-  const clientCount = new Set((allClientIds ?? []).map((r) => r.client_id)).size;
+    .select("client_id, principal, expected_payout, status")
+    .returns<{ client_id: string; principal: number; expected_payout: number; status: string }[]>();
+
+  const allFds          = allStats ?? [];
+  const clientCount     = new Set(allFds.map((r) => r.client_id)).size;
+  const activeFds       = allFds.filter((r) => r.status === "active");
+  const maturedFds      = allFds.filter((r) => r.status === "matured");
+  const totalPrincipal  = round2(activeFds.reduce((s, r) => s + Number(r.principal ?? 0), 0));
+  const totalPayout     = round2(activeFds.reduce((s, r) => s + Number(r.expected_payout ?? 0), 0));
 
   const qs = new URLSearchParams({
     ...(status ? { status } : {}),
@@ -87,8 +93,12 @@ export default async function FixedDepositsPage({
       />
 
       {/* KPI */}
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <StatCard label="Total clients" value={String(clientCount)} icon={<Users size={16} />} />
+      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-5">
+        <StatCard label="Total clients"        value={String(clientCount)}      icon={<Users size={16} />} />
+        <StatCard label="Active principal"     value={formatGHS(totalPrincipal)} icon={<Banknote size={16} />} />
+        <StatCard label="Expected payout"      value={formatGHS(totalPayout)}    icon={<TrendingUp size={16} />} />
+        <StatCard label="Active deposits"      value={String(activeFds.length)}  icon={<Clock size={16} />} />
+        <StatCard label="Matured deposits"     value={String(maturedFds.length)} icon={<CheckCircle size={16} />} />
       </div>
 
       {/* Search */}

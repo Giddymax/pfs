@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Search, Users } from "lucide-react";
+import { Search, Users, Wallet, ArrowDownToLine, ArrowUpFromLine, ReceiptText } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader, AccountStatusBadge, EmptyState, StatCard } from "@/components/ui";
 import { TableFilter, type FilterOption } from "@/components/table-filter";
-import { formatGHS } from "@/lib/loan";
+import { formatGHS, round2 } from "@/lib/loan";
 import type { Account, ProductType } from "@/lib/types";
 
 const PRODUCT_BY_SLUG: Record<string, { product_type: ProductType; label: string; description: string }> = {
@@ -69,10 +69,20 @@ export async function AccountTypeList({
     }
   }
 
-  const [{ data: accounts }, { count: totalCount }] = await Promise.all([
+  const [{ data: accounts }, { count: totalCount }, { data: statsRows }] = await Promise.all([
     query.returns<Account[]>(),
     supabase.from("accounts").select("*", { count: "exact", head: true }).eq("product_type", product.product_type),
+    supabase.from("accounts").select("balance, dep, wdr, comm").eq("product_type", product.product_type)
+      .returns<{ balance: number; dep: number; wdr: number; comm: number }[]>(),
   ]);
+
+  const sum = (key: "balance" | "dep" | "wdr" | "comm") =>
+    round2((statsRows ?? []).reduce((s, r) => s + Number(r[key] ?? 0), 0));
+
+  const totalBalance = sum("balance");
+  const totalDep     = sum("dep");
+  const totalWdr     = sum("wdr");
+  const totalComm    = sum("comm");
 
   const hasSearch = !!q?.trim();
   const hasFilter = !!status;
@@ -82,9 +92,22 @@ export async function AccountTypeList({
       <PageHeader eyebrow="Accounts" title={product.label} description={product.description} />
 
       {/* KPI */}
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <StatCard label="Total clients" value={String(totalCount ?? 0)} icon={<Users size={16} />} />
-      </div>
+      {product.product_type === "savings" ? (
+        <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-5">
+          <StatCard label="Total clients"     value={String(totalCount ?? 0)}  icon={<Users size={16} />} />
+          <StatCard label="Total balance"     value={formatGHS(totalBalance)}   icon={<Wallet size={16} />} />
+          <StatCard label="Total deposits"    value={formatGHS(totalDep)}       icon={<ArrowDownToLine size={16} />} />
+          <StatCard label="Total withdrawals" value={formatGHS(totalWdr)}       icon={<ArrowUpFromLine size={16} />} />
+          <StatCard label="Total commission"  value={formatGHS(totalComm)}      icon={<ReceiptText size={16} />} />
+        </div>
+      ) : (
+        <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <StatCard label="Total clients"       value={String(totalCount ?? 0)}  icon={<Users size={16} />} />
+          <StatCard label="Total balance"       value={formatGHS(totalBalance)}   icon={<Wallet size={16} />} />
+          <StatCard label="Total contributions" value={formatGHS(totalDep)}       icon={<ArrowDownToLine size={16} />} />
+          <StatCard label="Total withdrawn"     value={formatGHS(totalWdr)}       icon={<ArrowUpFromLine size={16} />} />
+        </div>
+      )}
 
       {/* Search */}
       <form className="mb-4 sm:max-w-sm">

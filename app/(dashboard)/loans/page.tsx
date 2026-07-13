@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { Plus, Search, AlertTriangle, Phone, Users } from "lucide-react";
+import { Plus, Search, AlertTriangle, Phone, Users, Banknote, Wallet, CheckCircle, XCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader, LoanStatusBadge, EmptyState, Card, StatCard } from "@/components/ui";
 import { TableFilter, type FilterOption } from "@/components/table-filter";
 import { ExportCsvButton } from "@/components/export-csv-button";
-import { formatGHS } from "@/lib/loan";
+import { formatGHS, round2 } from "@/lib/loan";
 import type { Client, Loan, LoanStatus } from "@/lib/types";
 
 const STATUS_PILLS: { label: string; value: LoanStatus | "all" }[] = [
@@ -61,10 +61,17 @@ export default async function LoansPage({
       .lt("due_date", today)
       .order("due_date", { ascending: true })
       .returns<(Loan & { client: Pick<Client, "full_name" | "phone" | "client_code"> | null })[]>(),
-    supabase.from("loans").select("client_id").returns<{ client_id: string }[]>(),
+    supabase.from("loans").select("client_id, principal, current_balance, status")
+      .returns<{ client_id: string; principal: number; current_balance: number | null; status: string }[]>(),
   ]);
 
-  const clientCount = new Set((allClientIds ?? []).map((r) => r.client_id)).size;
+  const allLoans = allClientIds ?? [];
+  const clientCount      = new Set(allLoans.map((r) => r.client_id)).size;
+  const totalPrincipal   = round2(allLoans.reduce((s, r) => s + Number(r.principal ?? 0), 0));
+  const totalOutstanding = round2(allLoans.filter((r) => r.status === "active").reduce((s, r) => s + Number(r.current_balance ?? 0), 0));
+  const activeCount      = allLoans.filter((r) => r.status === "active").length;
+  const completedCount   = allLoans.filter((r) => r.status === "completed").length;
+  const defaultedCount   = allLoans.filter((r) => r.status === "defaulted").length;
 
   // Main loan list
   let query = supabase
@@ -116,8 +123,13 @@ export default async function LoansPage({
       />
 
       {/* KPI */}
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <StatCard label="Total clients" value={String(clientCount)} icon={<Users size={16} />} />
+      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-6">
+        <StatCard label="Total clients"       value={String(clientCount)}         icon={<Users size={16} />} />
+        <StatCard label="Total principal"     value={formatGHS(totalPrincipal)}   icon={<Banknote size={16} />} />
+        <StatCard label="Outstanding balance" value={formatGHS(totalOutstanding)} icon={<Wallet size={16} />} />
+        <StatCard label="Active loans"        value={String(activeCount)}         icon={<Banknote size={16} />} />
+        <StatCard label="Completed"           value={String(completedCount)}      icon={<CheckCircle size={16} />} />
+        <StatCard label="Defaulted"           value={String(defaultedCount)}      icon={<XCircle size={16} />} />
       </div>
 
       {/* ── Overdue / At-Risk Banner ── */}
