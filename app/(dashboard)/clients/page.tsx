@@ -111,10 +111,11 @@ export default async function ClientsPage({
   const registrarNameById = new Map<string, string>();
   const fdNumberByClient = new Map<string, string>();
   const fdByClient = new Map<string, { client_id: string; fd_number: string; principal: number }>();
+  const clientsWithFees = new Set<string>();
   if (clients.length > 0) {
     const clientIds = clients.map((c) => c.id);
 
-    const [{ data: accounts }, { data: fdRows }] = await Promise.all([
+    const [{ data: accounts }, { data: fdRows }, { data: cardFeeRows }] = await Promise.all([
       supabase
         .from("accounts")
         .select("*")
@@ -128,7 +129,14 @@ export default async function ClientsPage({
         .not("status", "in", '("withdrawn","rolled_over")')
         .order("created_at", { ascending: false })
         .returns<{ client_id: string; fd_number: string; principal: number }[]>(),
+      supabase
+        .from("card_fees")
+        .select("client_id")
+        .in("client_id", clientIds)
+        .returns<{ client_id: string }[]>(),
     ]);
+
+    for (const r of cardFeeRows ?? []) clientsWithFees.add(r.client_id);
 
     for (const acc of accounts ?? []) {
       if (!accountByClient.has(acc.client_id)) accountByClient.set(acc.client_id, acc);
@@ -325,6 +333,7 @@ export default async function ClientsPage({
                       registeredBy={client.created_by ? registrarNameById.get(client.created_by) ?? null : null}
                       fdNumber={fdNumberByClient.get(client.id) ?? null}
                       companyPhone={companyPhone}
+                      isMigrated={!clientsWithFees.has(client.id)}
                     />
                     {isAdmin && (
                       <>
@@ -437,6 +446,7 @@ export default async function ClientsPage({
                             registeredBy={client.created_by ? registrarNameById.get(client.created_by) ?? null : null}
                             fdNumber={fdNumberByClient.get(client.id) ?? null}
                             companyPhone={companyPhone}
+                            isMigrated={!clientsWithFees.has(client.id)}
                           />
                           {isAdmin && (
                             <>

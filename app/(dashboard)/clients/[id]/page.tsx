@@ -18,7 +18,7 @@ export default async function ClientDetailPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: client }, { data: loans }, { data: profile }, { data: accounts }, { data: transactions }, { data: fds }, settings] = await Promise.all([
+  const [{ data: client }, { data: loans }, { data: profile }, { data: accounts }, { data: transactions }, { data: fds }, settings, { count: cardFeeCount }] = await Promise.all([
     supabase.from("clients").select("*").eq("id", id).single<Client>(),
     supabase.from("loans").select("*").eq("client_id", id).order("created_at", { ascending: false }).returns<Loan[]>(),
     getCurrentProfile(supabase),
@@ -38,6 +38,7 @@ export default async function ClientDetailPage({
       .limit(1)
       .returns<{ fd_number: string }[]>(),
     getSettings(),
+    supabase.from("card_fees").select("*", { count: "exact", head: true }).eq("client_id", id),
   ]);
 
   if (!client) notFound();
@@ -45,6 +46,7 @@ export default async function ClientDetailPage({
   const isAdmin = profile?.role === "admin";
   const account = accounts?.[0] ?? null;
   const companyPhone = settings.sms.company_tel ?? null;
+  const isMigrated = (cardFeeCount ?? 0) === 0;
 
   // Fetch agent and registrar names in parallel
   const lookupIds = [
@@ -93,6 +95,7 @@ export default async function ClientDetailPage({
               registeredBy={registeredBy}
               fdNumber={fds?.[0]?.fd_number ?? null}
               companyPhone={companyPhone}
+              isMigrated={isMigrated}
             />
             {isAdmin && (
               <>

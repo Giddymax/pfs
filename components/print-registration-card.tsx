@@ -26,6 +26,7 @@ export function PrintRegistrationCardButton({
   registeredBy,
   fdNumber,
   companyPhone,
+  isMigrated,
 }: {
   client: Client;
   account?: Account | null;
@@ -34,6 +35,7 @@ export function PrintRegistrationCardButton({
   registeredBy?: string | null;
   fdNumber?: string | null;
   companyPhone?: string | null;
+  isMigrated?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [printedAt, setPrintedAt] = useState<Date | null>(null);
@@ -105,6 +107,11 @@ export function PrintRegistrationCardButton({
                 <div className="grid grid-cols-1 gap-x-8 gap-y-3.5 sm:col-span-2 sm:grid-cols-2">
                   <Field label="Full name" value={client.full_name} />
                   <Field label="Client code" value={client.client_code} />
+                  <Field
+                    label="Client type"
+                    value={isMigrated ? "Old (Migrated)" : "New"}
+                    highlight={isMigrated ? "migrated" : "new"}
+                  />
                   <Field label="Date of birth" value={client.date_of_birth ? fullDate(client.date_of_birth) : "—"} />
                   <Field label="Gender" value={client.gender ? (client.gender === "male" ? "Male" : "Female") : "—"} />
                   <Field label="Telephone" value={client.phone} />
@@ -205,11 +212,23 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Field({ label, value }: { label: string; value: string }) {
+function Field({ label, value, highlight }: { label: string; value: string; highlight?: "new" | "migrated" }) {
   return (
     <div>
       <p className="text-[10px] uppercase tracking-[0.1em] text-[#0A2240]/40">{label}</p>
-      <p className="text-[13.5px] font-medium text-[#0A2240]">{value}</p>
+      {highlight ? (
+        <span
+          className={`inline-block rounded-full px-2.5 py-0.5 text-[11.5px] font-semibold ${
+            highlight === "migrated"
+              ? "bg-[#B58A2A]/12 text-[#8A6A1F]"
+              : "bg-[#0033AA]/10 text-[#0033AA]"
+          }`}
+        >
+          {value}
+        </span>
+      ) : (
+        <p className="text-[13.5px] font-medium text-[#0A2240]">{value}</p>
+      )}
     </div>
   );
 }
