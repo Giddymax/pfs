@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Search } from "lucide-react";
+import { Search, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { PageHeader, AccountStatusBadge, EmptyState } from "@/components/ui";
+import { PageHeader, AccountStatusBadge, EmptyState, StatCard } from "@/components/ui";
 import { TableFilter, type FilterOption } from "@/components/table-filter";
 import { formatGHS } from "@/lib/loan";
 import type { Account, ProductType } from "@/lib/types";
@@ -69,7 +69,10 @@ export async function AccountTypeList({
     }
   }
 
-  const { data: accounts } = await query.returns<Account[]>();
+  const [{ data: accounts }, { count: totalCount }] = await Promise.all([
+    query.returns<Account[]>(),
+    supabase.from("accounts").select("*", { count: "exact", head: true }).eq("product_type", product.product_type),
+  ]);
 
   const hasSearch = !!q?.trim();
   const hasFilter = !!status;
@@ -77,6 +80,11 @@ export async function AccountTypeList({
   return (
     <div>
       <PageHeader eyebrow="Accounts" title={product.label} description={product.description} />
+
+      {/* KPI */}
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard label="Total clients" value={String(totalCount ?? 0)} icon={<Users size={16} />} />
+      </div>
 
       {/* Search */}
       <form className="mb-4 sm:max-w-sm">

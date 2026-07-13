@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { Search, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { PageHeader, EmptyState } from "@/components/ui";
+import { PageHeader, EmptyState, StatCard } from "@/components/ui";
 import { TableFilter, type FilterOption } from "@/components/table-filter";
 import { formatGHS } from "@/lib/loan";
 import type { Client, FdStatus, FixedDeposit } from "@/lib/types";
@@ -38,6 +38,12 @@ export default async function FixedDepositsPage({
   const supabase = await createClient();
 
   await supabase.rpc("sync_matured_fds");
+
+  const { data: allClientIds } = await supabase
+    .from("fixed_deposits")
+    .select("client_id")
+    .returns<{ client_id: string }[]>();
+  const clientCount = new Set((allClientIds ?? []).map((r) => r.client_id)).size;
 
   const qs = new URLSearchParams({
     ...(status ? { status } : {}),
@@ -79,6 +85,11 @@ export default async function FixedDepositsPage({
         title="Fixed Deposit accounts"
         description="Lump-sum term placements with maturity, early-withdrawal and rollover lifecycles."
       />
+
+      {/* KPI */}
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard label="Total clients" value={String(clientCount)} icon={<Users size={16} />} />
+      </div>
 
       {/* Search */}
       <form className="mb-4 sm:max-w-sm">

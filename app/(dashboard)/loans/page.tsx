@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { Plus, Search, AlertTriangle, Phone } from "lucide-react";
+import { Plus, Search, AlertTriangle, Phone, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { PageHeader, LoanStatusBadge, EmptyState, Card } from "@/components/ui";
+import { PageHeader, LoanStatusBadge, EmptyState, Card, StatCard } from "@/components/ui";
 import { TableFilter, type FilterOption } from "@/components/table-filter";
 import { ExportCsvButton } from "@/components/export-csv-button";
 import { formatGHS } from "@/lib/loan";
@@ -53,13 +53,18 @@ export default async function LoansPage({
 
   // Fetch overdue active loans for the at-risk banner (always, regardless of filter)
   const today = new Date().toISOString().slice(0, 10);
-  const { data: overdueLoans } = await supabase
-    .from("loans")
-    .select("*, client:clients(full_name, phone, client_code)")
-    .eq("status", "active")
-    .lt("due_date", today)
-    .order("due_date", { ascending: true })
-    .returns<(Loan & { client: Pick<Client, "full_name" | "phone" | "client_code"> | null })[]>();
+  const [{ data: overdueLoans }, { data: allClientIds }] = await Promise.all([
+    supabase
+      .from("loans")
+      .select("*, client:clients(full_name, phone, client_code)")
+      .eq("status", "active")
+      .lt("due_date", today)
+      .order("due_date", { ascending: true })
+      .returns<(Loan & { client: Pick<Client, "full_name" | "phone" | "client_code"> | null })[]>(),
+    supabase.from("loans").select("client_id").returns<{ client_id: string }[]>(),
+  ]);
+
+  const clientCount = new Set((allClientIds ?? []).map((r) => r.client_id)).size;
 
   // Main loan list
   let query = supabase
@@ -109,6 +114,11 @@ export default async function LoansPage({
           </div>
         }
       />
+
+      {/* KPI */}
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard label="Total clients" value={String(clientCount)} icon={<Users size={16} />} />
+      </div>
 
       {/* ── Overdue / At-Risk Banner ── */}
       {showOverdueBanner && (
