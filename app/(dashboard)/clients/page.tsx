@@ -131,12 +131,14 @@ export default async function ClientsPage({
         .returns<{ client_id: string; fd_number: string; principal: number }[]>(),
       supabase
         .from("card_fees")
-        .select("client_id")
+        .select("client_id, amount")
         .in("client_id", clientIds)
-        .returns<{ client_id: string }[]>(),
+        .returns<{ client_id: string; amount: number }[]>(),
     ]);
 
-    for (const r of cardFeeRows ?? []) clientsWithFees.add(r.client_id);
+    for (const r of cardFeeRows ?? []) {
+      if ((r.amount ?? 0) > 0) clientsWithFees.add(r.client_id);
+    }
 
     for (const acc of accounts ?? []) {
       if (!accountByClient.has(acc.client_id)) accountByClient.set(acc.client_id, acc);
