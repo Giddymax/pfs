@@ -6,6 +6,7 @@ import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { PrintRegistrationCardButton } from "@/components/print-registration-card";
 import { PrintTransactionHistoryButton } from "@/components/print-transaction-history-button";
 import { Card, ClientStatusBadge, LoanStatusBadge, EmptyState, PageHeader } from "@/components/ui";
+import { getSettings } from "@/lib/settings/cache";
 import { formatGHS } from "@/lib/loan";
 import type { Account, Client, Loan, Profile, Transaction } from "@/lib/types";
 
@@ -17,7 +18,7 @@ export default async function ClientDetailPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: client }, { data: loans }, { data: profile }, { data: accounts }, { data: transactions }, { data: fds }] = await Promise.all([
+  const [{ data: client }, { data: loans }, { data: profile }, { data: accounts }, { data: transactions }, { data: fds }, settings] = await Promise.all([
     supabase.from("clients").select("*").eq("id", id).single<Client>(),
     supabase.from("loans").select("*").eq("client_id", id).order("created_at", { ascending: false }).returns<Loan[]>(),
     getCurrentProfile(supabase),
@@ -36,12 +37,14 @@ export default async function ClientDetailPage({
       .order("created_at", { ascending: false })
       .limit(1)
       .returns<{ fd_number: string }[]>(),
+    getSettings(),
   ]);
 
   if (!client) notFound();
 
   const isAdmin = profile?.role === "admin";
   const account = accounts?.[0] ?? null;
+  const companyPhone = settings.sms.company_tel ?? null;
 
   // Fetch agent and registrar names in parallel
   const lookupIds = [
@@ -80,6 +83,7 @@ export default async function ClientDetailPage({
               client={client}
               transactions={transactions ?? []}
               printedBy={profile?.full_name}
+              companyPhone={companyPhone}
             />
             <PrintRegistrationCardButton
               client={client}
@@ -88,6 +92,7 @@ export default async function ClientDetailPage({
               processedBy={profile?.full_name}
               registeredBy={registeredBy}
               fdNumber={fds?.[0]?.fd_number ?? null}
+              companyPhone={companyPhone}
             />
             {isAdmin && (
               <>

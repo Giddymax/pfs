@@ -25,12 +25,14 @@ export function ClientPrintHistoryButton({
   accountBalance,
   printedBy,
   triggerClassName,
+  companyPhone,
 }: {
   client: Client;
   accountNumber?: string | null;
   accountBalance?: number | null;
   printedBy?: string | null;
   triggerClassName?: string;
+  companyPhone?: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -109,7 +111,7 @@ export function ClientPrintHistoryButton({
                 <div className="leading-tight">
                   <p className="text-[18px] font-bold tracking-[0.08em] text-[#0033AA]">PRIME</p>
                   <p className="text-[11px] font-semibold tracking-[0.18em] text-[#0A2240]/70">FINANCIAL SERVICE</p>
-                  <p className="mt-0.5 text-[10.5px] text-[#0A2240]/45">Tel: 0552315639</p>
+                  {companyPhone && <p className="mt-0.5 text-[10.5px] text-[#0A2240]/45">Tel: {companyPhone}</p>}
                 </div>
               </div>
               <div className="text-right text-[11px] text-[#0A2240]/40">

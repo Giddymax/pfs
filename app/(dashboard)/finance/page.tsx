@@ -172,6 +172,7 @@ export default async function FinancePage() {
             investmentDeductedFromAccount={investmentDeductedFromAccount}
             investmentRevenue={returnedInvestmentRevenue}
             printedBy={profile?.full_name}
+            companyPhone={settings.sms.company_tel ?? null}
           />
         }
       />

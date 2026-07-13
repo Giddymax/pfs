@@ -17,6 +17,7 @@ import { SusuClaimRequestButton } from "@/components/susu-claim-request-button";
 import { SusuClaimActions } from "@/components/susu-claim-actions";
 import { ResetSusuButton } from "@/components/reset-susu-button";
 import { ClearTransactionsButton } from "@/components/clear-transactions-button";
+import { getSettings } from "@/lib/settings/cache";
 import { formatGHS } from "@/lib/loan";
 import type { Account, Client, CommissionTier, Profile, SusuClaim, SusuCycle, SusuPayment, Transaction } from "@/lib/types";
 
@@ -32,7 +33,7 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
 
   type TxnRow = Transaction & { recorder: { full_name: string } | null };
 
-  const [{ data: account }, { data: transactions }, { data: profile }, { data: tierRow }] = await Promise.all([
+  const [{ data: account }, { data: transactions }, { data: profile }, { data: tierRow }, settings] = await Promise.all([
     supabase.from("accounts").select("*, client:clients(*)").eq("id", id).single<Account & { client: Client }>(),
     supabase
       .from("transactions")
@@ -42,12 +43,14 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
       .returns<TxnRow[]>(),
     getCurrentProfile(supabase),
     supabase.from("settings").select("value").eq("key", "commission_tiers").maybeSingle<{ value: CommissionTier[] }>(),
+    getSettings(),
   ]);
 
   if (!account) notFound();
 
   const isAdmin = profile?.role === "admin";
   const isStaffOrAdmin = profile?.role === "admin" || profile?.role === "staff";
+  const companyPhone = settings.sms.company_tel ?? null;
   const allTransactions = transactions ?? [];
   const txnsWithAccount = allTransactions.map(({ account: _acct, ...rest }) => ({
     ...rest,
@@ -135,6 +138,7 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
                 accountId={account.id}
                 accountNumber={account.account_number}
                 printedBy={profile?.full_name ?? null}
+                companyPhone={companyPhone}
               />
               <PrintTransactionHistoryButton
                 client={account.client}
@@ -142,6 +146,7 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
                 printedBy={profile?.full_name}
                 accountNumber={account.account_number}
                 accountBalance={account.balance}
+                companyPhone={companyPhone}
               />
             </div>
           )

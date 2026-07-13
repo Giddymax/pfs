@@ -25,6 +25,7 @@ export function PrintRegistrationCardButton({
   processedBy,
   registeredBy,
   fdNumber,
+  companyPhone,
 }: {
   client: Client;
   account?: Account | null;
@@ -32,6 +33,7 @@ export function PrintRegistrationCardButton({
   processedBy?: string | null;
   registeredBy?: string | null;
   fdNumber?: string | null;
+  companyPhone?: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const [printedAt, setPrintedAt] = useState<Date | null>(null);
@@ -88,7 +90,7 @@ export function PrintRegistrationCardButton({
                 <div className="leading-tight">
                   <p className="text-[19px] font-bold tracking-[0.08em] text-[#0033AA]">PRIME</p>
                   <p className="text-[12px] font-semibold tracking-[0.18em] text-[#0A2240]/70">FINANCIAL SERVICE</p>
-                  <p className="mt-0.5 text-[11px] text-[#0A2240]/45">Tel: 0552315639</p>
+                  {companyPhone && <p className="mt-0.5 text-[11px] text-[#0A2240]/45">Tel: {companyPhone}</p>}
                 </div>
               </div>
             </div>

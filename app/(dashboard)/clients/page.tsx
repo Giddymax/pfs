@@ -8,6 +8,7 @@ import { ClientExcelButtons } from "@/components/client-excel-buttons";
 import { TableFilter, type FilterOption } from "@/components/table-filter";
 import { ExportCsvButton } from "@/components/export-csv-button";
 import { PageHeader, ClientStatusBadge, EmptyState } from "@/components/ui";
+import { getSettings } from "@/lib/settings/cache";
 import type { Client, Account, ProductType, Profile } from "@/lib/types";
 
 const PRODUCT_LABEL: Record<ProductType, string> = {
@@ -98,8 +99,12 @@ export default async function ClientsPage({
     ...new Set((townRows ?? []).map((r) => (r as { town: string }).town).filter(Boolean)),
   ].map((t) => ({ value: t, label: t }));
 
-  const { data: profile } = await getCurrentProfile(supabase);
+  const [{ data: profile }, settings] = await Promise.all([
+    getCurrentProfile(supabase),
+    getSettings(),
+  ]);
   const isAdmin = profile?.role === "admin";
+  const companyPhone = settings.sms.company_tel ?? null;
 
   const accountByClient = new Map<string, Account>();
   const agentNameById = new Map<string, string>();
@@ -310,6 +315,7 @@ export default async function ClientsPage({
                       accountNumber={acc?.account_number}
                       accountBalance={acc?.balance}
                       printedBy={profile?.full_name}
+                      companyPhone={companyPhone}
                     />
                     <PrintRegistrationCardButton
                       client={client}
@@ -318,6 +324,7 @@ export default async function ClientsPage({
                       processedBy={profile?.full_name}
                       registeredBy={client.created_by ? registrarNameById.get(client.created_by) ?? null : null}
                       fdNumber={fdNumberByClient.get(client.id) ?? null}
+                      companyPhone={companyPhone}
                     />
                     {isAdmin && (
                       <>
@@ -420,6 +427,7 @@ export default async function ClientsPage({
                             accountNumber={acc?.account_number}
                             accountBalance={acc?.balance}
                             printedBy={profile?.full_name}
+                            companyPhone={companyPhone}
                           />
                           <PrintRegistrationCardButton
                             client={client}
@@ -428,6 +436,7 @@ export default async function ClientsPage({
                             processedBy={profile?.full_name}
                             registeredBy={client.created_by ? registrarNameById.get(client.created_by) ?? null : null}
                             fdNumber={fdNumberByClient.get(client.id) ?? null}
+                            companyPhone={companyPhone}
                           />
                           {isAdmin && (
                             <>
