@@ -72,7 +72,7 @@ export default async function ClientsPage({
   }
 
   // Main client query
-  let query = supabase.from("clients").select("*").order("created_at", { ascending: false });
+  let query = supabase.from("clients").select("*").order("client_code", { ascending: true });
   if (q?.trim()) {
     const term = q.trim();
     query = query.or(`full_name.ilike.%${term}%,phone.ilike.%${term}%,client_code.ilike.%${term}%`);
