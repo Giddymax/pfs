@@ -60,6 +60,8 @@ export default async function OverviewPage() {
     { data: smsFeeRows },
     // Cash at bank — sum(deposits) − sum(withdrawals) from bank_transactions
     { data: bankTxnRows },
+    // Card fees — summed directly from the card_fees ledger
+    { data: cardFeeRows },
     // Recent items
     { data: loans },
     { data: recentClients },
@@ -79,6 +81,7 @@ export default async function OverviewPage() {
     supabase.from("loan_repayments").select("amount"),
     supabase.from("sms_fee_charges").select("amount"),
     supabase.from("bank_transactions").select("type, amount"),
+    supabase.from("card_fees").select("amount"),
     supabase
       .from("loans")
       .select("*, client:clients(*)")
@@ -111,7 +114,7 @@ export default async function OverviewPage() {
 
   // Revenue components
   const rc = kpi.total_revenue.components;
-  const cardFees        = round2((clientCount ?? 0) * 20);
+  const cardFees        = sum(cardFeeRows, "amount");
   const commission      = sum(commissionRows,   "fee");
   const susuFees        = sum(susuFeeRows,      "amount");
   const processingFees  = sum(processingFeeRows, "processing_fee");

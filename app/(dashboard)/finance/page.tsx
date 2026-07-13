@@ -63,21 +63,21 @@ export default async function FinancePage() {
   if (profile?.role !== "admin") redirect("/clients");
 
   const [
-    { count: clientCount },
     { data: commissionRows },
     { data: susuFeeRows },
     { data: processingFeeRows },
     { data: collectedInterest },
     { data: smsFeeRows },
+    { data: cardFeeRows },
     { data: expenditures },
     { data: investments },
   ] = await Promise.all([
-    supabase.from("clients").select("*", { count: "exact", head: true }),
     supabase.from("transactions").select("fee").eq("type", "withdrawal").is("reversed_at", null),
     supabase.from("susu_payments").select("amount").eq("day_in_cycle", 31),
     supabase.from("loans").select("processing_fee"),
     supabase.rpc("compute_collected_loan_interest"),
     supabase.from("sms_fee_charges").select("amount"),
+    supabase.from("card_fees").select("amount"),
     supabase
       .from("expenditures")
       .select("*")
@@ -111,7 +111,7 @@ export default async function FinancePage() {
   const loanInterest   = round2(Number(collectedInterest ?? 0));
   const commission     = sum(commissionRows, "fee");
   const susuFees       = sum(susuFeeRows, "amount");
-  const cardFees       = round2((clientCount ?? 0) * 20);
+  const cardFees       = sum(cardFeeRows, "amount");
   const totalSmsFees   = sum(smsFeeRows, "amount");
   const processingFees = sum(processingFeeRows, "processing_fee");
 
