@@ -29,6 +29,7 @@ export default function NewClientPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [smsOptIn, setSmsOptIn] = useState(true);
+  const [clientType, setClientType] = useState<"new" | "old">("new");
   const [form, setForm] = useState({
     full_name: "",
     date_of_birth: "",
@@ -185,18 +186,19 @@ export default function NewClientPage() {
         if (accountError) throw new Error("Client saved, but opening the account failed: " + accountError.message);
       }
 
-      // Flat registration/card fee — recorded to the card_fees ledger for
-      // dashboard reconciliation. This must be non-blocking (a failure must
-      // not roll back a completed registration), but we surface any error
-      // as a non-fatal warning so it can be investigated and backfilled.
+      // Card fee — new clients pay the configured fee; old/migrated clients
+      // get a zero-amount row so the isMigrated flag works correctly everywhere.
       try {
-        const { data: feeSetting } = await supabase
-          .from("settings")
-          .select("value")
-          .eq("key", "card_fee_amount")
-          .maybeSingle<{ value: number }>();
-        const rawFee = feeSetting?.value;
-        const cardFeeAmount = typeof rawFee === "number" ? rawFee : typeof rawFee === "string" ? Number(rawFee) : 20;
+        let cardFeeAmount = 0;
+        if (clientType === "new") {
+          const { data: feeSetting } = await supabase
+            .from("settings")
+            .select("value")
+            .eq("key", "card_fee_amount")
+            .maybeSingle<{ value: number }>();
+          const rawFee = feeSetting?.value;
+          cardFeeAmount = typeof rawFee === "number" ? rawFee : typeof rawFee === "string" ? Number(rawFee) : 20;
+        }
 
         const { error: feeError } = await supabase.from("card_fees").insert({
           client_id: inserted.id,
@@ -331,6 +333,44 @@ export default function NewClientPage() {
             <Field label="Phone number">
               <Input value={form.next_of_kin_phone} onChange={(v) => update("next_of_kin_phone", v)} />
             </Field>
+          </div>
+        </section>
+
+        {/* Client type */}
+        <section className="rounded-xl border border-[#0033AA]/8 bg-white p-6">
+          <h2 className="mb-1.5 text-[14px] font-semibold text-[#0033AA]">Client type</h2>
+          <p className="mb-4 text-[12px] text-[#0A2240]/45">
+            Select <strong>New</strong> if this is a first-time registration (card fee applies). Select <strong>Old / Migrated</strong> if the client&apos;s data is being migrated from a previous system (no card fee).
+          </p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => setClientType("new")}
+              className={`rounded-lg border-2 px-4 py-3.5 text-left transition-colors ${
+                clientType === "new"
+                  ? "border-[#0033AA] bg-[#0033AA]/5"
+                  : "border-[#0033AA]/15 hover:border-[#0033AA]/30"
+              }`}
+            >
+              <p className={`text-[13.5px] font-semibold ${clientType === "new" ? "text-[#0033AA]" : "text-[#0A2240]"}`}>
+                New client
+              </p>
+              <p className="mt-0.5 text-[12px] text-[#0A2240]/50">Card fee will be charged</p>
+            </button>
+            <button
+              type="button"
+              onClick={() => setClientType("old")}
+              className={`rounded-lg border-2 px-4 py-3.5 text-left transition-colors ${
+                clientType === "old"
+                  ? "border-[#B58A2A] bg-[#B58A2A]/6"
+                  : "border-[#0033AA]/15 hover:border-[#0033AA]/30"
+              }`}
+            >
+              <p className={`text-[13.5px] font-semibold ${clientType === "old" ? "text-[#8A6A1F]" : "text-[#0A2240]"}`}>
+                Old / Migrated
+              </p>
+              <p className="mt-0.5 text-[12px] text-[#0A2240]/50">No card fee charged</p>
+            </button>
           </div>
         </section>
 
