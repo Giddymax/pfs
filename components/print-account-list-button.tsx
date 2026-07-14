@@ -76,7 +76,7 @@ export function PrintAccountListButton({
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-[#061B3A]/55 px-4 py-8 animate-fade-in">
+        <div className="print-overlay fixed inset-0 z-50 overflow-y-auto bg-[#061B3A]/55 px-4 py-8 animate-fade-in">
           <div className="mx-auto flex max-w-[820px] justify-end gap-2 pb-3">
             <button
               type="button"

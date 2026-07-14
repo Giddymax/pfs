@@ -97,7 +97,7 @@ export function PrintAccountStatementButton({
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-[#061B3A]/55 px-4 py-8 animate-fade-in">
+        <div className="print-overlay fixed inset-0 z-50 overflow-y-auto bg-[#061B3A]/55 px-4 py-8 animate-fade-in">
           {/* Screen controls */}
           <div className="mx-auto flex max-w-[820px] flex-wrap items-center justify-between gap-3 pb-3">
             <div className="flex flex-wrap items-center gap-2">

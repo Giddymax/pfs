@@ -67,9 +67,25 @@ body {
     margin: 1cm;
   }
 
-  /* Hide everything by default */
+  /* Hide everything by default. Collapsing height/overflow (not just
+     visibility) stops tall hidden content elsewhere on the page (long
+     tables, lists) from forcing extra paginated sheets — since the print
+     overlay is position: fixed, it would otherwise repeat on every one of
+     those extra pages, looking like duplicate output. */
   body * {
     visibility: hidden;
+    max-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* Containing blocks for absolutely-positioned print targets must stay
+     uncollapsed: the fixed modal overlay for #pfs-print-card/-sheet/-finance,
+     and the dashboard shell's relative root for #pfs-summary-sheet (printed
+     directly on the reports/summary page, with no modal overlay). */
+  .print-overlay,
+  .dashboard-shell-root {
+    max-height: none !important;
+    overflow: visible !important;
   }
 
   /* Shared print-target reset — covers all print document IDs */
@@ -82,6 +98,7 @@ body {
   #pfs-print-finance,
   #pfs-print-finance * {
     visibility: visible;
+    max-height: none !important;
   }
 
   #pfs-print-card,
