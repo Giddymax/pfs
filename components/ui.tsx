@@ -59,17 +59,17 @@ export function StatCard({
 }) {
   return (
     <div className={clsx(
-      "rounded-xl border px-5 py-4 shadow-sm",
+      "min-w-0 rounded-xl border px-5 py-4 shadow-sm",
       highlight ? "border-[#1F6E4A]/25 bg-[#1F6E4A]/[0.04]" : "border-[#0033AA]/8 bg-white"
     )}>
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-3 flex items-center justify-between gap-2">
         <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-[#0A2240]/45">{label}</p>
         {icon && (
-          <span className={highlight ? "text-[#1F6E4A]" : "text-[#0062E1]"}>{icon}</span>
+          <span className={clsx("shrink-0", highlight ? "text-[#1F6E4A]" : "text-[#0062E1]")}>{icon}</span>
         )}
       </div>
       <p className={clsx(
-        "text-[1.6rem] font-semibold tracking-tight",
+        "break-words text-[1.25rem] font-semibold tracking-tight sm:text-[1.6rem]",
         highlight ? "text-[#1F6E4A]" : "text-[#0033AA]"
       )}>{value}</p>
       {hint && <p className="mt-1 text-[12px] text-[#0A2240]/45">{hint}</p>}
