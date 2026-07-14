@@ -218,19 +218,44 @@ export default async function ClientsPage({
         }
       />
 
-      {/* Search */}
-      <form className="mb-4 sm:max-w-sm">
-        <div className="relative">
-          <Search size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#1D3461]/35" />
-          <input
-            type="text"
-            name="q"
-            defaultValue={q ?? ""}
-           
-            className="w-full rounded-md border border-[#1D3461]/15 bg-white py-2.5 pl-10 pr-4 text-[14px] outline-none transition-colors focus:border-[#2CBFBF]"
-          />
+      {/* Search + client-type toggle */}
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <form className="sm:max-w-sm sm:flex-1">
+          <div className="relative">
+            <Search size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#1D3461]/35" />
+            <input
+              type="text"
+              name="q"
+              defaultValue={q ?? ""}
+
+              className="w-full rounded-md border border-[#1D3461]/15 bg-white py-2.5 pl-10 pr-4 text-[14px] outline-none transition-colors focus:border-[#2CBFBF]"
+            />
+          </div>
+        </form>
+
+        <div className="inline-flex items-center rounded-md border border-[#1D3461]/15 bg-white p-1">
+          {[
+            { value: undefined, label: "All" },
+            { value: "new", label: "New" },
+            { value: "old", label: "Old (Migrated)" },
+          ].map((opt) => {
+            const isActive = migrated === opt.value || (!migrated && !opt.value);
+            return (
+              <Link
+                key={opt.label}
+                href={buildUrl("/clients", { q, status, account, town, migrated: opt.value })}
+                className={`rounded px-3 py-1.5 text-[12.5px] font-medium transition-colors ${
+                  isActive
+                    ? "bg-[#1D3461] text-white"
+                    : "text-[#0A2240]/55 hover:bg-[#1D3461]/[0.06]"
+                }`}
+              >
+                {opt.label}
+              </Link>
+            );
+          })}
         </div>
-      </form>
+      </div>
 
       {/* Active filter chips — visible on all screens when filters are set */}
       {hasFilters && (
@@ -290,7 +315,6 @@ export default async function ClientsPage({
           {townOptions.length > 0 && (
             <TableFilter param="town" label="Town" options={townOptions} current={town} qs={qs} />
           )}
-          <TableFilter param="migrated" label="Client type" options={MIGRATED_OPTIONS} current={migrated} qs={qs} />
         </div>
       )}
 
@@ -422,9 +446,7 @@ export default async function ClientsPage({
                   <th aria-label="Status" className="px-5 py-3 font-semibold">
                     <TableFilter param="status" label="Status" options={STATUS_OPTIONS} current={status} qs={qs} />
                   </th>
-                  <th aria-label="Client type" className="px-5 py-3 font-semibold">
-                    <TableFilter param="migrated" label="Type" options={MIGRATED_OPTIONS} current={migrated} qs={qs} />
-                  </th>
+                  <th className="px-5 py-3 font-semibold">Type</th>
                   <th className="px-5 py-3 font-semibold">Reg. Date</th>
                   <th className="px-5 py-3 font-semibold">Actions</th>
                 </tr>
