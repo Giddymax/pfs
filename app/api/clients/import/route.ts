@@ -33,6 +33,13 @@ function parseSmsOptIn(v: unknown): boolean {
   return true;
 }
 
+function parseStatus(v: unknown): "active" | "inactive" | null {
+  const s = str(v).toLowerCase();
+  if (s === "active") return "active";
+  if (s === "inactive") return "inactive";
+  return null;
+}
+
 function parseDate(v: unknown): string | null {
   if (v == null || str(v) === "") return null;
   if (typeof v === "number") {
@@ -177,6 +184,9 @@ export async function POST(request: Request) {
     const smsOptIn = parseSmsOptIn(
       get("SMS Opt-in", "SMS", "SMS Opt In", "SMSOptIn", "Receive SMS", "sms_opt_in")
     );
+    const status = parseStatus(
+      get("Status", "STATUS", "Client Status")
+    );
     const accountType = parseAccountType(
       get("Account Type", "AccountType", "Account", "Product Type", "Product")
     );
@@ -197,6 +207,7 @@ export async function POST(request: Request) {
       next_of_kin_name: nokName || null,
       next_of_kin_phone: nokPhone || null,
       sms_opt_in: smsOptIn,
+      ...(status ? { status } : {}),
       created_by: user.id,
     };
 
