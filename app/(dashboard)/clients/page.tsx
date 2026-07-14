@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Search, Lock, PiggyBank, Coins, Pencil, X } from "lucide-react";
+import { Plus, Search, Lock, PiggyBank, Coins, Pencil, X, Users, UserPlus, History } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { PrintRegistrationCardButton } from "@/components/print-registration-card";
@@ -7,7 +7,7 @@ import { ClientPrintHistoryButton } from "@/components/client-print-history-butt
 import { ClientExcelButtons } from "@/components/client-excel-buttons";
 import { TableFilter, type FilterOption } from "@/components/table-filter";
 import { ExportCsvButton } from "@/components/export-csv-button";
-import { PageHeader, ClientStatusBadge, EmptyState } from "@/components/ui";
+import { PageHeader, ClientStatusBadge, EmptyState, StatCard } from "@/components/ui";
 import { getSettings } from "@/lib/settings/cache";
 import type { Client, Account, ProductType, Profile } from "@/lib/types";
 
@@ -78,18 +78,22 @@ export default async function ClientsPage({
   }
 
   // Client IDs that were charged a registration ("card") fee — new
-  // registrations pay this fee, old/migrated clients never were.
-  let feeClientIds: string[] | null = null;
-  if (migrated) {
-    const { data: feeRows } = await supabase.from("card_fees").select("client_id, amount");
-    feeClientIds = [
-      ...new Set(
-        (feeRows ?? [])
-          .filter((r) => ((r as { amount: number }).amount ?? 0) > 0)
-          .map((r) => (r as { client_id: string }).client_id)
-      ),
-    ];
-  }
+  // registrations pay this fee, old/migrated clients never were. Fetched
+  // unconditionally (not just when the migrated filter is active) since the
+  // New/Old KPI cards below need it regardless of the current filter.
+  const [{ data: feeRows }, { count: totalClientCount }] = await Promise.all([
+    supabase.from("card_fees").select("client_id, amount"),
+    supabase.from("clients").select("*", { count: "exact", head: true }),
+  ]);
+  const feeClientIds: string[] = [
+    ...new Set(
+      (feeRows ?? [])
+        .filter((r) => ((r as { amount: number }).amount ?? 0) > 0)
+        .map((r) => (r as { client_id: string }).client_id)
+    ),
+  ];
+  const newClientCount = feeClientIds.length;
+  const oldClientCount = (totalClientCount ?? 0) - newClientCount;
 
   // Main client query
   let query = supabase.from("clients").select("*").order("client_code", { ascending: true });
@@ -102,16 +106,16 @@ export default async function ClientsPage({
   if (accountFilterIds !== null && accountFilterIds.length > 0) {
     query = query.in("id", accountFilterIds);
   }
-  if (migrated === "new" && feeClientIds !== null && feeClientIds.length > 0) {
+  if (migrated === "new" && feeClientIds.length > 0) {
     query = query.in("id", feeClientIds);
   }
-  if (migrated === "old" && feeClientIds !== null && feeClientIds.length > 0) {
+  if (migrated === "old" && feeClientIds.length > 0) {
     query = query.not("id", "in", `(${feeClientIds.map((id) => `"${id}"`).join(",")})`);
   }
 
   const forceEmpty =
     (accountFilterIds !== null && accountFilterIds.length === 0) ||
-    (migrated === "new" && feeClientIds !== null && feeClientIds.length === 0);
+    (migrated === "new" && feeClientIds.length === 0);
 
   const clients: Client[] = forceEmpty ? [] : (await query.returns<Client[]>()).data ?? [];
 
@@ -217,6 +221,13 @@ export default async function ClientsPage({
           </div>
         }
       />
+
+      {/* KPI */}
+      <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
+        <StatCard label="Total clients" value={String(totalClientCount ?? 0)} icon={<Users size={16} />} />
+        <StatCard label="New clients" value={String(newClientCount)} icon={<UserPlus size={16} />} />
+        <StatCard label="Old (Migrated)" value={String(oldClientCount)} icon={<History size={16} />} />
+      </div>
 
       {/* Search + client-type toggle */}
       <div className="mb-4 flex flex-wrap items-center gap-3">
