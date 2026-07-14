@@ -14,7 +14,7 @@ export function MobileNav({
   sidebarOpen: boolean;
 }) {
   return (
-    <div className="lg:hidden">
+    <div className="mobile-nav-bar lg:hidden">
       <div className="flex items-center justify-between border-b border-[#1D3461]/10 bg-[#FFFFFF] px-4 py-3.5">
         <div className="flex items-center gap-2.5">
           <Logo size={32} />

@@ -61,53 +61,56 @@ body {
 }
 
 /* ─── Print isolation ─────────────────────────────────────────────── */
+/* Every print target (#pfs-print-card etc.) is rendered via <PrintPortal>
+   as a direct child of <body>, in a .print-overlay wrapper. That lets us
+   hide the rest of the app with a plain display:none (no visibility/
+   max-height juggling needed) and leave the print target in normal document
+   flow (no position:absolute/fixed). Normal flow is what lets Chrome
+   paginate content taller than one page correctly — position:fixed content
+   repeats on every generated page, and position:absolute content taller
+   than one page is silently clipped instead of flowing onto page 2+. */
 @media print {
   @page {
     size: A4;
     margin: 1cm;
   }
 
-  /* Hide everything by default. Collapsing height/overflow (not just
-     visibility) stops tall hidden content elsewhere on the page (long
-     tables, lists) from forcing extra paginated sheets — since the print
-     overlay is position: fixed, it would otherwise repeat on every one of
-     those extra pages, looking like duplicate output. */
-  body * {
-    visibility: hidden;
-    max-height: 0 !important;
-    overflow: hidden !important;
+  /* Print buttons rendered as an in-place page section (e.g. the period
+     summary report) rather than a modal — no .print-overlay exists in the
+     DOM for these, so just hide the dashboard chrome around them and let
+     the section print in its normal document-flow position. */
+  .sidebar-drawer,
+  .sidebar-backdrop,
+  .mobile-nav-bar {
+    display: none !important;
   }
 
-  /* Containing blocks for absolutely-positioned print targets must stay
-     uncollapsed: the fixed modal overlay for #pfs-print-card/-sheet/-finance,
-     and the dashboard shell's relative root for #pfs-summary-sheet (printed
-     directly on the reports/summary page, with no modal overlay). */
-  .print-overlay,
-  .dashboard-shell-root {
-    max-height: none !important;
+  /* Print buttons rendered as a modal (portaled to <body> as .print-overlay)
+     replace the whole app for the duration of the print — hide everything
+     else so only the portal's content appears. */
+  body:has(.print-overlay) > *:not(.print-overlay) {
+    display: none !important;
+  }
+
+  .print-overlay {
+    position: static !important;
+    display: block !important;
+    background: transparent !important;
+    padding: 0 !important;
     overflow: visible !important;
+  }
+
+  /* Hide the on-screen print/close button row (always the overlay's first child) */
+  .print-overlay > :first-child {
+    display: none !important;
   }
 
   /* Shared print-target reset — covers all print document IDs */
   #pfs-print-card,
-  #pfs-print-card *,
-  #pfs-print-sheet,
-  #pfs-print-sheet *,
-  #pfs-summary-sheet,
-  #pfs-summary-sheet *,
-  #pfs-print-finance,
-  #pfs-print-finance * {
-    visibility: visible;
-    max-height: none !important;
-  }
-
-  #pfs-print-card,
   #pfs-print-sheet,
   #pfs-summary-sheet,
   #pfs-print-finance {
-    position: absolute;
-    top: 0;
-    left: 0;
+    position: static !important;
     width: 100% !important;
     max-width: none !important;
     margin: 0 !important;
@@ -119,7 +122,6 @@ body {
     overflow: visible !important;
     transform: none !important;
     font-size: 10px !important;
-    z-index: 9999;
   }
 
   /* Scale tables to fit paper width */
@@ -150,11 +152,6 @@ body {
   #pfs-print-finance .grid {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
-  }
-
-  /* Hide screen-only controls (print/close buttons, backdrop) */
-  .animate-fade-in > :first-child {
-    display: none !important;
   }
 
   /* Watermark — logo centred on every printed page.

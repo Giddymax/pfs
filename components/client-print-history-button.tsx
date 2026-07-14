@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Printer, Loader2, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/logo";
+import { PrintPortal } from "@/components/print-portal";
 import { PrintWatermark } from "@/components/print-watermark";
 import { formatGHS } from "@/lib/loan";
 import type { Client, Transaction } from "@/lib/types";
@@ -74,6 +75,7 @@ export function ClientPrintHistoryButton({
       </button>
 
       {open && (
+        <PrintPortal>
         <div className="print-overlay fixed inset-0 z-50 overflow-y-auto bg-[#061B3A]/55 px-4 py-8 animate-fade-in">
           {/* Screen controls */}
           <div className="mx-auto flex max-w-[820px] justify-end gap-2 pb-3">
@@ -228,6 +230,7 @@ export function ClientPrintHistoryButton({
             </div>
           </div>
         </div>
+        </PrintPortal>
       )}
     </>
   );

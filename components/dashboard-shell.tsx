@@ -15,7 +15,7 @@ export function DashboardShell({
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="dashboard-shell-root relative flex min-h-screen w-full">
+    <div className="relative flex min-h-screen w-full">
       <Sidebar
         profile={profile}
         mobileOpen={sidebarOpen}

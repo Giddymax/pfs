@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Printer, X } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { PrintPortal } from "@/components/print-portal";
 import { PrintWatermark } from "@/components/print-watermark";
 import { formatGHS } from "@/lib/loan";
 
@@ -79,6 +80,7 @@ export function PrintLoanListButton({
       </button>
 
       {open && (
+        <PrintPortal>
         <div className="print-overlay fixed inset-0 z-50 overflow-y-auto bg-[#061B3A]/55 px-4 py-8 animate-fade-in">
           <div className="mx-auto flex max-w-[860px] justify-end gap-2 pb-3">
             <button
@@ -215,6 +217,7 @@ export function PrintLoanListButton({
             </div>
           </div>
         </div>
+        </PrintPortal>
       )}
     </>
   );
