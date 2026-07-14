@@ -154,6 +154,13 @@ body {
     grid-template-columns: 1fr 1fr !important;
   }
 
+  /* Bio data grid is fields (2-col) + a photo column — keep the photo in
+     its own third column instead of falling under the 2-col rule above,
+     which would bump it onto its own row below all the fields. */
+  #pfs-print-card .print-bio-grid {
+    grid-template-columns: 1fr 1fr auto !important;
+  }
+
   /* Watermark — logo centred on every printed page.
      z-index must exceed the print container (9999) so it paints above the
      container's white background; 10% opacity keeps text fully readable. */

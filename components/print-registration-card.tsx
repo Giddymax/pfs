@@ -105,7 +105,7 @@ export function PrintRegistrationCardButton({
 
             {/* Bio data */}
             <Section title="Bio data">
-              <div className="grid grid-cols-1 gap-x-8 gap-y-3.5 sm:grid-cols-[1fr_1fr_auto]">
+              <div className="print-bio-grid grid grid-cols-1 gap-x-8 gap-y-3.5 sm:grid-cols-[1fr_1fr_auto]">
                 <div className="grid grid-cols-1 gap-x-8 gap-y-3.5 sm:col-span-2 sm:grid-cols-2">
                   <Field label="Full name" value={client.full_name} />
                   <Field label="Client code" value={client.client_code} />
