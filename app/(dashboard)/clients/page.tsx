@@ -36,6 +36,11 @@ const ACCOUNT_OPTIONS: FilterOption[] = [
   { value: "fixed_deposit", label: "Fixed Deposit" },
 ];
 
+const MIGRATED_OPTIONS: FilterOption[] = [
+  { value: "new", label: "New" },
+  { value: "old", label: "Old (Migrated)" },
+];
+
 function buildUrl(base: string, params: Record<string, string | undefined>) {
   const p = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
@@ -48,9 +53,9 @@ function buildUrl(base: string, params: Record<string, string | undefined>) {
 export default async function ClientsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string; account?: string; town?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; account?: string; town?: string; migrated?: string }>;
 }) {
-  const { q, status, account, town } = await searchParams;
+  const { q, status, account, town, migrated } = await searchParams;
   const supabase = await createClient();
 
   // Build the query string for filter components to preserve other active filters
@@ -59,6 +64,7 @@ export default async function ClientsPage({
     ...(status ? { status } : {}),
     ...(account ? { account } : {}),
     ...(town ? { town } : {}),
+    ...(migrated ? { migrated } : {}),
   }).toString();
 
   // Get client IDs matching the account-type filter (separate table)
@@ -69,6 +75,20 @@ export default async function ClientsPage({
       .select("client_id")
       .eq("product_type", account);
     accountFilterIds = (accs ?? []).map((a) => (a as { client_id: string }).client_id);
+  }
+
+  // Client IDs that were charged a registration ("card") fee — new
+  // registrations pay this fee, old/migrated clients never were.
+  let feeClientIds: string[] | null = null;
+  if (migrated) {
+    const { data: feeRows } = await supabase.from("card_fees").select("client_id, amount");
+    feeClientIds = [
+      ...new Set(
+        (feeRows ?? [])
+          .filter((r) => ((r as { amount: number }).amount ?? 0) > 0)
+          .map((r) => (r as { client_id: string }).client_id)
+      ),
+    ];
   }
 
   // Main client query
@@ -82,11 +102,18 @@ export default async function ClientsPage({
   if (accountFilterIds !== null && accountFilterIds.length > 0) {
     query = query.in("id", accountFilterIds);
   }
+  if (migrated === "new" && feeClientIds !== null && feeClientIds.length > 0) {
+    query = query.in("id", feeClientIds);
+  }
+  if (migrated === "old" && feeClientIds !== null && feeClientIds.length > 0) {
+    query = query.not("id", "in", `(${feeClientIds.map((id) => `"${id}"`).join(",")})`);
+  }
 
-  const clients: Client[] =
-    accountFilterIds !== null && accountFilterIds.length === 0
-      ? []
-      : (await query.returns<Client[]>()).data ?? [];
+  const forceEmpty =
+    (accountFilterIds !== null && accountFilterIds.length === 0) ||
+    (migrated === "new" && feeClientIds !== null && feeClientIds.length === 0);
+
+  const clients: Client[] = forceEmpty ? [] : (await query.returns<Client[]>()).data ?? [];
 
   // Unique towns for the Town filter dropdown
   const { data: townRows } = await supabase
@@ -166,7 +193,7 @@ export default async function ClientsPage({
     }
   }
 
-  const hasFilters = !!(status || account || town);
+  const hasFilters = !!(status || account || town || migrated);
   const hasSearch = !!q?.trim();
 
   return (
@@ -211,7 +238,7 @@ export default async function ClientsPage({
           <span className="text-[11.5px] text-[#0A2240]/40">Filtered by:</span>
           {status && (
             <Link
-              href={buildUrl("/clients", { q, account, town })}
+              href={buildUrl("/clients", { q, account, town, migrated })}
               className="inline-flex items-center gap-1.5 rounded-full border border-[#2CBFBF]/30 bg-[#2CBFBF]/10 px-2.5 py-1 text-[12px] font-medium text-[#1D3461] transition-colors hover:bg-[#2CBFBF]/20"
             >
               Status: {status}
@@ -220,7 +247,7 @@ export default async function ClientsPage({
           )}
           {account && (
             <Link
-              href={buildUrl("/clients", { q, status, town })}
+              href={buildUrl("/clients", { q, status, town, migrated })}
               className="inline-flex items-center gap-1.5 rounded-full border border-[#2CBFBF]/30 bg-[#2CBFBF]/10 px-2.5 py-1 text-[12px] font-medium text-[#1D3461] transition-colors hover:bg-[#2CBFBF]/20"
             >
               Account: {ACCOUNT_OPTIONS.find((o) => o.value === account)?.label ?? account}
@@ -229,10 +256,19 @@ export default async function ClientsPage({
           )}
           {town && (
             <Link
-              href={buildUrl("/clients", { q, status, account })}
+              href={buildUrl("/clients", { q, status, account, migrated })}
               className="inline-flex items-center gap-1.5 rounded-full border border-[#2CBFBF]/30 bg-[#2CBFBF]/10 px-2.5 py-1 text-[12px] font-medium text-[#1D3461] transition-colors hover:bg-[#2CBFBF]/20"
             >
               Town: {town}
+              <X size={11} strokeWidth={2.5} />
+            </Link>
+          )}
+          {migrated && (
+            <Link
+              href={buildUrl("/clients", { q, status, account, town })}
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#2CBFBF]/30 bg-[#2CBFBF]/10 px-2.5 py-1 text-[12px] font-medium text-[#1D3461] transition-colors hover:bg-[#2CBFBF]/20"
+            >
+              Client type: {MIGRATED_OPTIONS.find((o) => o.value === migrated)?.label ?? migrated}
               <X size={11} strokeWidth={2.5} />
             </Link>
           )}
@@ -254,6 +290,7 @@ export default async function ClientsPage({
           {townOptions.length > 0 && (
             <TableFilter param="town" label="Town" options={townOptions} current={town} qs={qs} />
           )}
+          <TableFilter param="migrated" label="Client type" options={MIGRATED_OPTIONS} current={migrated} qs={qs} />
         </div>
       )}
 
@@ -305,6 +342,7 @@ export default async function ClientsPage({
                       <div className="flex items-center gap-2">
                         <p className="truncate text-[14px] font-semibold text-[#0A2240]">{client.full_name}</p>
                         <ClientStatusBadge status={client.status} />
+                        <ClientTypeBadge isMigrated={!clientsWithFees.has(client.id)} />
                       </div>
                       <p className="text-[12px] text-[#0A2240]/45">{client.client_code} · <a href={`tel:${client.phone}`} className="hover:text-[#0033AA] hover:underline">{client.phone}</a></p>
                       <div className="mt-1 flex items-center gap-3 text-[12px] text-[#0A2240]/55">
@@ -384,6 +422,9 @@ export default async function ClientsPage({
                   <th aria-label="Status" className="px-5 py-3 font-semibold">
                     <TableFilter param="status" label="Status" options={STATUS_OPTIONS} current={status} qs={qs} />
                   </th>
+                  <th aria-label="Client type" className="px-5 py-3 font-semibold">
+                    <TableFilter param="migrated" label="Type" options={MIGRATED_OPTIONS} current={migrated} qs={qs} />
+                  </th>
                   <th className="px-5 py-3 font-semibold">Reg. Date</th>
                   <th className="px-5 py-3 font-semibold">Actions</th>
                 </tr>
@@ -429,6 +470,9 @@ export default async function ClientsPage({
                       </td>
                       <td className="px-5 py-3.5">
                         <ClientStatusBadge status={client.status} />
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <ClientTypeBadge isMigrated={!clientsWithFees.has(client.id)} />
                       </td>
                       <td className="px-5 py-3.5 text-[#0A2240]/55">{formatRegDate(client.created_at)}</td>
                       <td className="px-5 py-3.5">
@@ -481,6 +525,18 @@ export default async function ClientsPage({
         </>
       )}
     </div>
+  );
+}
+
+function ClientTypeBadge({ isMigrated }: { isMigrated: boolean }) {
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+        isMigrated ? "bg-[#B58A2A]/12 text-[#8A6A1F]" : "bg-[#0033AA]/10 text-[#0033AA]"
+      }`}
+    >
+      {isMigrated ? "Old (Migrated)" : "New"}
+    </span>
   );
 }
 
