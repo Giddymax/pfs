@@ -80,4 +80,7 @@ export const smsTemplates = {
 
   susuEmergencyWithdrawalAdmin: (clientName: string, payout: number, companyFee: number, reason: string, staffName: string, proxyName?: string | null) =>
     `EMERGENCY WITHDRAWAL: ${clientName}, ${formatGHS(payout)} paid out (fee ${formatGHS(companyFee)}).${reason ? ` Reason: ${reason}.` : ""}${proxyName ? ` Withdrawn by: ${proxyName}.` : ""} By: ${staffName}.`,
+
+  interestDisbursed: (clientName: string, amount: number, balanceAfter: number, accountNumber: string) =>
+    `INTEREST: ${clientName}, ${formatGHS(amount)} interest has been credited to acct ${accountNumber}. Bal: ${formatGHS(balanceAfter)}. Thank you for saving with us.`,
 };

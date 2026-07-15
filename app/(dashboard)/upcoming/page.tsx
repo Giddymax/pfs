@@ -1,9 +1,11 @@
 import Link from "next/link";
-import { CalendarClock, HandCoins, Landmark, Coins, AlertTriangle } from "lucide-react";
+import { CalendarClock, HandCoins, Landmark, Coins, AlertTriangle, Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui";
+import { DisburseInterestButton } from "@/components/disburse-interest-button";
 import { formatGHS } from "@/lib/loan";
-import type { Client, FixedDeposit, Loan, SusuCycle } from "@/lib/types";
+import { INTEREST_MIN_BALANCE, INTEREST_PERIOD_END, INTEREST_PERIOD_START, isInterestWindowElapsed } from "@/lib/interest";
+import type { Account, Client, FixedDeposit, Loan, SusuCycle } from "@/lib/types";
 
 type LoanRow = Loan & { client: Client };
 type FdRow = FixedDeposit & { client: Client };
@@ -40,6 +42,29 @@ export default async function UpcomingPage() {
   const supabase = await createClient();
   const today = new Date().toISOString().slice(0, 10);
   const in30 = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+
+  // Interest-eligible clients: savings/susu accounts holding more than the
+  // threshold balance, only surfaced once the qualifying period has fully
+  // elapsed. Excludes accounts that already received interest for this round.
+  let interestEligible: (Account & { client: Client })[] = [];
+  if (isInterestWindowElapsed(today)) {
+    const [{ data: highBalanceAccounts }, { data: alreadyPaid }] = await Promise.all([
+      supabase
+        .from("accounts")
+        .select("*, client:clients(*)")
+        .in("product_type", ["savings", "susu"])
+        .gt("balance", INTEREST_MIN_BALANCE)
+        .returns<(Account & { client: Client })[]>(),
+      supabase
+        .from("interest_disbursements")
+        .select("account_id")
+        .eq("period_start", INTEREST_PERIOD_START)
+        .eq("period_end", INTEREST_PERIOD_END)
+        .returns<{ account_id: string }[]>(),
+    ]);
+    const paidAccountIds = new Set((alreadyPaid ?? []).map((r) => r.account_id));
+    interestEligible = (highBalanceAccounts ?? []).filter((a) => !paidAccountIds.has(a.id));
+  }
 
   const [{ data: loanRows }, { data: fdRows }, { data: cycleRows }, { data: paymentRows }] = await Promise.all([
     supabase
@@ -113,6 +138,42 @@ export default async function UpcomingPage() {
         title="Upcoming Events"
         description="Loans due, fixed deposit maturities, and susu cycles completing in the next 30 days."
       />
+
+      {/* Interest-eligible clients */}
+      {interestEligible.length > 0 && (
+        <div className="mb-6 overflow-hidden rounded-xl border border-[#1F6E4A]/20 bg-[#1F6E4A]/[0.03] shadow-sm">
+          <div className="flex items-center gap-2 border-b border-[#1F6E4A]/12 px-5 py-3.5">
+            <Sparkles size={16} className="text-[#1F6E4A]" />
+            <h2 className="text-[13.5px] font-semibold text-[#1F6E4A]">
+              Eligible for interest ({interestEligible.length})
+            </h2>
+          </div>
+          <p className="border-b border-[#1F6E4A]/10 px-5 py-2.5 text-[12px] text-[#0A2240]/50">
+            Balance held above {formatGHS(INTEREST_MIN_BALANCE)} since {new Date(INTEREST_PERIOD_START).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}.
+            The rate is flat and set manually per client below.
+          </p>
+          <ul className="divide-y divide-[#1F6E4A]/8">
+            {interestEligible.map((a) => (
+              <li key={a.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5">
+                <div className="min-w-0">
+                  <Link href={`/accounts/${a.id}`} className="text-[13.5px] font-semibold text-[#0A2240] hover:underline">
+                    {a.client.full_name}
+                  </Link>
+                  <p className="text-[12px] text-[#0A2240]/45">
+                    {a.account_number} · {a.product_type === "savings" ? "Savings" : "Daily Susu"} · Balance {formatGHS(a.balance)}
+                  </p>
+                </div>
+                <DisburseInterestButton
+                  accountId={a.id}
+                  clientName={a.client.full_name}
+                  accountNumber={a.account_number}
+                  balance={a.balance}
+                />
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Summary chips */}
       <div className="mb-6 flex flex-wrap gap-3">

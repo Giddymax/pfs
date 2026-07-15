@@ -1,13 +1,13 @@
 import type { Settings } from "@/lib/types";
 
-export type ClientSmsEvent = "deposit" | "withdrawal" | "payment" | "susu" | "fixed_deposit" | "reversal";
+export type ClientSmsEvent = "deposit" | "withdrawal" | "payment" | "susu" | "fixed_deposit" | "reversal" | "interest";
 
 /**
  * Mirrors the spec's nested switch: a client SMS only goes out when the
  * master switch, the client-message switch and the client's own opt-in are
  * all on — deposit/withdrawal/payment additionally gate on their own
- * per-event toggle, while susu/FD/reversal events ride on the client
- * master switch alone (they have no dedicated toggle in settings).
+ * per-event toggle, while susu/FD/reversal/interest events ride on the
+ * client master switch alone (they have no dedicated toggle in settings).
  */
 export function shouldSendClientSms(event: ClientSmsEvent, client: { sms_opt_in: boolean }, settings: Settings): boolean {
   if (!settings.sms.sms_enabled || !settings.sms.sms_client_enabled || !client.sms_opt_in) return false;
@@ -22,6 +22,7 @@ export function shouldSendClientSms(event: ClientSmsEvent, client: { sms_opt_in:
     case "susu":
     case "fixed_deposit":
     case "reversal":
+    case "interest":
       return true;
   }
 }
