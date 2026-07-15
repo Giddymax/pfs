@@ -79,12 +79,10 @@ export default async function ClientsPage({
 
   // Client IDs that were charged a registration ("card") fee — new
   // registrations pay this fee, old/migrated clients never were. Fetched
-  // unconditionally (not just when the migrated filter is active) since the
-  // New/Old KPI cards below need it regardless of the current filter.
-  const [{ data: feeRows }, { count: totalClientCount }] = await Promise.all([
-    supabase.from("card_fees").select("client_id, amount"),
-    supabase.from("clients").select("*", { count: "exact", head: true }),
-  ]);
+  // unconditionally (not just when the migrated filter is active) since it's
+  // needed to build the migrated=new/old filter below before we know which
+  // clients will end up in the filtered result set.
+  const { data: feeRows } = await supabase.from("card_fees").select("client_id, amount");
   const feeClientIds: string[] = [
     ...new Set(
       (feeRows ?? [])
@@ -92,8 +90,6 @@ export default async function ClientsPage({
         .map((r) => (r as { client_id: string }).client_id)
     ),
   ];
-  const newClientCount = feeClientIds.length;
-  const oldClientCount = (totalClientCount ?? 0) - newClientCount;
 
   // Main client query
   let query = supabase.from("clients").select("*").order("client_code", { ascending: true });
@@ -197,6 +193,12 @@ export default async function ClientsPage({
     }
   }
 
+  // KPI cards reflect the currently filtered/searched result set, not the
+  // global totals — they update as the toggles/search above change.
+  const totalClientCount = clients.length;
+  const newClientCount = clients.filter((c) => clientsWithFees.has(c.id)).length;
+  const oldClientCount = totalClientCount - newClientCount;
+
   const hasFilters = !!(status || account || town || migrated);
   const hasSearch = !!q?.trim();
 
@@ -222,11 +224,26 @@ export default async function ClientsPage({
         }
       />
 
-      {/* KPI */}
+      {/* KPI — reflects the current search/filters, not the global totals */}
       <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
-        <StatCard label="Total clients" value={String(totalClientCount ?? 0)} icon={<Users size={16} />} />
-        <StatCard label="New clients" value={String(newClientCount)} icon={<UserPlus size={16} />} />
-        <StatCard label="Old (Migrated)" value={String(oldClientCount)} icon={<History size={16} />} />
+        <StatCard
+          label="Total clients"
+          value={String(totalClientCount)}
+          hint={hasFilters || hasSearch ? "Matching current filters" : undefined}
+          icon={<Users size={16} />}
+        />
+        <StatCard
+          label="New clients"
+          value={String(newClientCount)}
+          hint={hasFilters || hasSearch ? "Matching current filters" : undefined}
+          icon={<UserPlus size={16} />}
+        />
+        <StatCard
+          label="Old (Migrated)"
+          value={String(oldClientCount)}
+          hint={hasFilters || hasSearch ? "Matching current filters" : undefined}
+          icon={<History size={16} />}
+        />
       </div>
 
       {/* Search + client-type toggle */}
