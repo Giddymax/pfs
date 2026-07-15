@@ -108,6 +108,14 @@ export default async function SummaryPage({
   ]);
   const periodTransactions = (periodTxnRows ?? []) as PeriodTransaction[];
 
+  // Split the aggregate deposit total by product — same predicate as
+  // compute_period_summary's deposit_total (type='deposit', not reversed),
+  // so savingsDepositTotal + susuDepositTotal always equals summary.deposit_total.
+  const savingsDeposits = periodTransactions.filter((t) => t.type === "deposit" && t.product_type === "savings" && !t.reversed_at);
+  const susuDeposits = periodTransactions.filter((t) => t.type === "deposit" && t.product_type === "susu" && !t.reversed_at);
+  const savingsDepositTotal = savingsDeposits.reduce((s, t) => s + t.amount, 0);
+  const susuDepositTotal = susuDeposits.reduce((s, t) => s + t.amount, 0);
+
   const printedAt = new Date().toLocaleString("en-GB", {
     day: "numeric",
     month: "short",
@@ -185,9 +193,16 @@ export default async function SummaryPage({
             {/* ─── Inflows ─── */}
             <Section title="Inflows" accent="#1F6E4A">
               <MetricRow
-                label="Deposits (savings & susu)"
-                amount={summary.deposit_total}
-                count={summary.deposit_count}
+                label="Deposits (Savings)"
+                amount={savingsDepositTotal}
+                count={savingsDeposits.length}
+                sign="+"
+                color="text-[#1F6E4A]"
+              />
+              <MetricRow
+                label="Deposits (Susu)"
+                amount={susuDepositTotal}
+                count={susuDeposits.length}
                 sign="+"
                 color="text-[#1F6E4A]"
               />
