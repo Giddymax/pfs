@@ -48,7 +48,7 @@ export async function POST(request: Request) {
 
 async function notifyEmergencyClaimAdmin(supabase: Awaited<ReturnType<typeof createClient>>, claim: SusuClaim, reason?: string) {
   const settings = await getSettings();
-  if (!shouldSendAdminSms(settings)) return;
+  if (!shouldSendAdminSms(settings, "withdrawal")) return;
 
   const { data: account } = await supabase.from("accounts").select("client_id").eq("id", claim.account_id).single<{ client_id: string }>();
   if (!account) return;

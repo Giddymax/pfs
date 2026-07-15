@@ -161,19 +161,21 @@ export function SettingsForm({
           </p>
           <div className="grid grid-cols-1 gap-x-6 gap-y-4 border-t border-[#0033AA]/6 pt-4 sm:grid-cols-2">
             <Toggle
-              label="Deposit SMS to admin"
+              label="Admin SMS — deposits & other events"
               checked={smsSettings.sms_admin_deposit}
               onChange={(v) => setSmsSettings((s) => ({ ...s, sms_admin_deposit: v }))}
             />
             <Toggle
-              label="Withdrawal SMS to admin"
+              label="Admin SMS — withdrawals & deductions"
               checked={smsSettings.sms_admin_withdrawal}
               onChange={(v) => setSmsSettings((s) => ({ ...s, sms_admin_withdrawal: v }))}
             />
           </div>
           <p className="text-[12px] text-[#0A2240]/45">
-            Every other admin alert (loan payments, susu, fixed-deposit, reversals, claims) follows the admin master
-            switch above only — deposit and withdrawal are the only events with their own admin-side toggle.
+            Every admin alert falls into exactly one of these two switches. &ldquo;Withdrawals &amp; deductions&rdquo;
+            covers regular withdrawals, susu withdrawals/emergency withdrawals/claims, and fixed-deposit early
+            withdrawals or maturity payouts. &ldquo;Deposits &amp; other events&rdquo; covers everything else —
+            deposits, loan payments, susu contributions, fixed-deposit openings/rollovers, and reversals.
           </p>
           <div className="grid grid-cols-1 gap-5 border-t border-[#0033AA]/6 pt-4 sm:grid-cols-2">
             <label className="block">

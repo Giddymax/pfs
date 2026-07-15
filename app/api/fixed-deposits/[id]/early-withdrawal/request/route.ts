@@ -27,7 +27,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
 
 async function notifyEarlyWithdrawalRequested(supabase: Awaited<ReturnType<typeof createClient>>, fd: FixedDeposit) {
   const settings = await getSettings();
-  if (!shouldSendAdminSms(settings)) return;
+  if (!shouldSendAdminSms(settings, "withdrawal")) return;
 
   const { data: client } = await supabase.from("clients").select("*").eq("id", fd.client_id).single<Client>();
   if (!client) return;

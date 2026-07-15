@@ -46,7 +46,7 @@ async function notifyMaturityPaidOut(supabase: Awaited<ReturnType<typeof createC
     await sendSms({ to: payout.client_phone, message: msg, event: "fd_maturity_paid_out", recipientType: "client", relatedClientId: payout.client_id });
   }
 
-  if (shouldSendAdminSms(settings)) {
+  if (shouldSendAdminSms(settings, "withdrawal")) {
     await sendSms({ to: settings.sms.company_tel!, message: msg, event: "fd_maturity_paid_out_admin", recipientType: "admin", relatedClientId: payout.client_id });
   }
 }

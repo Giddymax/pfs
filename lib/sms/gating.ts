@@ -27,21 +27,16 @@ export function shouldSendClientSms(event: ClientSmsEvent, client: { sms_opt_in:
 }
 
 /**
- * Admin/company alerts fire for every event by default. Deposit and
- * withdrawal are the only events with their own admin-side toggle
- * (sms_admin_deposit / sms_admin_withdrawal) — every other event (susu, FD,
- * reversal, payment, claims, etc.) rides on the admin master switch alone,
- * matching the existing behaviour for all their call sites.
+ * Every admin/company alert falls into exactly one of two buckets:
+ * "withdrawal" (any event where money is being deducted/paid out — regular
+ * withdrawals, susu withdrawals/emergency withdrawals/claims, FD early
+ * withdrawal request/approve/reject/payout, FD maturity payout) gated by
+ * sms_admin_withdrawal, or everything else (deposits, susu/loan payments in,
+ * FD opening/rollover, reversals) gated by sms_admin_deposit. Callers that
+ * don't pass a category default to the "deposit" (non-withdrawal) bucket.
  */
-export function shouldSendAdminSms(settings: Settings, event?: "deposit" | "withdrawal"): boolean {
+export function shouldSendAdminSms(settings: Settings, category: "deposit" | "withdrawal" = "deposit"): boolean {
   if (!settings.sms.sms_enabled || !settings.sms.sms_admin_enabled || !settings.sms.company_tel) return false;
 
-  switch (event) {
-    case "deposit":
-      return settings.sms.sms_admin_deposit;
-    case "withdrawal":
-      return settings.sms.sms_admin_withdrawal;
-    default:
-      return true;
-  }
+  return category === "withdrawal" ? settings.sms.sms_admin_withdrawal : settings.sms.sms_admin_deposit;
 }

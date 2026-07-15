@@ -128,7 +128,7 @@ export async function POST(request: Request) {
       });
     }
 
-    if (shouldSendAdminSms(settings)) {
+    if (shouldSendAdminSms(settings, "withdrawal")) {
       const adminMsg = smsTemplates.susuEmergencyWithdrawalAdmin(
         client.full_name,
         payout,

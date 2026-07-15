@@ -45,7 +45,7 @@ async function notifyEarlyWithdrawalRejected(supabase: Awaited<ReturnType<typeof
     });
   }
 
-  if (shouldSendAdminSms(settings)) {
+  if (shouldSendAdminSms(settings, "withdrawal")) {
     await sendSms({
       to: settings.sms.company_tel!,
       message: smsTemplates.fdEarlyWithdrawalRejectedAdmin(client.full_name, fd.fd_number),
