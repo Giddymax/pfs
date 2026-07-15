@@ -17,8 +17,9 @@ export async function GET() {
 
   // Regular accounts take priority; fall back to the client's active FD principal
   const balanceByClient = new Map<string, number>();
+  const clientsWithFees = new Set<string>();
   if (clientIds.length > 0) {
-    const [{ data: fds }, { data: accounts }] = await Promise.all([
+    const [{ data: fds }, { data: accounts }, { data: cardFeeRows }] = await Promise.all([
       supabase
         .from("fixed_deposits")
         .select("client_id, principal")
@@ -32,13 +33,21 @@ export async function GET() {
         .in("client_id", clientIds)
         .order("created_at", { ascending: true })
         .returns<{ client_id: string; balance: number }[]>(),
+      supabase
+        .from("card_fees")
+        .select("client_id, amount")
+        .in("client_id", clientIds)
+        .returns<{ client_id: string; amount: number }[]>(),
     ]);
     for (const fd of fds ?? []) balanceByClient.set(fd.client_id, fd.principal);
     for (const acc of accounts ?? []) balanceByClient.set(acc.client_id, acc.balance);
+    for (const r of cardFeeRows ?? []) {
+      if ((r.amount ?? 0) > 0) clientsWithFees.add(r.client_id);
+    }
   }
 
   const rows = [
-    ["Client Code", "Full Name", "Gender", "Date of Birth", "Phone", "Alt Phone", "Ghana Card", "Occupation", "Address", "Town", "Next of Kin", "Next of Kin Phone", "Status", "Balance", "SMS Opt-In", "Registered"],
+    ["Client Code", "Full Name", "Gender", "Date of Birth", "Phone", "Alt Phone", "Ghana Card", "Occupation", "Address", "Town", "Next of Kin", "Next of Kin Phone", "Status", "Client Type", "Balance", "SMS Opt-In", "Registered"],
     ...(clients ?? []).map((c) => [
       c.client_code,
       c.full_name,
@@ -53,6 +62,7 @@ export async function GET() {
       c.next_of_kin_name ?? "",
       c.next_of_kin_phone ?? "",
       c.status,
+      clientsWithFees.has(c.id) ? "New" : "Old (Migrated)",
       balanceByClient.get(c.id) ?? "",
       c.sms_opt_in ? "Yes" : "No",
       new Date(c.created_at).toLocaleDateString("en-GB"),

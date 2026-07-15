@@ -29,8 +29,9 @@ export async function GET() {
   const accountTypeByClient = new Map<string, string>();
   const dailyContributionByClient = new Map<string, number>();
   const balanceByClient = new Map<string, number>();
+  const clientsWithFees = new Set<string>();
   if (clientIds.length > 0) {
-    const [{ data: accounts }, { data: fds }] = await Promise.all([
+    const [{ data: accounts }, { data: fds }, { data: cardFeeRows }] = await Promise.all([
       supabase
         .from("accounts")
         .select("client_id, product_type, daily_contribution_amount, balance")
@@ -44,6 +45,11 @@ export async function GET() {
         .not("status", "in", '("withdrawn","rolled_over")')
         .order("created_at", { ascending: true })
         .returns<{ client_id: string; principal: number }[]>(),
+      supabase
+        .from("card_fees")
+        .select("client_id, amount")
+        .in("client_id", clientIds)
+        .returns<{ client_id: string; amount: number }[]>(),
     ]);
     // Regular accounts take priority; fall back to FD
     for (const fd of fds ?? []) {
@@ -58,6 +64,9 @@ export async function GET() {
       if (acc.product_type === "susu" && acc.daily_contribution_amount != null) {
         dailyContributionByClient.set(acc.client_id, acc.daily_contribution_amount);
       }
+    }
+    for (const r of cardFeeRows ?? []) {
+      if ((r.amount ?? 0) > 0) clientsWithFees.add(r.client_id);
     }
   }
 
@@ -74,6 +83,7 @@ export async function GET() {
     "Town": c.town ?? "",
     "Next of Kin Name": c.next_of_kin_name ?? "",
     "Next of Kin Phone": c.next_of_kin_phone ?? "",
+    "Client Type": clientsWithFees.has(c.id) ? "New" : "Old (Migrated)",
     "Account Type": ACCOUNT_TYPE_LABEL[accountTypeByClient.get(c.id) ?? ""] ?? "",
     "Daily Contribution": dailyContributionByClient.get(c.id) ?? "",
     "Balance": balanceByClient.get(c.id) ?? "",
@@ -89,7 +99,7 @@ export async function GET() {
   ws["!cols"] = [
     { wch: 12 }, { wch: 28 }, { wch: 16 }, { wch: 16 }, { wch: 8 },
     { wch: 14 }, { wch: 20 }, { wch: 20 }, { wch: 30 }, { wch: 18 },
-    { wch: 24 }, { wch: 18 }, { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 10 }, { wch: 14 },
+    { wch: 24 }, { wch: 18 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 10 }, { wch: 14 },
   ];
 
   XLSX.utils.book_append_sheet(wb, ws, "Clients");
