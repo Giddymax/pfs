@@ -97,7 +97,7 @@ export default async function SummaryPage({
     .select("*")
     .eq("id", user.id)
     .single<Profile>();
-  if (!profile || profile.role !== "admin") redirect("/");
+  if (!profile) redirect("/");
 
   const params = await searchParams;
   const from = params.from ?? monthStartISO();

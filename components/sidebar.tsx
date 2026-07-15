@@ -75,6 +75,15 @@ const NAV = [
     idle: "group text-[#FFFFFF] hover:bg-[#0891B2]/15 hover:text-[#FFFFFF]",
     idleIcon: "text-[#FFFFFF] transition-colors group-hover:text-[#0891B2]",
   },
+  {
+    href: "/reports/summary",
+    label: "Summary",
+    icon: BarChart3,
+    active: "bg-[#0891B2]/15 text-[#FFFFFF]",
+    activeIcon: "text-[#0891B2]",
+    idle: "group text-[#FFFFFF] hover:bg-[#0891B2]/15 hover:text-[#FFFFFF]",
+    idleIcon: "text-[#FFFFFF] transition-colors group-hover:text-[#0891B2]",
+  },
 ];
 
 const ACCOUNT_NAV = [
@@ -134,15 +143,6 @@ const ADMIN_NAV = [
     activeIcon: "text-[#B58A2A]",
     idle: "group text-[#FFFFFF] hover:bg-[#B58A2A]/15 hover:text-[#FFFFFF]",
     idleIcon: "text-[#FFFFFF] transition-colors group-hover:text-[#B58A2A]",
-  },
-  {
-    href: "/reports/summary",
-    label: "Summary",
-    icon: BarChart3,
-    active: "bg-[#0891B2]/15 text-[#FFFFFF]",
-    activeIcon: "text-[#0891B2]",
-    idle: "group text-[#FFFFFF] hover:bg-[#0891B2]/15 hover:text-[#FFFFFF]",
-    idleIcon: "text-[#FFFFFF] transition-colors group-hover:text-[#0891B2]",
   },
   {
     href: "/settings",
