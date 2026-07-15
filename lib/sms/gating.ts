@@ -26,6 +26,22 @@ export function shouldSendClientSms(event: ClientSmsEvent, client: { sms_opt_in:
   }
 }
 
-export function shouldSendAdminSms(settings: Settings): boolean {
-  return settings.sms.sms_enabled && settings.sms.sms_admin_enabled && !!settings.sms.company_tel;
+/**
+ * Admin/company alerts fire for every event by default. Deposit and
+ * withdrawal are the only events with their own admin-side toggle
+ * (sms_admin_deposit / sms_admin_withdrawal) — every other event (susu, FD,
+ * reversal, payment, claims, etc.) rides on the admin master switch alone,
+ * matching the existing behaviour for all their call sites.
+ */
+export function shouldSendAdminSms(settings: Settings, event?: "deposit" | "withdrawal"): boolean {
+  if (!settings.sms.sms_enabled || !settings.sms.sms_admin_enabled || !settings.sms.company_tel) return false;
+
+  switch (event) {
+    case "deposit":
+      return settings.sms.sms_admin_deposit;
+    case "withdrawal":
+      return settings.sms.sms_admin_withdrawal;
+    default:
+      return true;
+  }
 }

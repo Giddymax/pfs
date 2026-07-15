@@ -58,7 +58,7 @@ async function notifyDeposit(supabase: Awaited<ReturnType<typeof createClient>>,
     await sendSms({ to: client.phone, message: msg, event: "deposit_recorded", recipientType: "client", relatedClientId: client.id });
   }
 
-  if (shouldSendAdminSms(settings)) {
+  if (shouldSendAdminSms(settings, "deposit")) {
     await sendSms({ to: settings.sms.company_tel!, message: msg, event: "deposit_recorded_admin", recipientType: "admin", relatedClientId: client.id });
   }
 }

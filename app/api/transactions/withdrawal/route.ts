@@ -59,7 +59,7 @@ async function notifyWithdrawal(supabase: Awaited<ReturnType<typeof createClient
     await sendSms({ to: client.phone, message: msg, event: "withdrawal_recorded", recipientType: "client", relatedClientId: client.id });
   }
 
-  if (shouldSendAdminSms(settings)) {
+  if (shouldSendAdminSms(settings, "withdrawal")) {
     await sendSms({ to: settings.sms.company_tel!, message: msg, event: "withdrawal_recorded_admin", recipientType: "admin", relatedClientId: client.id });
   }
 }

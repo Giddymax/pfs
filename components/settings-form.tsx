@@ -159,6 +159,22 @@ export function SettingsForm({
             Susu, fixed-deposit, and reversal notifications follow the client master switch only — they have no
             individual toggle. Every client message additionally requires that client&rsquo;s own opt-in to be on.
           </p>
+          <div className="grid grid-cols-1 gap-x-6 gap-y-4 border-t border-[#0033AA]/6 pt-4 sm:grid-cols-2">
+            <Toggle
+              label="Deposit SMS to admin"
+              checked={smsSettings.sms_admin_deposit}
+              onChange={(v) => setSmsSettings((s) => ({ ...s, sms_admin_deposit: v }))}
+            />
+            <Toggle
+              label="Withdrawal SMS to admin"
+              checked={smsSettings.sms_admin_withdrawal}
+              onChange={(v) => setSmsSettings((s) => ({ ...s, sms_admin_withdrawal: v }))}
+            />
+          </div>
+          <p className="text-[12px] text-[#0A2240]/45">
+            Every other admin alert (loan payments, susu, fixed-deposit, reversals, claims) follows the admin master
+            switch above only — deposit and withdrawal are the only events with their own admin-side toggle.
+          </p>
           <div className="grid grid-cols-1 gap-5 border-t border-[#0033AA]/6 pt-4 sm:grid-cols-2">
             <label className="block">
               <span className="mb-1.5 block text-[13px] font-medium text-[#0033AA]/75">Company phone (admin alerts)</span>

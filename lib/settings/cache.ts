@@ -18,6 +18,8 @@ const DEFAULTS: Settings = {
     sms_deposit: true,
     sms_withdrawal: true,
     sms_payment: true,
+    sms_admin_deposit: true,
+    sms_admin_withdrawal: true,
     company_tel: null,
   },
   card_fee_amount: 20,
@@ -48,7 +50,7 @@ export async function getSettings(): Promise<Settings> {
 
   const value: Settings = {
     commission_tiers: (byKey.get("commission_tiers") as CommissionTier[] | undefined) ?? DEFAULTS.commission_tiers,
-    sms: (byKey.get("sms") as SmsSettings | undefined) ?? DEFAULTS.sms,
+    sms: { ...DEFAULTS.sms, ...(byKey.get("sms") as Partial<SmsSettings> | undefined) },
     card_fee_amount: (byKey.get("card_fee_amount") as number | undefined) ?? DEFAULTS.card_fee_amount,
     fd_terms_months: (byKey.get("fd_terms_months") as number[] | undefined) ?? DEFAULTS.fd_terms_months,
     emergency_claim_penalty_basis: "daily_contribution_amount",
