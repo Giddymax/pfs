@@ -20,6 +20,12 @@ function parseAmount(v: unknown): number | null {
   return isFinite(n) && n > 0 ? n : null;
 }
 
+function parseBalance(v: unknown): number | null {
+  if (v == null || str(v) === "") return null;
+  const n = Number(String(v).replace(/[^0-9.]/g, ""));
+  return isFinite(n) && n >= 0 ? n : null;
+}
+
 function parseGender(v: unknown): "male" | "female" | null {
   const s = str(v).toLowerCase();
   if (s === "male" || s === "m") return "male";
@@ -193,6 +199,9 @@ export async function POST(request: Request) {
     const dailyContribution = parseAmount(
       get("Daily Contribution", "Daily Amount", "Contribution", "DailyContribution", "Daily")
     );
+    const balance = parseBalance(
+      get("Balance", "Account Balance", "Current Balance", "AccountBalance", "CurrentBalance")
+    );
 
     const payload = {
       full_name: fullName,
@@ -230,6 +239,7 @@ export async function POST(request: Request) {
         client_id: inserted.id,
         product_type: "savings",
         account_number: "",
+        balance: balance ?? 0,
         created_by: user.id,
       });
     } else if (accountType === "susu" && dailyContribution) {
@@ -238,6 +248,7 @@ export async function POST(request: Request) {
         product_type: "susu",
         account_number: "",
         daily_contribution_amount: dailyContribution,
+        balance: balance ?? 0,
         created_by: user.id,
       });
     }
@@ -268,6 +279,7 @@ export async function GET() {
     "Next of Kin Phone": "0244000002",
     "Account Type": "savings",
     "Daily Contribution": "",
+    "Balance": "50",
     "SMS Opt-in": "Yes",
   }];
 
@@ -276,7 +288,7 @@ export async function GET() {
   ws["!cols"] = [
     { wch: 28 }, { wch: 16 }, { wch: 16 }, { wch: 10 }, { wch: 14 },
     { wch: 20 }, { wch: 20 }, { wch: 32 }, { wch: 18 }, { wch: 24 },
-    { wch: 18 }, { wch: 16 }, { wch: 18 }, { wch: 10 },
+    { wch: 18 }, { wch: 16 }, { wch: 18 }, { wch: 10 }, { wch: 10 },
   ];
   XLSX.utils.book_append_sheet(wb, ws, "Clients");
 

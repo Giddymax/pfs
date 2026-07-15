@@ -28,30 +28,33 @@ export async function GET() {
   // Batch-fetch accounts and active FDs so we can show account type per client
   const accountTypeByClient = new Map<string, string>();
   const dailyContributionByClient = new Map<string, number>();
+  const balanceByClient = new Map<string, number>();
   if (clientIds.length > 0) {
     const [{ data: accounts }, { data: fds }] = await Promise.all([
       supabase
         .from("accounts")
-        .select("client_id, product_type, daily_contribution_amount")
+        .select("client_id, product_type, daily_contribution_amount, balance")
         .in("client_id", clientIds)
         .order("created_at", { ascending: true })
-        .returns<{ client_id: string; product_type: string; daily_contribution_amount: number | null }[]>(),
+        .returns<{ client_id: string; product_type: string; daily_contribution_amount: number | null; balance: number }[]>(),
       supabase
         .from("fixed_deposits")
-        .select("client_id")
+        .select("client_id, principal")
         .in("client_id", clientIds)
         .not("status", "in", '("withdrawn","rolled_over")')
         .order("created_at", { ascending: true })
-        .returns<{ client_id: string }[]>(),
+        .returns<{ client_id: string; principal: number }[]>(),
     ]);
     // Regular accounts take priority; fall back to FD
     for (const fd of fds ?? []) {
       if (!accountTypeByClient.has(fd.client_id)) {
         accountTypeByClient.set(fd.client_id, "fixed_deposit");
+        balanceByClient.set(fd.client_id, fd.principal);
       }
     }
     for (const acc of accounts ?? []) {
       accountTypeByClient.set(acc.client_id, acc.product_type);
+      balanceByClient.set(acc.client_id, acc.balance);
       if (acc.product_type === "susu" && acc.daily_contribution_amount != null) {
         dailyContributionByClient.set(acc.client_id, acc.daily_contribution_amount);
       }
@@ -73,6 +76,7 @@ export async function GET() {
     "Next of Kin Phone": c.next_of_kin_phone ?? "",
     "Account Type": ACCOUNT_TYPE_LABEL[accountTypeByClient.get(c.id) ?? ""] ?? "",
     "Daily Contribution": dailyContributionByClient.get(c.id) ?? "",
+    "Balance": balanceByClient.get(c.id) ?? "",
     "Status": c.status,
     "SMS Opt-in": c.sms_opt_in ? "Yes" : "No",
     "Registered On": new Date(c.created_at).toLocaleDateString("en-GB"),
@@ -85,7 +89,7 @@ export async function GET() {
   ws["!cols"] = [
     { wch: 12 }, { wch: 28 }, { wch: 16 }, { wch: 16 }, { wch: 8 },
     { wch: 14 }, { wch: 20 }, { wch: 20 }, { wch: 30 }, { wch: 18 },
-    { wch: 24 }, { wch: 18 }, { wch: 16 }, { wch: 16 }, { wch: 12 }, { wch: 10 }, { wch: 14 },
+    { wch: 24 }, { wch: 18 }, { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 10 }, { wch: 14 },
   ];
 
   XLSX.utils.book_append_sheet(wb, ws, "Clients");
