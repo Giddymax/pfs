@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/ui";
 import { DisburseInterestButton } from "@/components/disburse-interest-button";
 import { formatGHS } from "@/lib/loan";
 import { INTEREST_MIN_BALANCE, INTEREST_PERIOD_END, INTEREST_PERIOD_START, isInterestWindowElapsed } from "@/lib/interest";
-import type { Account, Client, FixedDeposit, Loan, SusuCycle } from "@/lib/types";
+import type { Client, FixedDeposit, Loan, SusuCycle } from "@/lib/types";
 
 type LoanRow = Loan & { client: Client };
 type FdRow = FixedDeposit & { client: Client };
@@ -18,6 +18,16 @@ type EventItem =
   | { kind: "loan"; date: Date; daysOut: number; data: LoanRow }
   | { kind: "fd"; date: Date; daysOut: number; data: FdRow }
   | { kind: "susu"; daysOut: number; data: SusuRow };
+
+interface InterestEligibleRow {
+  account_id: string;
+  client_id: string;
+  client_full_name: string;
+  client_code: string;
+  account_number: string;
+  product_type: "savings" | "susu";
+  reference_balance: number;
+}
 
 function daysFromNow(dateStr: string) {
   const today = new Date();
@@ -43,27 +53,17 @@ export default async function UpcomingPage() {
   const today = new Date().toISOString().slice(0, 10);
   const in30 = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
 
-  // Interest-eligible clients: savings/susu accounts holding more than the
-  // threshold balance, only surfaced once the qualifying period has fully
-  // elapsed. Excludes accounts that already received interest for this round.
-  let interestEligible: (Account & { client: Client })[] = [];
-  if (true || isInterestWindowElapsed(today)) { // TEMP: forced on for UI preview — revert before shipping
-    const [{ data: highBalanceAccounts }, { data: alreadyPaid }] = await Promise.all([
-      supabase
-        .from("accounts")
-        .select("*, client:clients(*)")
-        .in("product_type", ["savings", "susu"])
-        .gt("balance", INTEREST_MIN_BALANCE)
-        .returns<(Account & { client: Client })[]>(),
-      supabase
-        .from("interest_disbursements")
-        .select("account_id")
-        .eq("period_start", INTEREST_PERIOD_START)
-        .eq("period_end", INTEREST_PERIOD_END)
-        .returns<{ account_id: string }[]>(),
-    ]);
-    const paidAccountIds = new Set((alreadyPaid ?? []).map((r) => r.account_id));
-    interestEligible = (highBalanceAccounts ?? []).filter((a) => !paidAccountIds.has(a.id));
+  // Interest-eligible clients: savings/susu accounts whose balance as of the
+  // end of the qualifying window exceeded the threshold, only surfaced once
+  // that window has fully elapsed. Excludes accounts already paid for this round.
+  let interestEligible: InterestEligibleRow[] = [];
+  if (isInterestWindowElapsed(today)) {
+    const { data } = await supabase.rpc("list_interest_eligible_accounts", {
+      p_min_balance: INTEREST_MIN_BALANCE,
+      p_period_start: INTEREST_PERIOD_START,
+      p_period_end: INTEREST_PERIOD_END,
+    });
+    interestEligible = (data ?? []) as InterestEligibleRow[];
   }
 
   const [{ data: loanRows }, { data: fdRows }, { data: cycleRows }, { data: paymentRows }] = await Promise.all([
@@ -149,25 +149,26 @@ export default async function UpcomingPage() {
             </h2>
           </div>
           <p className="border-b border-[#1F6E4A]/10 px-5 py-2.5 text-[12px] text-[#0A2240]/50">
-            Balance held above {formatGHS(INTEREST_MIN_BALANCE)} since {new Date(INTEREST_PERIOD_START).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}.
-            The rate is flat and set manually per client below.
+            Balance exceeded {formatGHS(INTEREST_MIN_BALANCE)} as of {new Date(INTEREST_PERIOD_END).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
+            {" "}(end of the {new Date(INTEREST_PERIOD_START).toLocaleDateString("en-GB", { day: "numeric", month: "long" })} qualifying window). The rate is flat and set manually per
+            client below, applied to that balance — not today&rsquo;s balance.
           </p>
           <ul className="divide-y divide-[#1F6E4A]/8">
             {interestEligible.map((a) => (
-              <li key={a.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5">
+              <li key={a.account_id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5">
                 <div className="min-w-0">
-                  <Link href={`/accounts/${a.id}`} className="text-[13.5px] font-semibold text-[#0A2240] hover:underline">
-                    {a.client.full_name}
+                  <Link href={`/accounts/${a.account_id}`} className="text-[13.5px] font-semibold text-[#0A2240] hover:underline">
+                    {a.client_full_name}
                   </Link>
                   <p className="text-[12px] text-[#0A2240]/45">
-                    {a.account_number} · {a.product_type === "savings" ? "Savings" : "Daily Susu"} · Balance {formatGHS(a.balance)}
+                    {a.account_number} · {a.product_type === "savings" ? "Savings" : "Daily Susu"} · Balance as of {fmtDate(INTEREST_PERIOD_END)}: {formatGHS(a.reference_balance)}
                   </p>
                 </div>
                 <DisburseInterestButton
-                  accountId={a.id}
-                  clientName={a.client.full_name}
+                  accountId={a.account_id}
+                  clientName={a.client_full_name}
                   accountNumber={a.account_number}
-                  balance={a.balance}
+                  balance={a.reference_balance}
                 />
               </li>
             ))}

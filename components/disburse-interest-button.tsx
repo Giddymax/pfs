@@ -18,13 +18,16 @@ export function DisburseInterestButton({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [amount, setAmount] = useState("");
+  const [rate, setRate] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const rateNum = Number(rate) || 0;
+  const computedAmount = rateNum > 0 ? Math.round(balance * (rateNum / 100) * 100) / 100 : 0;
+
   function handleClose() {
     setOpen(false);
-    setAmount("");
+    setRate("");
     setError(null);
   }
 
@@ -32,9 +35,8 @@ export function DisburseInterestButton({
     e.preventDefault();
     setError(null);
 
-    const amountNum = Number(amount);
-    if (!amountNum || amountNum <= 0) {
-      setError("Enter an amount greater than zero.");
+    if (!rateNum || rateNum <= 0) {
+      setError("Enter a rate greater than zero.");
       return;
     }
 
@@ -43,7 +45,7 @@ export function DisburseInterestButton({
       const res = await fetch(`/api/accounts/${accountId}/interest`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: amountNum }),
+        body: JSON.stringify({ rate_percent: rateNum }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Could not disburse interest. Try again.");
@@ -79,7 +81,7 @@ export function DisburseInterestButton({
             </div>
 
             <p className="mb-4 text-[13px] text-[#0A2240]/60">
-              {clientName} · {accountNumber} · Current balance {formatGHS(balance)}
+              {clientName} · {accountNumber} · Qualifying balance {formatGHS(balance)}
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -90,20 +92,28 @@ export function DisburseInterestButton({
               )}
 
               <label className="block">
-                <span className="mb-1.5 block text-[12.5px] font-medium text-[#0033AA]/75">Interest amount (GHS)</span>
+                <span className="mb-1.5 block text-[12.5px] font-medium text-[#0033AA]/75">Interest rate (%)</span>
                 <input
                   type="number"
                   min="0"
                   step="0.01"
                   autoFocus
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  value={rate}
+                  onChange={(e) => setRate(e.target.value)}
                   className="w-full rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
                 />
                 <p className="mt-1 text-[11.5px] text-[#0A2240]/45">
-                  A flat, manually-decided amount — credited to the account and the client is notified by SMS.
+                  A flat, manually-decided rate applied to the qualifying balance (not today&rsquo;s balance).
                 </p>
               </label>
+
+              <div className="rounded-md border border-[#1F6E4A]/15 bg-[#1F6E4A]/[0.04] px-3.5 py-2.5">
+                <p className="text-[11.5px] font-medium uppercase tracking-[0.08em] text-[#1F6E4A]/70">Interest to credit</p>
+                <p className="mt-0.5 text-[16px] font-bold tabular-nums text-[#1F6E4A]">{formatGHS(computedAmount)}</p>
+                <p className="mt-0.5 text-[11px] text-[#0A2240]/45">
+                  {formatGHS(balance)} × {rateNum || 0}% — credited to the account and the client is notified by SMS.
+                </p>
+              </div>
 
               <div className="flex justify-end gap-2 pt-1">
                 <button

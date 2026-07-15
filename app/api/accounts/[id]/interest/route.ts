@@ -15,15 +15,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
   const body = await request.json().catch(() => null);
-  const amount = Number(body?.amount);
-  if (!Number.isFinite(amount) || amount <= 0) {
-    return NextResponse.json({ error: "Amount must be greater than zero" }, { status: 400 });
+  const ratePercent = Number(body?.rate_percent);
+  if (!Number.isFinite(ratePercent) || ratePercent <= 0) {
+    return NextResponse.json({ error: "Rate must be greater than zero" }, { status: 400 });
   }
 
   const { data: txn, error } = await supabase
     .rpc("disburse_interest", {
       p_account_id: id,
-      p_amount: amount,
+      p_rate_percent: ratePercent,
       p_period_start: INTEREST_PERIOD_START,
       p_period_end: INTEREST_PERIOD_END,
       p_disbursed_by: user.id,
