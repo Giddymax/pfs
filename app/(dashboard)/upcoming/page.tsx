@@ -47,7 +47,7 @@ export default async function UpcomingPage() {
   // threshold balance, only surfaced once the qualifying period has fully
   // elapsed. Excludes accounts that already received interest for this round.
   let interestEligible: (Account & { client: Client })[] = [];
-  if (isInterestWindowElapsed(today)) {
+  if (true || isInterestWindowElapsed(today)) { // TEMP: forced on for UI preview — revert before shipping
     const [{ data: highBalanceAccounts }, { data: alreadyPaid }] = await Promise.all([
       supabase
         .from("accounts")
