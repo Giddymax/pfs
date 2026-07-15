@@ -268,6 +268,32 @@ export default async function ClientsPage({
         </div>
       </div>
 
+      {/* Account-type toggle */}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <span className="text-[11.5px] font-medium text-[#0A2240]/40">Account type:</span>
+        <div className="inline-flex flex-wrap items-center rounded-md border border-[#1D3461]/15 bg-white p-1">
+          {[
+            { value: undefined, label: "All" },
+            ...ACCOUNT_OPTIONS,
+          ].map((opt) => {
+            const isActive = account === opt.value || (!account && !opt.value);
+            return (
+              <Link
+                key={opt.label}
+                href={buildUrl("/clients", { q, status, town, migrated, account: opt.value })}
+                className={`rounded px-3 py-1.5 text-[12.5px] font-medium transition-colors ${
+                  isActive
+                    ? "bg-[#1D3461] text-white"
+                    : "text-[#0A2240]/55 hover:bg-[#1D3461]/[0.06]"
+                }`}
+              >
+                {opt.label}
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Active filter chips — visible on all screens when filters are set */}
       {hasFilters && (
         <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -322,7 +348,6 @@ export default async function ClientsPage({
         <div className="mb-4 flex flex-wrap items-center gap-3 lg:hidden">
           <span className="text-[11.5px] font-medium text-[#0A2240]/40">Filter:</span>
           <TableFilter param="status" label="Status" options={STATUS_OPTIONS} current={status} qs={qs} />
-          <TableFilter param="account" label="Account" options={ACCOUNT_OPTIONS} current={account} qs={qs} />
           {townOptions.length > 0 && (
             <TableFilter param="town" label="Town" options={townOptions} current={town} qs={qs} />
           )}
@@ -443,9 +468,7 @@ export default async function ClientsPage({
                 <tr className="border-b border-[#1D3461]/8 bg-[#1D3461]/[0.02] text-[11px] uppercase tracking-[0.1em] text-[#0A2240]/45">
                   <th className="px-5 py-3 font-semibold">Client</th>
                   <th className="px-5 py-3 font-semibold">Phone</th>
-                  <th aria-label="Account" className="px-5 py-3 font-semibold">
-                    <TableFilter param="account" label="Account" options={ACCOUNT_OPTIONS} current={account} qs={qs} />
-                  </th>
+                  <th className="px-5 py-3 font-semibold">Account</th>
                   <th aria-label="Town" className="px-5 py-3 font-semibold">
                     {townOptions.length > 0 ? (
                       <TableFilter param="town" label="Town" options={townOptions} current={town} qs={qs} />
