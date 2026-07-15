@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { BankDepositButton, BankWithdrawalButton } from "@/components/record-bank-transaction-button";
 import { EditBankTransactionButton, DeleteBankTransactionButton } from "@/components/bank-transaction-actions";
 import { Card, PageHeader } from "@/components/ui";
+import { ExportCsvButton } from "@/components/export-csv-button";
 import { formatGHS, round2 } from "@/lib/loan";
 import type { Profile } from "@/lib/types";
 
@@ -103,6 +104,7 @@ export default async function BankPage() {
         description="Track cash deposited into and withdrawn from the company bank account."
         action={
           <div className="flex flex-wrap items-center gap-2">
+            <ExportCsvButton endpoint="/api/bank/export" filename="bank-transactions.xlsx" label="Export Excel" />
             <BankDepositButton cashAtBank={cashAtBank} />
             <BankWithdrawalButton cashAtBank={cashAtBank} />
           </div>

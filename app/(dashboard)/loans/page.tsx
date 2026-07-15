@@ -116,6 +116,7 @@ export default async function LoansPage({
         action={
           <div className="flex flex-wrap items-center gap-2">
             <ExportCsvButton endpoint="/api/export/loans" filename="loans.csv" label="Export CSV" />
+            <ExportCsvButton endpoint="/api/loans/export" filename="loans.xlsx" label="Export Excel" />
             <PrintLoanListButton
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               loans={(loans ?? []) as any[]}

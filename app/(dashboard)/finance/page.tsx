@@ -5,6 +5,7 @@ import { PageHeader, Card, EmptyState } from "@/components/ui";
 import { AddExpenditureButton, DeleteExpenditureButton } from "@/components/expenditure-actions";
 import { AddInvestmentButton, DeleteInvestmentButton, ReturnInvestmentButton } from "@/components/investment-actions";
 import { PrintFinanceSummaryButton } from "@/components/print-finance-summary-button";
+import { ExportCsvButton } from "@/components/export-csv-button";
 import { formatGHS, round2 } from "@/lib/loan";
 import type { Profile } from "@/lib/types";
 
@@ -159,21 +160,24 @@ export default async function FinancePage() {
         title="Company Finance"
         description="Revenue earned, active investments, expenditures recorded, and net balance."
         action={
-          <PrintFinanceSummaryButton
-            totalRevenue={totalRevenue}
-            totalExpenditure={totalExpenditure}
-            netBalance={netBalance}
-            revenueItems={revenueItems}
-            expenditures={expenditures ?? []}
-            investments={investmentList}
-            totalInvested={totalInvested}
-            activeInvestmentTotal={activeInvestmentTotal}
-            investmentDeductedFromRevenue={investmentDeductedFromRevenue}
-            investmentDeductedFromAccount={investmentDeductedFromAccount}
-            investmentRevenue={returnedInvestmentRevenue}
-            printedBy={profile?.full_name}
-            companyPhone={settings.sms.company_tel ?? null}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <ExportCsvButton endpoint="/api/finance/export" filename="finance.xlsx" label="Export Excel" />
+            <PrintFinanceSummaryButton
+              totalRevenue={totalRevenue}
+              totalExpenditure={totalExpenditure}
+              netBalance={netBalance}
+              revenueItems={revenueItems}
+              expenditures={expenditures ?? []}
+              investments={investmentList}
+              totalInvested={totalInvested}
+              activeInvestmentTotal={activeInvestmentTotal}
+              investmentDeductedFromRevenue={investmentDeductedFromRevenue}
+              investmentDeductedFromAccount={investmentDeductedFromAccount}
+              investmentRevenue={returnedInvestmentRevenue}
+              printedBy={profile?.full_name}
+              companyPhone={settings.sms.company_tel ?? null}
+            />
+          </div>
         }
       />
 

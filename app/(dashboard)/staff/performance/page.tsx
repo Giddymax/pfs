@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { ShieldCheck, Users, PiggyBank, Coins, UserRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Card, PageHeader } from "@/components/ui";
+import { ExportCsvButton } from "@/components/export-csv-button";
 import { formatGHS, round2 } from "@/lib/loan";
 import type { Profile } from "@/lib/types";
 
@@ -41,6 +42,7 @@ export default async function StaffPerformancePage() {
         eyebrow="Administration"
         title="Staff performance"
         description="Track how much each staff member has contributed — clients registered, savings deposits collected, and daily susu contributions recorded."
+        action={<ExportCsvButton endpoint="/api/staff/performance/export" filename="staff-performance.xlsx" label="Export Excel" />}
       />
 
       {/* Summary cards */}

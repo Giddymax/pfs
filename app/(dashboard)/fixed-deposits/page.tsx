@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { PageHeader, EmptyState, StatCard } from "@/components/ui";
 import { TableFilter, type FilterOption } from "@/components/table-filter";
 import { PrintFdListButton } from "@/components/print-fd-list-button";
+import { ExportCsvButton } from "@/components/export-csv-button";
 import { formatGHS, round2 } from "@/lib/loan";
 import { getSettings } from "@/lib/settings/cache";
 import type { Client, FdStatus, FixedDeposit } from "@/lib/types";
@@ -98,16 +99,19 @@ export default async function FixedDepositsPage({
         title="Fixed Deposit accounts"
         description="Lump-sum term placements with maturity, early-withdrawal and rollover lifecycles."
         action={
-          <PrintFdListButton
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            deposits={rows as any[]}
-            clientCount={clientCount}
-            totalPrincipal={totalPrincipal}
-            totalPayout={totalPayout}
-            activeCount={activeFds.length}
-            maturedCount={maturedFds.length}
-            companyPhone={companyPhone}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <ExportCsvButton endpoint="/api/fixed-deposits/export" filename="fixed-deposits.xlsx" label="Export Excel" />
+            <PrintFdListButton
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              deposits={rows as any[]}
+              clientCount={clientCount}
+              totalPrincipal={totalPrincipal}
+              totalPayout={totalPayout}
+              activeCount={activeFds.length}
+              maturedCount={maturedFds.length}
+              companyPhone={companyPhone}
+            />
+          </div>
         }
       />
 

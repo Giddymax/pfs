@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Card, EmptyState, PageHeader } from "@/components/ui";
 import { SusuClaimActions } from "@/components/susu-claim-actions";
+import { ExportCsvButton } from "@/components/export-csv-button";
 import { formatGHS } from "@/lib/loan";
 import type { Account, Client, Profile, SusuClaim } from "@/lib/types";
 
@@ -36,6 +37,7 @@ export default async function SusuClaimsPage() {
         eyebrow="Daily Susu"
         title="Claims worklist"
         description="Emergency claims requested mid-cycle require admin review before payout. Normal claims are auto-approved and only need to be paid out."
+        action={<ExportCsvButton endpoint="/api/susu/claims/export" filename="susu-claims.xlsx" label="Export Excel" />}
       />
 
       <Card className="mb-6">

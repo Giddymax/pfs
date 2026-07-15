@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { SummaryControls } from "@/components/summary-controls";
 import { PrintButton } from "@/components/print-button";
+import { ExportCsvButton } from "@/components/export-csv-button";
 import { Logo } from "@/components/logo";
 import { PrintWatermark } from "@/components/print-watermark";
 import { formatGHS } from "@/lib/loan";
@@ -344,8 +345,14 @@ export default async function SummaryPage({
         )}
       </div>
 
-      {/* Floating print button on screen (outside the sheet so it doesn't print) */}
-      <div className="mt-6 flex justify-end print:hidden">
+      {/* Floating print/export buttons on screen (outside the sheet so they don't print) */}
+      <div className="mt-6 flex flex-wrap justify-end gap-2 print:hidden">
+        <ExportCsvButton
+          endpoint="/api/reports/summary/export"
+          filename={`period-summary-${from}-to-${to}.xlsx`}
+          label="Export Excel"
+          params={{ from, to }}
+        />
         <PrintButton label="Print summary" />
       </div>
     </div>

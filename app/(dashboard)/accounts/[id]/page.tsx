@@ -133,6 +133,12 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
                 label="Export CSV"
                 params={{ account_id: account.id }}
               />
+              <ExportCsvButton
+                endpoint="/api/transactions/export"
+                filename={`transactions-${account.account_number}.xlsx`}
+                label="Export Excel"
+                params={{ account_id: account.id }}
+              />
               <PrintAccountStatementButton
                 client={account.client}
                 accountId={account.id}

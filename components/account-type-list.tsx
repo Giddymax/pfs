@@ -4,6 +4,7 @@ import { Search, Users, Wallet, ArrowDownToLine, ArrowUpFromLine, ReceiptText } 
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader, AccountStatusBadge, EmptyState, StatCard } from "@/components/ui";
 import { TableFilter, type FilterOption } from "@/components/table-filter";
+import { ExportCsvButton } from "@/components/export-csv-button";
 import { formatGHS, round2 } from "@/lib/loan";
 import { getSettings } from "@/lib/settings/cache";
 import { PrintAccountListButton } from "@/components/print-account-list-button";
@@ -99,17 +100,25 @@ export async function AccountTypeList({
         title={product.label}
         description={product.description}
         action={
-          <PrintAccountListButton
-            productType={product.product_type as "savings" | "susu"}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            accounts={(accounts ?? []) as any[]}
-            totalCount={totalCount ?? 0}
-            totalBalance={totalBalance}
-            totalDep={totalDep}
-            totalWdr={totalWdr}
-            totalComm={totalComm}
-            companyPhone={companyPhone}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <ExportCsvButton
+              endpoint="/api/accounts/export"
+              filename={`${slug}-accounts.xlsx`}
+              label="Export Excel"
+              params={{ product: product.product_type }}
+            />
+            <PrintAccountListButton
+              productType={product.product_type as "savings" | "susu"}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              accounts={(accounts ?? []) as any[]}
+              totalCount={totalCount ?? 0}
+              totalBalance={totalBalance}
+              totalDep={totalDep}
+              totalWdr={totalWdr}
+              totalComm={totalComm}
+              companyPhone={companyPhone}
+            />
+          </div>
         }
       />
 

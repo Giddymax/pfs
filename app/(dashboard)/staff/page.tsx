@@ -5,6 +5,7 @@ import { PageHeader, EmptyState } from "@/components/ui";
 import { TableFilter, type FilterOption } from "@/components/table-filter";
 import { StaffStatusToggle } from "@/components/staff-status-toggle";
 import { AddStaffButton, EditStaffButton, DeleteStaffButton, ChangePasswordButton } from "@/components/staff-form";
+import { ExportCsvButton } from "@/components/export-csv-button";
 import type { Profile } from "@/lib/types";
 
 const ROLE_OPTIONS: FilterOption[] = [
@@ -55,7 +56,12 @@ export default async function StaffPage({
         eyebrow="Administration"
         title="Staff accounts"
         description="Manage who has access to Prime Financial Service. Create new accounts, update names or roles, activate or deactivate login, or remove accounts entirely."
-        action={<AddStaffButton />}
+        action={
+          <div className="flex flex-wrap items-center gap-2">
+            <ExportCsvButton endpoint="/api/staff/export" filename="staff.xlsx" label="Export Excel" />
+            <AddStaffButton />
+          </div>
+        }
       />
 
       {/* Mobile filter controls */}
