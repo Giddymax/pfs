@@ -67,7 +67,7 @@ async function notifyBatch(
 ) {
   if (payments.length === 0) return;
 
-  const { data: account } = await supabase.from("accounts").select("client_id").eq("id", accountId).single<{ client_id: string }>();
+  const { data: account } = await supabase.from("accounts").select("client_id, balance").eq("id", accountId).single<{ client_id: string; balance: number }>();
   if (!account) return;
 
   const { data: client } = await supabase.from("clients").select("*").eq("id", account.client_id).single<Client>();
@@ -78,8 +78,8 @@ async function notifyBatch(
 
   // Multi-day single payments get a more descriptive message than manual batch catch-ups
   const msg = isMultiDayPayment
-    ? smsTemplates.susuMultiDayPayment(client.full_name, payments.length, payments[0].amount, total)
-    : smsTemplates.susuBatchRecorded(client.full_name, payments.length, total);
+    ? smsTemplates.susuMultiDayPayment(client.full_name, payments.length, payments[0].amount, total, account.balance)
+    : smsTemplates.susuBatchRecorded(client.full_name, payments.length, total, account.balance);
 
   const event = isMultiDayPayment ? "susu_multi_day_payment" : "susu_batch_recorded";
 

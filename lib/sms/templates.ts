@@ -10,14 +10,14 @@ export const smsTemplates = {
   transactionReversed: (clientName: string, amount: number, balanceAfter: number) =>
     `${clientName}, a txn of ${formatGHS(amount)} was reversed. Current bal: ${formatGHS(balanceAfter)}.`,
 
-  susuContributionRecorded: (clientName: string, amount: number, dayInCycle: number, totalCollected: number) =>
-    `DEPOSIT: ${clientName}, susu ${formatGHS(amount)} recorded (day ${dayInCycle}/31). Total: ${formatGHS(totalCollected)}.`,
+  susuContributionRecorded: (clientName: string, amount: number, dayInCycle: number, totalCollected: number, balanceAfter: number) =>
+    `DEPOSIT: ${clientName}, susu ${formatGHS(amount)} recorded (day ${dayInCycle}/31). Total: ${formatGHS(totalCollected)}. Bal: ${formatGHS(balanceAfter)}.`,
 
-  susuBatchRecorded: (clientName: string, entryCount: number, totalAmount: number) =>
-    `DEPOSIT: ${clientName}, ${entryCount} susu contributions totalling ${formatGHS(totalAmount)} recorded.`,
+  susuBatchRecorded: (clientName: string, entryCount: number, totalAmount: number, balanceAfter: number) =>
+    `DEPOSIT: ${clientName}, ${entryCount} susu contributions totalling ${formatGHS(totalAmount)} recorded. Bal: ${formatGHS(balanceAfter)}.`,
 
-  susuMultiDayPayment: (clientName: string, days: number, amountPerDay: number, total: number) =>
-    `DEPOSIT: ${clientName}, ${formatGHS(total)} susu received, covering ${days} days (${days} × ${formatGHS(amountPerDay)}). Thank you.`,
+  susuMultiDayPayment: (clientName: string, days: number, amountPerDay: number, total: number, balanceAfter: number) =>
+    `DEPOSIT: ${clientName}, ${formatGHS(total)} susu received, covering ${days} days (${days} × ${formatGHS(amountPerDay)}). Bal: ${formatGHS(balanceAfter)}. Thank you.`,
 
   susuWithdrawalRecorded: (clientName: string, amount: number, balanceAfter: number, proxyName?: string | null) =>
     `WITHDRAWAL: ${clientName}, susu ${formatGHS(amount)} paid out. Bal: ${formatGHS(balanceAfter)}.${proxyName ? ` Withdrawn by: ${proxyName}.` : ""}`,

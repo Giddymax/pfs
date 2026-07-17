@@ -42,7 +42,7 @@ export async function POST(request: Request) {
 }
 
 async function notifySusuPayment(supabase: Awaited<ReturnType<typeof createClient>>, payment: SusuPayment) {
-  const { data: account } = await supabase.from("accounts").select("client_id").eq("id", payment.account_id).single<{ client_id: string }>();
+  const { data: account } = await supabase.from("accounts").select("client_id, balance").eq("id", payment.account_id).single<{ client_id: string; balance: number }>();
   if (!account) return;
 
   const [{ data: client }, { data: cycle }] = await Promise.all([
@@ -54,7 +54,7 @@ async function notifySusuPayment(supabase: Awaited<ReturnType<typeof createClien
   if (!client) return;
 
   const settings = await getSettings();
-  const msg = smsTemplates.susuContributionRecorded(client.full_name, payment.amount, payment.day_in_cycle, cycle?.total_collected ?? payment.amount);
+  const msg = smsTemplates.susuContributionRecorded(client.full_name, payment.amount, payment.day_in_cycle, cycle?.total_collected ?? payment.amount, account.balance);
 
   if (shouldSendClientSms("susu", client, settings)) {
     await sendSms({ to: client.phone, message: msg, event: "susu_contribution_recorded", recipientType: "client", relatedClientId: client.id });
