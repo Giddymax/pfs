@@ -140,8 +140,10 @@ export default async function BankPage() {
   const rawCashAtBank = round2(
     rows.reduce((acc, t) => (t.type === "deposit" ? acc + t.amount : acc - t.amount), 0)
   );
-  const cashAtBank = Math.min(rawCashAtBank, accountBalance);
-  const cashAtHand = Math.max(round2(accountBalance - rawCashAtBank), 0);
+  // Neither figure is ever allowed to show negative — cashAtBank + cashAtHand
+  // always equals accountBalance exactly when accountBalance is non-negative.
+  const cashAtBank = Math.max(0, Math.min(rawCashAtBank, accountBalance));
+  const cashAtHand = Math.max(0, round2(accountBalance - cashAtBank));
 
   return (
     <div>
@@ -158,6 +160,16 @@ export default async function BankPage() {
           </div>
         }
       />
+
+      {accountBalance < 0 && (
+        <div className="mb-6 rounded-xl border border-[#B3432B]/25 bg-[#B3432B]/[0.06] px-5 py-4 text-[13.5px] text-[#963522]">
+          <p className="font-semibold">Account balance is negative ({formatGHS(accountBalance)})</p>
+          <p className="mt-1 text-[12.5px] text-[#963522]/80">
+            Combined client obligations exceed available funds. Cash at bank and cash at hand cannot be split
+            meaningfully until this is investigated and resolved.
+          </p>
+        </div>
+      )}
 
       {/* Balance cards */}
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
