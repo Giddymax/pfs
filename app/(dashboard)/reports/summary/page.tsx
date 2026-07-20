@@ -130,7 +130,7 @@ export default async function SummaryPage({
       {/* ── Screen header ── */}
       <div className="mb-6 print:hidden">
         <p className="mb-0.5 text-[11.5px] font-semibold uppercase tracking-[0.18em] text-[#0033AA]/50">Reports</p>
-        <h1 className="text-[26px] font-bold text-[#0A2240]">Period Summary</h1>
+        <h1 className="text-[26px] font-bold text-[#0A2240]">Transaction Summary</h1>
         <p className="mt-1 text-[14px] text-[#0A2240]/50">
           Financial activity summary for any date range you choose.
         </p>
@@ -160,7 +160,7 @@ export default async function SummaryPage({
             </div>
           </div>
           <div className="text-right text-[11px] text-[#0A2240]/45">
-            <p className="font-semibold text-[#0A2240]/60">Period Summary Report</p>
+            <p className="font-semibold text-[#0A2240]/60">Transaction Summary Report</p>
             <p>Printed: {printedAt}</p>
             <p>By: {profile.full_name}</p>
           </div>

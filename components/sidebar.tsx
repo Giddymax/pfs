@@ -77,7 +77,7 @@ const NAV = [
   },
   {
     href: "/reports/summary",
-    label: "Summary",
+    label: "Transaction Summary",
     icon: BarChart3,
     active: "bg-[#0891B2]/15 text-[#FFFFFF]",
     activeIcon: "text-[#0891B2]",
@@ -125,6 +125,15 @@ const ADMIN_NAV = [
     activeIcon: "text-[#4ADE80]",
     idle: "group text-[#FFFFFF] hover:bg-[#15803D]/15 hover:text-[#FFFFFF]",
     idleIcon: "text-[#FFFFFF] transition-colors group-hover:text-[#4ADE80]",
+  },
+  {
+    href: "/reports/account-summary",
+    label: "Account Summary",
+    icon: BarChart3,
+    active: "bg-[#DC2626]/15 text-[#FFFFFF]",
+    activeIcon: "text-[#F87171]",
+    idle: "group text-[#FFFFFF] hover:bg-[#DC2626]/15 hover:text-[#FFFFFF]",
+    idleIcon: "text-[#FFFFFF] transition-colors group-hover:text-[#F87171]",
   },
   {
     href: "/bank",
