@@ -27,6 +27,7 @@ const DEFAULTS: Settings = {
     combined_total:  { visible: true },
     total_revenue:   { visible: true, components: { interest: true, commission: true, susu_fees: true, card_fees: true, sms_fees: true, sms_charges: true, processing_fees: true, investment_revenue: true } },
     account_balance: { visible: true },
+    total_withdrawals: { visible: true },
     cash_at_hand:    { visible: true },
     cash_at_bank:    { visible: true },
   },

@@ -188,6 +188,7 @@ export interface OverviewKpiSettings {
   combined_total: KpiCardConfig;
   total_revenue: KpiRevenueConfig;
   account_balance: KpiCardConfig;
+  total_withdrawals: KpiCardConfig;
   cash_at_hand: KpiCardConfig;
   cash_at_bank: KpiCardConfig;
 }

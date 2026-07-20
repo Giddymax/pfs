@@ -1,11 +1,24 @@
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getSettings } from "@/lib/settings/cache";
 import { PageHeader, Card, LoanStatusBadge, EmptyState } from "@/components/ui";
 import { formatGHS, round2 } from "@/lib/loan";
-import { ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
+import {
+  ArrowUpRight,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  Users,
+  PiggyBank,
+  Repeat,
+  Lock,
+  Layers,
+  TrendingUp,
+  Wallet,
+  Banknote,
+  Landmark,
+} from "lucide-react";
+import type { ReactNode } from "react";
 import type { Loan, Client, Profile, Transaction } from "@/lib/types";
 
 export default async function OverviewPage() {
@@ -27,6 +40,7 @@ export default async function OverviewPage() {
     combined_total:  { visible: true },
     total_revenue:   { visible: true, components: { interest: true, commission: true, susu_fees: true, card_fees: true, sms_fees: true, processing_fees: true, investment_revenue: true } },
     account_balance: { visible: true },
+    total_withdrawals: { visible: true },
     cash_at_hand:    { visible: true },
     cash_at_bank:    { visible: true },
   };
@@ -189,7 +203,8 @@ export default async function OverviewPage() {
           <SummaryCard
             label="Total Clients"
             value={String(clientCount ?? 0)}
-            color="bg-[#DC2626]"
+            tone="red"
+            icon={<Users size={17} />}
           />
         )}
         {kpi.total_savings.visible && (
@@ -197,7 +212,8 @@ export default async function OverviewPage() {
             label="Total Savings"
             value={formatGHS(totalSavings)}
             hint="Total deposits — no withdrawals or deductions"
-            color="bg-[#0D9488]"
+            tone="teal"
+            icon={<PiggyBank size={17} />}
           />
         )}
         {kpi.total_susu.visible && (
@@ -205,7 +221,8 @@ export default async function OverviewPage() {
             label="Total Daily Susu"
             value={formatGHS(totalSusu)}
             hint="Total contributions — no withdrawals or deductions"
-            color="bg-[#16A34A]"
+            tone="green"
+            icon={<Repeat size={17} />}
           />
         )}
         {kpi.total_fd.visible && (
@@ -213,7 +230,8 @@ export default async function OverviewPage() {
             label="Total Fixed Deposits"
             value={formatGHS(totalFD)}
             hint="Principal only — no interest added"
-            color="bg-[#7C3AED]"
+            tone="violet"
+            icon={<Lock size={17} />}
           />
         )}
         {kpi.combined_total.visible && (
@@ -221,7 +239,8 @@ export default async function OverviewPage() {
             label="Combined Account Total"
             value={formatGHS(combined)}
             hint={`Savings ${formatGHS(totalSavings)} + Susu ${formatGHS(totalSusu)} + FD ${formatGHS(totalFD)}`}
-            color="bg-[#EA580C]"
+            tone="orange"
+            icon={<Layers size={17} />}
           />
         )}
         {kpi.total_revenue.visible && (
@@ -239,7 +258,17 @@ export default async function OverviewPage() {
               investmentDeductedFromRevenue > 0 && `Active Investments -${formatGHS(investmentDeductedFromRevenue)}`,
               investmentDeductedFromAccount > 0 && `Account Balance Used ${formatGHS(investmentDeductedFromAccount)}`,
             ].filter(Boolean).join(" + ")}
-            color="bg-[#15803D]"
+            tone="emerald"
+            icon={<TrendingUp size={17} />}
+          />
+        )}
+        {kpi.total_withdrawals.visible && (
+          <SummaryCard
+            label="Total Withdrawals"
+            value={formatGHS(totalWithdrawals)}
+            hint="Total withdrawn across all accounts, excluding fees"
+            tone="rust"
+            icon={<ArrowUpFromLine size={17} />}
           />
         )}
         {kpi.account_balance.visible && (
@@ -247,7 +276,8 @@ export default async function OverviewPage() {
             label="Account Balance"
             value={formatGHS(accountBalance)}
             hint={`${formatGHS(combined)} - Wdr/Comm ${formatGHS(totalWithdrawals + commission)} - Susu Fees ${formatGHS(susuFees)} - SMS Fees ${formatGHS(totalSmsFees)} - Loans ${formatGHS(totalLoansPaid)} + Repayments ${formatGHS(totalRepayments)} + Card Fees ${formatGHS(cardFees)} + Returned Investment Revenue ${formatGHS(returnedInvestmentRevenue)} - Investment Overflow ${formatGHS(investmentDeductedFromAccount)}`}
-            color="bg-[#9333EA]"
+            tone="purple"
+            icon={<Wallet size={17} />}
           />
         )}
         {kpi.cash_at_hand.visible && (
@@ -255,7 +285,8 @@ export default async function OverviewPage() {
             label="Cash at Hand"
             value={formatGHS(cashAtHand)}
             hint="Money not deposited to bank — account balance minus cash at bank"
-            color="bg-[#D97706]"
+            tone="amber"
+            icon={<Banknote size={17} />}
           />
         )}
         {kpi.cash_at_bank.visible && (
@@ -263,7 +294,8 @@ export default async function OverviewPage() {
             label="Cash at Bank"
             value={formatGHS(cashAtBank)}
             hint="Total deposited to bank account"
-            color="bg-[#1D4ED8]"
+            tone="blue"
+            icon={<Landmark size={17} />}
           />
         )}
       </div>
@@ -400,22 +432,42 @@ export default async function OverviewPage() {
   );
 }
 
+const TONES = {
+  red:     { tint: "bg-[#DC2626]/8",  icon: "text-[#DC2626]",  bar: "bg-[#DC2626]" },
+  teal:    { tint: "bg-[#0D9488]/8",  icon: "text-[#0D9488]",  bar: "bg-[#0D9488]" },
+  green:   { tint: "bg-[#16A34A]/8",  icon: "text-[#16A34A]",  bar: "bg-[#16A34A]" },
+  violet:  { tint: "bg-[#7C3AED]/8",  icon: "text-[#7C3AED]",  bar: "bg-[#7C3AED]" },
+  orange:  { tint: "bg-[#EA580C]/8",  icon: "text-[#EA580C]",  bar: "bg-[#EA580C]" },
+  emerald: { tint: "bg-[#15803D]/8",  icon: "text-[#15803D]",  bar: "bg-[#15803D]" },
+  rust:    { tint: "bg-[#B3432B]/8",  icon: "text-[#B3432B]",  bar: "bg-[#B3432B]" },
+  purple:  { tint: "bg-[#9333EA]/8",  icon: "text-[#9333EA]",  bar: "bg-[#9333EA]" },
+  amber:   { tint: "bg-[#D97706]/8",  icon: "text-[#D97706]",  bar: "bg-[#D97706]" },
+  blue:    { tint: "bg-[#1D4ED8]/8",  icon: "text-[#1D4ED8]",  bar: "bg-[#1D4ED8]" },
+} as const;
+
 function SummaryCard({
   label,
   value,
   hint,
-  color,
+  tone,
+  icon,
 }: {
   label: string;
   value: string;
   hint?: string;
-  color: string;
+  tone: keyof typeof TONES;
+  icon: ReactNode;
 }) {
+  const t = TONES[tone];
   return (
-    <div className={`rounded-xl ${color} p-5 text-white`}>
-      <p className="text-[10.5px] font-semibold uppercase tracking-[0.18em] text-white/80">{label}</p>
-      <p className="mt-2 break-words text-[1.6rem] font-bold tabular-nums leading-none sm:text-[2rem]">{value}</p>
-      {hint && <p className="mt-2 text-[11.5px] leading-snug text-white/75">{hint}</p>}
+    <div className="group relative overflow-hidden rounded-2xl border border-[#0033AA]/8 bg-white p-5 shadow-[0_1px_2px_rgba(10,34,64,0.05)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(10,34,64,0.09)]">
+      <span className={`absolute inset-x-0 top-0 h-[3px] ${t.bar}`} />
+      <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${t.tint} ${t.icon}`}>
+        {icon}
+      </span>
+      <p className="mt-4 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[#0A2240]/45">{label}</p>
+      <p className="mt-1.5 break-words text-[1.65rem] font-bold tabular-nums leading-none text-[#0A2240] sm:text-[1.9rem]">{value}</p>
+      {hint && <p className="mt-2 text-[11.5px] leading-snug text-[#0A2240]/45">{hint}</p>}
     </div>
   );
 }
