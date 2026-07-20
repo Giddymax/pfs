@@ -145,12 +145,6 @@ export interface CardFee {
   created_at: string;
 }
 
-export interface CommissionTier {
-  min: number;
-  max: number | null;
-  fee: number;
-}
-
 export interface SmsSettings {
   sms_enabled: boolean;
   sms_client_enabled: boolean;
@@ -199,7 +193,6 @@ export interface OverviewKpiSettings {
 }
 
 export interface Settings {
-  commission_tiers: CommissionTier[];
   sms: SmsSettings;
   card_fee_amount: number;
   fd_terms_months: number[];

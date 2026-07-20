@@ -3,8 +3,6 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowDownToLine, ArrowUpFromLine, Loader2, X } from "lucide-react";
-import { formatGHS } from "@/lib/loan";
-import type { CommissionTier } from "@/lib/types";
 
 type TransactionKind = "deposit" | "withdrawal";
 
@@ -23,21 +21,12 @@ const KIND_COPY: Record<TransactionKind, { label: string; cta: string; endpoint:
   },
 };
 
-function computeCommission(amount: number, tiers: CommissionTier[]): number {
-  if (!tiers.length || amount <= 0) return 0;
-  const sorted = [...tiers].sort((a, b) => b.min - a.min);
-  const applicable = sorted.find((t) => t.min <= amount);
-  return applicable?.fee ?? 0;
-}
-
 export function RecordTransactionForm({
   accountId,
   kind,
-  commissionTiers,
 }: {
   accountId: string;
   kind: TransactionKind;
-  commissionTiers?: CommissionTier[] | null;
 }) {
   const router = useRouter();
   const copy = KIND_COPY[kind];
@@ -49,6 +38,7 @@ export function RecordTransactionForm({
 
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
+  const [fee, setFee] = useState("");
   const [notes, setNotes] = useState("");
   const [txnDate, setTxnDate] = useState(todayStr);
   const [txnTime, setTxnTime] = useState(nowTimeStr);
@@ -61,7 +51,7 @@ export function RecordTransactionForm({
   const [proxyRelation, setProxyRelation] = useState("");
 
   const amountNum = Number(amount) || 0;
-  const fee = kind === "withdrawal" ? computeCommission(amountNum, commissionTiers ?? []) : 0;
+  const feeNum = Number(fee) || 0;
 
   function handleOpen() {
     setTxnDate(todayStr());
@@ -72,6 +62,7 @@ export function RecordTransactionForm({
   function handleClose() {
     setOpen(false);
     setAmount("");
+    setFee("");
     setNotes("");
     setError(null);
     setIsClient(true);
@@ -86,6 +77,11 @@ export function RecordTransactionForm({
 
     if (!amountNum || amountNum <= 0) {
       setError("Enter an amount greater than zero.");
+      return;
+    }
+
+    if (kind === "withdrawal" && feeNum < 0) {
+      setError("Commission cannot be negative.");
       return;
     }
 
@@ -123,6 +119,7 @@ export function RecordTransactionForm({
           amount: amountNum,
           notes: combinedNotes || null,
           created_at: customTs,
+          ...(kind === "withdrawal" ? { fee: feeNum } : {}),
           ...(!isClient && kind === "withdrawal" ? { proxy_name: proxyName.trim() } : {}),
         }),
       });
@@ -204,14 +201,19 @@ export function RecordTransactionForm({
 
               {kind === "withdrawal" && (
                 <label className="block">
-                  <span className="mb-1.5 block text-[12.5px] font-medium text-[#0033AA]/75">Withdrawal fee (GHS)</span>
+                  <span className="mb-1.5 block text-[12.5px] font-medium text-[#0033AA]/75">Commission (GHS)</span>
                   <input
-                    type="text"
-                    readOnly
-                    aria-label="Withdrawal fee"
-                    value={formatGHS(fee)}
-                    className="w-full rounded-md border border-[#0033AA]/10 bg-[#0033AA]/[0.03] px-3.5 py-2.5 text-[14px] text-[#0A2240]/70 outline-none"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    aria-label="Commission"
+                    value={fee}
+                    onChange={(e) => setFee(e.target.value)}
+                    className="w-full rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
                   />
+                  <p className="mt-1 text-[11.5px] text-[#0A2240]/45">
+                    Entered manually — leave at 0 if no commission applies. Susu withdrawals are always exempt.
+                  </p>
                 </label>
               )}
 

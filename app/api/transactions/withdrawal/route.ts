@@ -17,6 +17,7 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const accountId = body?.account_id;
   const amount = Number(body?.amount);
+  const fee = body?.fee != null ? Number(body.fee) : 0;
   const notes = typeof body?.notes === "string" ? body.notes.trim() || null : null;
   const proxyName = typeof body?.proxy_name === "string" ? body.proxy_name.trim() || null : null;
   const rawTs = typeof body?.created_at === "string" ? body.created_at.trim() : null;
@@ -28,6 +29,9 @@ export async function POST(request: Request) {
   if (!Number.isFinite(amount) || amount <= 0) {
     return NextResponse.json({ error: "Amount must be greater than zero" }, { status: 400 });
   }
+  if (!Number.isFinite(fee) || fee < 0) {
+    return NextResponse.json({ error: "Commission cannot be negative" }, { status: 400 });
+  }
 
   const { data, error } = await supabase
     .rpc("record_withdrawal", {
@@ -36,6 +40,7 @@ export async function POST(request: Request) {
       p_recorded_by: user.id,
       p_notes: notes,
       p_created_at: customTs,
+      p_fee: fee,
     })
     .single<Transaction>();
 

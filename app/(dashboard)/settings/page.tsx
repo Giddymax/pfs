@@ -3,15 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui";
 import { SettingsForm } from "@/components/settings-form";
 import { ChargeSmsFeeButton } from "@/components/charge-sms-fees-button";
-import type { CommissionTier, Profile, SettingsRow, SmsSettings } from "@/lib/types";
-
-const DEFAULT_COMMISSION_TIERS: CommissionTier[] = [
-  { min: 50, max: 200, fee: 5 },
-  { min: 300, max: 500, fee: 10 },
-  { min: 600, max: 1000, fee: 15 },
-  { min: 1000, max: 1500, fee: 20 },
-  { min: 2000, max: null, fee: 40 },
-];
+import type { Profile, SettingsRow, SmsSettings } from "@/lib/types";
 
 const DEFAULT_SMS_SETTINGS: SmsSettings = {
   sms_enabled: false,
@@ -45,11 +37,10 @@ export default async function SettingsPage() {
         back="/"
         eyebrow="Administration"
         title="Settings"
-        description="Configure commission tiers, SMS notifications, the registration card fee, and fixed-deposit terms. These values apply across the system immediately."
+        description="Configure SMS notifications, the registration card fee, and fixed-deposit terms. These values apply across the system immediately."
       />
 
       <SettingsForm
-        commissionTiers={(byKey.get("commission_tiers") as CommissionTier[] | undefined) ?? DEFAULT_COMMISSION_TIERS}
         sms={{ ...DEFAULT_SMS_SETTINGS, ...(byKey.get("sms") as Partial<SmsSettings> | undefined) }}
         cardFeeAmount={(byKey.get("card_fee_amount") as number | undefined) ?? 20}
         fdTermsMonths={(byKey.get("fd_terms_months") as number[] | undefined) ?? [3, 6, 9, 12, 18, 24]}

@@ -19,7 +19,7 @@ import { ResetSusuButton } from "@/components/reset-susu-button";
 import { ClearTransactionsButton } from "@/components/clear-transactions-button";
 import { getSettings } from "@/lib/settings/cache";
 import { formatGHS } from "@/lib/loan";
-import type { Account, Client, CommissionTier, Profile, SusuClaim, SusuCycle, SusuPayment, Transaction } from "@/lib/types";
+import type { Account, Client, Profile, SusuClaim, SusuCycle, SusuPayment, Transaction } from "@/lib/types";
 
 const PRODUCT_LABEL: Record<Account["product_type"], string> = {
   savings: "Savings account",
@@ -33,7 +33,7 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
 
   type TxnRow = Transaction & { recorder: { full_name: string } | null };
 
-  const [{ data: account }, { data: transactions }, { data: profile }, { data: tierRow }, settings] = await Promise.all([
+  const [{ data: account }, { data: transactions }, { data: profile }, settings] = await Promise.all([
     supabase.from("accounts").select("*, client:clients(*)").eq("id", id).single<Account & { client: Client }>(),
     supabase
       .from("transactions")
@@ -42,7 +42,6 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
       .order("created_at", { ascending: false })
       .returns<TxnRow[]>(),
     getCurrentProfile(supabase),
-    supabase.from("settings").select("value").eq("key", "commission_tiers").maybeSingle<{ value: CommissionTier[] }>(),
     getSettings(),
   ]);
 
@@ -57,7 +56,6 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
     account: { account_number: account.account_number, product_type: account.product_type as string },
   })) as TxnWithAccount[];
   const isSusu = account.product_type === "susu";
-  const commissionTiers = account.product_type === "savings" ? (tierRow?.value ?? null) : null;
 
   let cycles: SusuCycle[] = [];
   let claims: SusuClaim[] = [];
@@ -121,7 +119,7 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
                 ) : (
                   <>
                     <RecordTransactionForm accountId={account.id} kind="deposit" />
-                    <RecordTransactionForm accountId={account.id} kind="withdrawal" commissionTiers={commissionTiers} />
+                    <RecordTransactionForm accountId={account.id} kind="withdrawal" />
                   </>
                 )
               )}

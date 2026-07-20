@@ -1,16 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
-import type { CommissionTier, OverviewKpiSettings, Settings, SettingsRow, SmsSettings } from "@/lib/types";
+import type { OverviewKpiSettings, Settings, SettingsRow, SmsSettings } from "@/lib/types";
 
 const TTL_MS = 30 * 1000;
 
 const DEFAULTS: Settings = {
-  commission_tiers: [
-    { min: 50, max: 200, fee: 5 },
-    { min: 300, max: 500, fee: 10 },
-    { min: 600, max: 1000, fee: 15 },
-    { min: 1000, max: 1500, fee: 20 },
-    { min: 2000, max: null, fee: 40 },
-  ],
   sms: {
     sms_enabled: false,
     sms_client_enabled: true,
@@ -49,7 +42,6 @@ export async function getSettings(): Promise<Settings> {
   const byKey = new Map((rows ?? []).map((row) => [row.key, row.value]));
 
   const value: Settings = {
-    commission_tiers: (byKey.get("commission_tiers") as CommissionTier[] | undefined) ?? DEFAULTS.commission_tiers,
     sms: { ...DEFAULTS.sms, ...(byKey.get("sms") as Partial<SmsSettings> | undefined) },
     card_fee_amount: (byKey.get("card_fee_amount") as number | undefined) ?? DEFAULTS.card_fee_amount,
     fd_terms_months: (byKey.get("fd_terms_months") as number[] | undefined) ?? DEFAULTS.fd_terms_months,

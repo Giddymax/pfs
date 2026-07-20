@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { invalidateSettingsCache } from "@/lib/settings/cache";
-import type { CommissionTier, Profile, SmsSettings } from "@/lib/types";
+import type { Profile, SmsSettings } from "@/lib/types";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -17,15 +17,11 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => null);
-  const commissionTiers = body?.commission_tiers as CommissionTier[] | undefined;
   const sms = body?.sms as SmsSettings | undefined;
   const cardFeeAmount = Number(body?.card_fee_amount);
   const fdTermsMonths = body?.fd_terms_months as number[] | undefined;
   const smsMonthlyFee = Number(body?.sms_monthly_fee);
 
-  if (!Array.isArray(commissionTiers)) {
-    return NextResponse.json({ error: "commission_tiers must be an array" }, { status: 400 });
-  }
   if (!sms || typeof sms !== "object") {
     return NextResponse.json({ error: "sms settings are required" }, { status: 400 });
   }
@@ -40,7 +36,6 @@ export async function POST(request: Request) {
   }
 
   const updates = [
-    { key: "commission_tiers", value: commissionTiers },
     { key: "sms", value: sms },
     { key: "card_fee_amount", value: cardFeeAmount },
     { key: "fd_terms_months", value: fdTermsMonths },
