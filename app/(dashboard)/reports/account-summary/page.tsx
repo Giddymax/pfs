@@ -13,6 +13,7 @@ interface DailySummaryRow {
   total_deposits: number;
   total_withdrawals: number;
   total_commission: number;
+  total_sms_fees: number;
 }
 
 function currentMonth() {
@@ -77,8 +78,9 @@ export default async function AccountSummaryPage({
       deposits: acc.deposits + Number(r.total_deposits),
       withdrawals: acc.withdrawals + Number(r.total_withdrawals),
       commission: acc.commission + Number(r.total_commission),
+      smsFees: acc.smsFees + Number(r.total_sms_fees),
     }),
-    { deposits: 0, withdrawals: 0, commission: 0 }
+    { deposits: 0, withdrawals: 0, commission: 0, smsFees: 0 }
   );
 
   const printedAt = new Date().toLocaleString("en-GB", {
@@ -96,7 +98,7 @@ export default async function AccountSummaryPage({
           back="/"
           eyebrow="Reports"
           title="Account Summary"
-          description="Daily deposits, withdrawals, and commission for any month."
+          description="Daily deposits, withdrawals, commission, and SMS fees for any month."
         />
       </div>
 
@@ -142,13 +144,14 @@ export default async function AccountSummaryPage({
             </div>
           ) : (
             <div className="pfs-table-scroll">
-              <table className="w-full min-w-[560px] text-left text-[14px]">
+              <table className="w-full min-w-[680px] text-left text-[14px]">
                 <thead>
                   <tr className="border-b border-[#0A2240]/8 bg-[#0A2240]/[0.02] text-[11px] uppercase tracking-[0.1em] text-[#0A2240]/45">
                     <th className="px-5 py-3 font-semibold">Date</th>
                     <th className="px-5 py-3 text-right font-semibold">Total Deposits</th>
                     <th className="px-5 py-3 text-right font-semibold">Total Withdrawals</th>
                     <th className="px-5 py-3 text-right font-semibold">Total Commission</th>
+                    <th className="px-5 py-3 text-right font-semibold">Total SMS Fees</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#0A2240]/6">
@@ -158,6 +161,7 @@ export default async function AccountSummaryPage({
                       <td className="px-5 py-3 text-right tabular-nums text-[#1F6E4A]">{formatGHS(Number(r.total_deposits))}</td>
                       <td className="px-5 py-3 text-right tabular-nums text-[#963522]">{formatGHS(Number(r.total_withdrawals))}</td>
                       <td className="px-5 py-3 text-right tabular-nums text-[#0A2240]">{formatGHS(Number(r.total_commission))}</td>
+                      <td className="px-5 py-3 text-right tabular-nums text-[#0A2240]">{formatGHS(Number(r.total_sms_fees))}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -167,6 +171,7 @@ export default async function AccountSummaryPage({
                     <td className="px-5 py-3.5 text-right text-[14px] font-bold tabular-nums text-[#1F6E4A]">{formatGHS(totals.deposits)}</td>
                     <td className="px-5 py-3.5 text-right text-[14px] font-bold tabular-nums text-[#963522]">{formatGHS(totals.withdrawals)}</td>
                     <td className="px-5 py-3.5 text-right text-[14px] font-bold tabular-nums text-[#0A2240]">{formatGHS(totals.commission)}</td>
+                    <td className="px-5 py-3.5 text-right text-[14px] font-bold tabular-nums text-[#0A2240]">{formatGHS(totals.smsFees)}</td>
                   </tr>
                 </tfoot>
               </table>
