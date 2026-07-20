@@ -13,7 +13,7 @@ interface DailySummaryRow {
   total_deposits: number;
   total_withdrawals: number;
   total_commission: number;
-  total_sms_fees: number;
+  new_clients: number;
 }
 
 function currentMonth() {
@@ -78,9 +78,9 @@ export default async function AccountSummaryPage({
       deposits: acc.deposits + Number(r.total_deposits),
       withdrawals: acc.withdrawals + Number(r.total_withdrawals),
       commission: acc.commission + Number(r.total_commission),
-      smsFees: acc.smsFees + Number(r.total_sms_fees),
+      newClients: acc.newClients + Number(r.new_clients),
     }),
-    { deposits: 0, withdrawals: 0, commission: 0, smsFees: 0 }
+    { deposits: 0, withdrawals: 0, commission: 0, newClients: 0 }
   );
 
   const printedAt = new Date().toLocaleString("en-GB", {
@@ -98,7 +98,7 @@ export default async function AccountSummaryPage({
           back="/"
           eyebrow="Reports"
           title="Account Summary"
-          description="Daily deposits, withdrawals, commission, and SMS fees for any month."
+          description="Daily deposits, withdrawals, commission, and new clients for any month."
         />
       </div>
 
@@ -151,7 +151,7 @@ export default async function AccountSummaryPage({
                     <th className="px-5 py-3 text-right font-semibold">Total Deposits</th>
                     <th className="px-5 py-3 text-right font-semibold">Total Withdrawals</th>
                     <th className="px-5 py-3 text-right font-semibold">Total Commission</th>
-                    <th className="px-5 py-3 text-right font-semibold">Total SMS Fees</th>
+                    <th className="px-5 py-3 text-right font-semibold">New Clients</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#0A2240]/6">
@@ -161,7 +161,7 @@ export default async function AccountSummaryPage({
                       <td className="px-5 py-3 text-right tabular-nums text-[#1F6E4A]">{formatGHS(Number(r.total_deposits))}</td>
                       <td className="px-5 py-3 text-right tabular-nums text-[#963522]">{formatGHS(Number(r.total_withdrawals))}</td>
                       <td className="px-5 py-3 text-right tabular-nums text-[#0A2240]">{formatGHS(Number(r.total_commission))}</td>
-                      <td className="px-5 py-3 text-right tabular-nums text-[#0A2240]">{formatGHS(Number(r.total_sms_fees))}</td>
+                      <td className="px-5 py-3 text-right tabular-nums text-[#0A2240]">{Number(r.new_clients)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -171,7 +171,7 @@ export default async function AccountSummaryPage({
                     <td className="px-5 py-3.5 text-right text-[14px] font-bold tabular-nums text-[#1F6E4A]">{formatGHS(totals.deposits)}</td>
                     <td className="px-5 py-3.5 text-right text-[14px] font-bold tabular-nums text-[#963522]">{formatGHS(totals.withdrawals)}</td>
                     <td className="px-5 py-3.5 text-right text-[14px] font-bold tabular-nums text-[#0A2240]">{formatGHS(totals.commission)}</td>
-                    <td className="px-5 py-3.5 text-right text-[14px] font-bold tabular-nums text-[#0A2240]">{formatGHS(totals.smsFees)}</td>
+                    <td className="px-5 py-3.5 text-right text-[14px] font-bold tabular-nums text-[#0A2240]">{totals.newClients}</td>
                   </tr>
                 </tfoot>
               </table>
