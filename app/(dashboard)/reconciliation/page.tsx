@@ -153,7 +153,7 @@ export default async function ReconciliationPage({
                   <th className="px-5 py-3 text-right font-semibold">Deposit Received</th>
                   <th className="px-5 py-3 text-right font-semibold">Withdrawal Paid</th>
                   <th className="admin-col-secondary px-5 py-3 text-right font-semibold">Cash Issued Out</th>
-                  <th className="admin-col-secondary px-5 py-3 text-right font-semibold">Unspent Issued</th>
+                  <th className="admin-col-secondary px-5 py-3 text-right font-semibold">Issued Balance</th>
                   <th className="px-5 py-3 text-right font-semibold">Closing Cash at Hand</th>
                   <th className="px-5 py-3 text-right font-semibold">Cash at Bank</th>
                   <th className="px-5 py-3 text-right font-semibold">Total Cash</th>

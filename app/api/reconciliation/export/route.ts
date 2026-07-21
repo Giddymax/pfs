@@ -41,7 +41,7 @@ export async function GET() {
       "Cash Issued Out": e.cash_issued_out,
       "Balance After Issue": balanceAfterIssue,
       "Spent from Issued Cash": e.withdrawal_paid,
-      "Unspent Issued Balance": unspentIssued,
+      "Issued Balance": unspentIssued,
       "Deposit Added Back": e.deposit_received,
       "Closing Cash at Hand": closingCashAtHand,
     };
