@@ -20,6 +20,7 @@ import {
   TrendingUp,
   Wallet,
   CalendarClock,
+  Scale,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { signOut } from "@/app/actions";
@@ -143,6 +144,15 @@ const ADMIN_NAV = [
     activeIcon: "text-[#38BDF8]",
     idle: "group text-[#FFFFFF] hover:bg-[#0284C7]/15 hover:text-[#FFFFFF]",
     idleIcon: "text-[#FFFFFF] transition-colors group-hover:text-[#38BDF8]",
+  },
+  {
+    href: "/reconciliation",
+    label: "Reconciliation",
+    icon: Scale,
+    active: "bg-[#D97706]/15 text-[#FFFFFF]",
+    activeIcon: "text-[#FBBF24]",
+    idle: "group text-[#FFFFFF] hover:bg-[#D97706]/15 hover:text-[#FFFFFF]",
+    idleIcon: "text-[#FFFFFF] transition-colors group-hover:text-[#FBBF24]",
   },
   {
     href: "/susu/claims",
