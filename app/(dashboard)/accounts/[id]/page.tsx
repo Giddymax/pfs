@@ -76,8 +76,8 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
   const dayInCycle = activeCycle
     ? Math.max(0, ...payments.filter((p) => p.cycle_id === activeCycle.id).map((p) => p.day_in_cycle))
     : 0;
-  // Client contributes 30 days; day 31 is the company fee — cap display at 30
-  const CLIENT_DAYS = 30;
+  // The full cycle is 31 days — day 31's contribution becomes the company fee
+  const CLIENT_DAYS = 31;
   const clientDayInCycle = Math.min(dayInCycle, CLIENT_DAYS);
   const liveClaimStatuses: SusuClaim["status"][] = ["pending_admin", "approved"];
   const claimedCycleIds = new Set(claims.filter((c) => liveClaimStatuses.includes(c.status) || c.status === "paid").map((c) => c.cycle_id));
@@ -213,7 +213,7 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
                 </div>
                 <p className="text-[12px] text-[#0A2240]/45">
                   {clientDayInCycle >= CLIENT_DAYS
-                    ? "All 30 client days are complete. The company fee is retained automatically."
+                    ? "All 31 days are complete. The company fee (day 31) is retained automatically."
                     : `${CLIENT_DAYS - clientDayInCycle} day${CLIENT_DAYS - clientDayInCycle === 1 ? "" : "s"} remaining · company fee (1 day) is retained when the cycle closes.`}
                 </p>
               </div>
