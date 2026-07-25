@@ -14,6 +14,7 @@ interface PeriodSummary {
   withdrawal_count: number;
   withdrawal_total: number;
   commission_total: number;
+  commission_count: number;
   repayment_count: number;
   repayment_total: number;
   new_client_count: number;
@@ -239,6 +240,7 @@ export default async function SummaryPage({
               <MetricRow
                 label="Commission paid"
                 amount={summary.commission_total}
+                count={summary.commission_count}
                 sign="−"
                 color="text-[#963522]"
               />
