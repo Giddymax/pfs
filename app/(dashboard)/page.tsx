@@ -305,7 +305,7 @@ export default async function OverviewPage() {
           <SummaryCard
             label="Withdrawal Commission"
             value={formatGHS(commission)}
-            hint="Savings withdrawals only — susu withdrawals never charge commission"
+            hint="Savings withdrawals only"
             tone="cyan"
             icon={<Percent size={17} />}
           />
