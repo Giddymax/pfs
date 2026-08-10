@@ -24,6 +24,20 @@ interface PeriodSummary {
   card_fee_count: number;
   card_fee_total: number;
   sms_cost_total: number;
+  fd_principal_count: number;
+  fd_principal_total: number;
+  fd_payout_count: number;
+  fd_payout_total: number;
+  investment_returned_count: number;
+  investment_returned_total: number;
+  investment_placed_count: number;
+  investment_placed_total: number;
+  expenditure_count: number;
+  expenditure_total: number;
+  susu_fee_total: number;
+  account_fee_total: number;
+  total_inflows: number;
+  total_outflows: number;
   net_inflow: number;
 }
 
@@ -173,12 +187,12 @@ export default async function SummaryPage({
                 {summary.net_inflow >= 0 ? "+" : ""}{formatGHS(summary.net_inflow)}
               </p>
               <p className="mt-0.5 text-[12px] text-[#0A2240]/40">
-                Deposits + repayments + card fees − withdrawals − commission − loans disbursed
+                All cash actually received minus all cash actually paid out, across every product
               </p>
             </div>
 
-            {/* ─── Inflows ─── */}
-            <Section title="Inflows" accent="#1F6E4A">
+            {/* ─── Cash Inflows ─── */}
+            <Section title="Cash Inflows" accent="#1F6E4A">
               <MetricRow
                 label="Deposits (Savings)"
                 amount={savingsDepositTotal}
@@ -190,6 +204,13 @@ export default async function SummaryPage({
                 label="Deposits (Susu)"
                 amount={susuDepositTotal}
                 count={susuDeposits.length}
+                sign="+"
+                color="text-[#1F6E4A]"
+              />
+              <MetricRow
+                label="Fixed deposits opened"
+                amount={summary.fd_principal_total}
+                count={summary.fd_principal_count}
                 sign="+"
                 color="text-[#1F6E4A]"
               />
@@ -207,25 +228,22 @@ export default async function SummaryPage({
                 sign="+"
                 color="text-[#1F6E4A]"
               />
-              <TotalRow
-                label="Total inflows"
-                amount={summary.deposit_total + summary.repayment_total + summary.card_fee_total}
+              <MetricRow
+                label="Returned investment revenue"
+                amount={summary.investment_returned_total}
+                count={summary.investment_returned_count}
+                sign="+"
+                color="text-[#1F6E4A]"
               />
+              <TotalRow label="Total inflows" amount={summary.total_inflows} />
             </Section>
 
-            {/* ─── Outflows ─── */}
-            <Section title="Outflows" accent="#963522">
+            {/* ─── Cash Outflows ─── */}
+            <Section title="Cash Outflows" accent="#963522">
               <MetricRow
                 label="Withdrawals paid out"
                 amount={summary.withdrawal_total}
                 count={summary.withdrawal_count}
-                sign="−"
-                color="text-[#963522]"
-              />
-              <MetricRow
-                label="Commission paid"
-                amount={summary.commission_total}
-                count={summary.commission_count}
                 sign="−"
                 color="text-[#963522]"
               />
@@ -236,11 +254,58 @@ export default async function SummaryPage({
                 sign="−"
                 color="text-[#963522]"
               />
-              <TotalRow
-                label="Total outflows"
-                amount={summary.withdrawal_total + summary.commission_total + summary.loans_issued_total}
-                negative
+              <MetricRow
+                label="Fixed deposit payouts"
+                amount={summary.fd_payout_total}
+                count={summary.fd_payout_count}
+                sign="−"
+                color="text-[#963522]"
               />
+              <MetricRow
+                label="Expenditures"
+                amount={summary.expenditure_total}
+                count={summary.expenditure_count}
+                sign="−"
+                color="text-[#963522]"
+              />
+              <MetricRow
+                label="New investments placed"
+                amount={summary.investment_placed_total}
+                count={summary.investment_placed_count}
+                sign="−"
+                color="text-[#963522]"
+              />
+              <TotalRow label="Total outflows" amount={summary.total_outflows} negative />
+            </Section>
+
+            {/* ─── Revenue collected (informational — already inside the cash inflows above, not additional cash) ─── */}
+            <Section title="Revenue Collected" accent="#7C3AED">
+              <MetricRow
+                label="Commission"
+                amount={summary.commission_total}
+                count={summary.commission_count}
+                sign="+"
+                color="text-[#7C3AED]"
+              />
+              <MetricRow
+                label="Susu fees (day 31)"
+                amount={summary.susu_fee_total}
+                sign="+"
+                color="text-[#7C3AED]"
+              />
+              <MetricRow
+                label="Account fees (SMS + loan processing)"
+                amount={summary.account_fee_total}
+                sign="+"
+                color="text-[#7C3AED]"
+              />
+              <li className="px-5 py-3">
+                <p className="text-[11.5px] leading-relaxed text-[#0A2240]/40">
+                  These are money the company keeps, deducted directly from a client&apos;s existing balance — not
+                  separate cash movements, so they&apos;re already counted once inside the deposits above and are
+                  not added to Total inflows.
+                </p>
+              </li>
             </Section>
 
             {/* ─── Other activity ─── */}

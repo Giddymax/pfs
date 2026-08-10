@@ -189,6 +189,13 @@ export interface OverviewKpiSettings {
   total_revenue: KpiRevenueConfig;
   account_balance: KpiCardConfig;
   total_withdrawals: KpiCardConfig;
+  card_fees: KpiCardConfig;
+  withdrawal_commission: KpiCardConfig;
+  susu_fees: KpiCardConfig;
+  sms_fees: KpiCardConfig;
+  processing_fees: KpiCardConfig;
+  loan_interest: KpiCardConfig;
+  investment_revenue: KpiCardConfig;
   cash_at_hand: KpiCardConfig;
   cash_at_bank: KpiCardConfig;
 }

@@ -17,6 +17,13 @@ import {
   Wallet,
   Banknote,
   Landmark,
+  CreditCard,
+  Percent,
+  CalendarCheck,
+  MessageSquare,
+  FileCheck2,
+  LineChart,
+  RotateCcw,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Loan, Client, Profile, Transaction } from "@/lib/types";
@@ -41,6 +48,13 @@ export default async function OverviewPage() {
     total_revenue:   { visible: true, components: { interest: true, commission: true, susu_fees: true, card_fees: true, sms_fees: true, processing_fees: true, investment_revenue: true } },
     account_balance: { visible: true },
     total_withdrawals: { visible: true },
+    card_fees:           { visible: true },
+    withdrawal_commission: { visible: true },
+    susu_fees:           { visible: true },
+    sms_fees:            { visible: true },
+    processing_fees:     { visible: true },
+    loan_interest:       { visible: true },
+    investment_revenue:  { visible: true },
     cash_at_hand:    { visible: true },
     cash_at_bank:    { visible: true },
   };
@@ -82,10 +96,10 @@ export default async function OverviewPage() {
     { data: recentTxns },
   ] = await Promise.all([
     supabase.from("clients").select("*", { count: "exact", head: true }),
-    supabase.from("accounts").select("balance, dep").eq("product_type", "savings"),
-    supabase.from("accounts").select("balance, dep").eq("product_type", "susu"),
+    supabase.from("accounts").select("id, balance, dep").eq("product_type", "savings"),
+    supabase.from("accounts").select("id, balance, dep").eq("product_type", "susu"),
     supabase.from("fixed_deposits").select("principal").not("status", "in", '("withdrawn","rolled_over")'),
-    supabase.from("transactions").select("fee").eq("type", "withdrawal").is("reversed_at", null),
+    supabase.from("transactions").select("fee, account_id").eq("type", "withdrawal").is("reversed_at", null),
     supabase.from("susu_payments").select("amount").eq("day_in_cycle", 31),
     supabase.from("loans").select("processing_fee"),
     supabase.rpc("compute_collected_loan_interest"),
@@ -130,6 +144,18 @@ export default async function OverviewPage() {
   const rc = kpi.total_revenue.components;
   const cardFees        = sum(cardFeeRows, "amount");
   const commission      = sum(commissionRows,   "fee");
+  // Split commission by product — susu withdrawals are commission-exempt by
+  // business rule (record_withdrawal always charges 0 fee on susu), so this
+  // is expected to always show 0 unless that rule ever changes.
+  const savingsAccountIds = new Set((savingsRows ?? []).map((r: { id: string }) => r.id));
+  const susuAccountIds    = new Set((susuRows ?? []).map((r: { id: string }) => r.id));
+  const commissionByAccount = (commissionRows ?? []) as { fee: number; account_id: string }[];
+  const savingsCommission = round2(
+    commissionByAccount.filter((r) => savingsAccountIds.has(r.account_id)).reduce((s, r) => s + Number(r.fee ?? 0), 0)
+  );
+  const susuCommission = round2(
+    commissionByAccount.filter((r) => susuAccountIds.has(r.account_id)).reduce((s, r) => s + Number(r.fee ?? 0), 0)
+  );
   const susuFees        = sum(susuFeeRows,      "amount");
   const processingFees  = sum(processingFeeRows, "processing_fee");
   const loanInterest    = round2(Number(collectedInterest ?? 0));
@@ -260,6 +286,69 @@ export default async function OverviewPage() {
             ].filter(Boolean).join(" + ")}
             tone="emerald"
             icon={<TrendingUp size={17} />}
+          />
+        )}
+        {kpi.card_fees.visible && (
+          <SummaryCard
+            label="Card Fees Collected"
+            value={formatGHS(cardFees)}
+            hint="Registration fees charged to new clients"
+            tone="pink"
+            icon={<CreditCard size={17} />}
+          />
+        )}
+        {kpi.withdrawal_commission.visible && (
+          <SummaryCard
+            label="Withdrawal Commission"
+            value={formatGHS(commission)}
+            hint={`Savings ${formatGHS(savingsCommission)} + Susu ${formatGHS(susuCommission)} (susu is commission-exempt)`}
+            tone="cyan"
+            icon={<Percent size={17} />}
+          />
+        )}
+        {kpi.susu_fees.visible && (
+          <SummaryCard
+            label="Susu Fees (Day 31)"
+            value={formatGHS(susuFees)}
+            hint="Company fee retained from completed 31-day cycles"
+            tone="indigo"
+            icon={<CalendarCheck size={17} />}
+          />
+        )}
+        {kpi.sms_fees.visible && (
+          <SummaryCard
+            label="SMS Fees Collected"
+            value={formatGHS(totalSmsFees)}
+            hint="Monthly SMS charges deducted from client balances"
+            tone="lime"
+            icon={<MessageSquare size={17} />}
+          />
+        )}
+        {kpi.processing_fees.visible && (
+          <SummaryCard
+            label="Loan Processing Fees"
+            value={formatGHS(processingFees)}
+            hint="One-time fee deducted at loan activation"
+            tone="fuchsia"
+            icon={<FileCheck2 size={17} />}
+          />
+        )}
+        {kpi.loan_interest.visible && (
+          <SummaryCard
+            label="Loan Interest Collected"
+            value={formatGHS(loanInterest)}
+            hint="Interest portion of repayments actually received"
+            tone="sky"
+            icon={<LineChart size={17} />}
+          />
+        )}
+        {kpi.investment_revenue.visible && (
+          <SummaryCard
+            label="Returned Investment Revenue"
+            value={formatGHS(returnedInvestmentRevenue)}
+            hint="Profit realized from completed investments"
+            tone="slate"
+            icon={<RotateCcw size={17} />}
           />
         )}
         {kpi.total_withdrawals.visible && (
@@ -443,6 +532,13 @@ const TONES = {
   purple:  { tint: "bg-[#9333EA]/8",  icon: "text-[#9333EA]",  bar: "bg-[#9333EA]" },
   amber:   { tint: "bg-[#D97706]/8",  icon: "text-[#D97706]",  bar: "bg-[#D97706]" },
   blue:    { tint: "bg-[#1D4ED8]/8",  icon: "text-[#1D4ED8]",  bar: "bg-[#1D4ED8]" },
+  pink:    { tint: "bg-[#DB2777]/8",  icon: "text-[#DB2777]",  bar: "bg-[#DB2777]" },
+  cyan:    { tint: "bg-[#0891B2]/8",  icon: "text-[#0891B2]",  bar: "bg-[#0891B2]" },
+  indigo:  { tint: "bg-[#4F46E5]/8",  icon: "text-[#4F46E5]",  bar: "bg-[#4F46E5]" },
+  lime:    { tint: "bg-[#65A30D]/8",  icon: "text-[#65A30D]",  bar: "bg-[#65A30D]" },
+  fuchsia: { tint: "bg-[#C026D3]/8",  icon: "text-[#C026D3]",  bar: "bg-[#C026D3]" },
+  sky:     { tint: "bg-[#0284C7]/8",  icon: "text-[#0284C7]",  bar: "bg-[#0284C7]" },
+  slate:   { tint: "bg-[#475569]/8",  icon: "text-[#475569]",  bar: "bg-[#475569]" },
 } as const;
 
 function SummaryCard({
