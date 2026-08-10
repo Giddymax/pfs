@@ -65,6 +65,7 @@ export default async function FinancePage() {
 
   const [
     { data: commissionRows },
+    { data: susuAccountRows },
     { data: susuFeeRows },
     { data: processingFeeRows },
     { data: collectedInterest },
@@ -73,7 +74,8 @@ export default async function FinancePage() {
     { data: expenditures },
     { data: investments },
   ] = await Promise.all([
-    supabase.from("transactions").select("fee").eq("type", "withdrawal").is("reversed_at", null),
+    supabase.from("transactions").select("fee, account_id").eq("type", "withdrawal").is("reversed_at", null),
+    supabase.from("accounts").select("id").eq("product_type", "susu"),
     supabase.from("susu_payments").select("amount").eq("day_in_cycle", 31),
     supabase.from("loans").select("processing_fee"),
     supabase.rpc("compute_collected_loan_interest"),
@@ -110,8 +112,19 @@ export default async function FinancePage() {
   const rc = { ...defaultComponents, ...(settings.overview_kpi?.total_revenue?.components ?? {}) };
 
   const loanInterest   = round2(Number(collectedInterest ?? 0));
-  const commission     = sum(commissionRows, "fee");
-  const susuFees       = sum(susuFeeRows, "amount");
+  // Split withdrawal fees by product — susu withdrawals are commission-exempt
+  // under record_withdrawal; the only way a susu withdrawal ever carries a
+  // nonzero fee is the instant emergency-withdrawal route's early-withdrawal
+  // penalty, which belongs with susu fees, not savings commission.
+  const susuAccountIds = new Set((susuAccountRows ?? []).map((r: { id: string }) => r.id));
+  const commissionByAccount = (commissionRows ?? []) as { fee: number; account_id: string }[];
+  const commission = round2(
+    commissionByAccount.filter((r) => !susuAccountIds.has(r.account_id)).reduce((s, r) => s + Number(r.fee ?? 0), 0)
+  );
+  const susuEarlyWithdrawalFee = round2(
+    commissionByAccount.filter((r) => susuAccountIds.has(r.account_id)).reduce((s, r) => s + Number(r.fee ?? 0), 0)
+  );
+  const susuFees       = round2(sum(susuFeeRows, "amount") + susuEarlyWithdrawalFee);
   const cardFees       = sum(cardFeeRows, "amount");
   const totalSmsFees   = sum(smsFeeRows, "amount");
   const processingFees = sum(processingFeeRows, "processing_fee");

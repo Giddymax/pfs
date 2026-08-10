@@ -143,20 +143,24 @@ export default async function OverviewPage() {
   // Revenue components
   const rc = kpi.total_revenue.components;
   const cardFees        = sum(cardFeeRows, "amount");
-  const commission      = sum(commissionRows,   "fee");
-  // Split commission by product — susu withdrawals are commission-exempt by
-  // business rule (record_withdrawal always charges 0 fee on susu), so this
-  // is expected to always show 0 unless that rule ever changes.
+  // Split withdrawal fees by product. Susu withdrawals are commission-exempt
+  // under record_withdrawal (the shared RPC every normal susu withdrawal —
+  // partial withdrawal, claim payout — goes through always hard-codes fee=0
+  // for susu). The ONE path that bypasses this is the instant emergency susu
+  // withdrawal route, which charges a "company fee" (early-withdrawal
+  // penalty) directly via a raw insert. So any nonzero fee on a susu
+  // withdrawal is, by construction, that penalty — not a commission — and
+  // belongs with the other susu-cycle fees, not with savings commission.
   const savingsAccountIds = new Set((savingsRows ?? []).map((r: { id: string }) => r.id));
   const susuAccountIds    = new Set((susuRows ?? []).map((r: { id: string }) => r.id));
   const commissionByAccount = (commissionRows ?? []) as { fee: number; account_id: string }[];
-  const savingsCommission = round2(
+  const commission = round2(
     commissionByAccount.filter((r) => savingsAccountIds.has(r.account_id)).reduce((s, r) => s + Number(r.fee ?? 0), 0)
   );
-  const susuCommission = round2(
+  const susuEarlyWithdrawalFee = round2(
     commissionByAccount.filter((r) => susuAccountIds.has(r.account_id)).reduce((s, r) => s + Number(r.fee ?? 0), 0)
   );
-  const susuFees        = sum(susuFeeRows,      "amount");
+  const susuFees = round2(sum(susuFeeRows, "amount") + susuEarlyWithdrawalFee);
   const processingFees  = sum(processingFeeRows, "processing_fee");
   const loanInterest    = round2(Number(collectedInterest ?? 0));
   const investmentList = (investmentRows ?? []) as { amount_invested: number; revenue_made: number; status: string }[];
@@ -301,16 +305,16 @@ export default async function OverviewPage() {
           <SummaryCard
             label="Withdrawal Commission"
             value={formatGHS(commission)}
-            hint={`Savings ${formatGHS(savingsCommission)} + Susu ${formatGHS(susuCommission)} (susu is commission-exempt)`}
+            hint="Savings withdrawals only — susu withdrawals never charge commission"
             tone="cyan"
             icon={<Percent size={17} />}
           />
         )}
         {kpi.susu_fees.visible && (
           <SummaryCard
-            label="Susu Fees (Day 31)"
+            label="Susu Fees"
             value={formatGHS(susuFees)}
-            hint="Company fee retained from completed 31-day cycles"
+            hint="Day-31 cycle fee + emergency early-withdrawal penalties"
             tone="indigo"
             icon={<CalendarCheck size={17} />}
           />

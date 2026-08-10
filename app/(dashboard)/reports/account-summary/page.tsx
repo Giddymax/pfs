@@ -153,7 +153,7 @@ export default async function AccountSummaryPage({
                     <th className="px-5 py-3 text-right font-semibold">Total Deposits</th>
                     <th className="px-5 py-3 text-right font-semibold">Total Withdrawals</th>
                     <th className="px-5 py-3 text-right font-semibold">Withdrawal Commission</th>
-                    <th className="px-5 py-3 text-right font-semibold">Susu Fees (Day 31)</th>
+                    <th className="px-5 py-3 text-right font-semibold">Susu Fees</th>
                     <th className="px-5 py-3 text-right font-semibold">New Clients</th>
                   </tr>
                 </thead>

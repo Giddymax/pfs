@@ -288,7 +288,7 @@ export default async function SummaryPage({
                 color="text-[#7C3AED]"
               />
               <MetricRow
-                label="Susu fees (day 31)"
+                label="Susu fees (day 31 + early-withdrawal penalties)"
                 amount={summary.susu_fee_total}
                 sign="+"
                 color="text-[#7C3AED]"
