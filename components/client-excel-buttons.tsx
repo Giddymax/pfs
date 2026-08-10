@@ -2,10 +2,10 @@
 
 import { useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Download, Upload, FileSpreadsheet, X, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { Download, Upload, FileSpreadsheet, X, CheckCircle, AlertCircle, AlertTriangle, Loader2 } from "lucide-react";
 
 type ImportError = { row: number; name: string; reason: string };
-type ImportResult = { imported: number; failed: number; errors: ImportError[] };
+type ImportResult = { imported: number; failed: number; warned: number; errors: ImportError[]; warnings: ImportError[] };
 
 export function ClientExcelButtons() {
   const [importOpen, setImportOpen] = useState(false);
@@ -178,8 +178,36 @@ function ImportModal({ onClose }: { onClose: () => void }) {
                 {result.failed > 0 && (
                   <p className="text-[12px] text-[#963522]">{result.failed} row{result.failed !== 1 ? "s" : ""} skipped due to errors</p>
                 )}
+                {result.warned > 0 && (
+                  <p className="text-[12px] text-[#B45309]">{result.warned} client{result.warned !== 1 ? "s" : ""} imported without an account — see below</p>
+                )}
               </div>
             </div>
+
+            {result.warnings.length > 0 && (
+              <div className="max-h-40 overflow-y-auto rounded-md border border-[#B45309]/20 bg-[#B45309]/[0.04]">
+                <table className="w-full text-left text-[12px]">
+                  <thead className="border-b border-[#B45309]/20 bg-[#B45309]/[0.06]">
+                    <tr>
+                      <th className="px-3 py-2 font-semibold text-[#B45309]/80"><AlertTriangle size={11} className="inline" /></th>
+                      <th className="px-3 py-2 font-semibold text-[#B45309]/80">Row</th>
+                      <th className="px-3 py-2 font-semibold text-[#B45309]/80">Name</th>
+                      <th className="px-3 py-2 font-semibold text-[#B45309]/80">Why no account was created</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#B45309]/10">
+                    {result.warnings.map((w) => (
+                      <tr key={w.row}>
+                        <td className="px-3 py-1.5" />
+                        <td className="px-3 py-1.5 text-[#0A2240]/55">{w.row}</td>
+                        <td className="px-3 py-1.5 font-medium text-[#0A2240]">{w.name}</td>
+                        <td className="px-3 py-1.5 text-[#B45309]">{w.reason}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
 
             {result.errors.length > 0 && (
               <div className="max-h-40 overflow-y-auto rounded-md border border-[#B3432B]/15 bg-[#B3432B]/[0.03]">

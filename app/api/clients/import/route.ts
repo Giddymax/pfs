@@ -8,9 +8,9 @@ function str(v: unknown): string {
 
 function parseAccountType(v: unknown): "savings" | "susu" | "fixed_deposit" | null {
   const s = str(v).toLowerCase().replace(/[\s_-]/g, "");
-  if (s === "savings" || s === "sav") return "savings";
-  if (s === "susu" || s === "dailysusu" || s === "sus") return "susu";
-  if (s === "fixeddeposit" || s === "fixed" || s === "fd" || s === "fxd") return "fixed_deposit";
+  if (s === "savings" || s === "sav" || s === "save") return "savings";
+  if (s === "susu" || s === "dailysusu" || s === "sus" || s === "daily") return "susu";
+  if (s === "fixeddeposit" || s === "fixed" || s === "fd" || s === "fxd" || s === "fixeddepositfd") return "fixed_deposit";
   return null;
 }
 
@@ -148,6 +148,7 @@ export async function POST(request: Request) {
 
   const succeeded: string[] = [];
   const failed: { row: number; name: string; reason: string }[] = [];
+  const warnings: { row: number; name: string; reason: string }[] = [];
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
@@ -210,9 +211,15 @@ export async function POST(request: Request) {
     const status = parseStatus(
       get("Status", "STATUS", "Client Status")
     );
-    const accountType = parseAccountType(
-      get("Account Type", "AccountType", "Account", "Product Type", "Product")
+    // "Account" and "Type" alone are last-resort fallbacks, checked only if
+    // none of the more specific header variants above them are present —
+    // keeps this from ever winning against an actually-present "Account Type"
+    // column, while still catching sparser real-world spreadsheets.
+    const accountTypeRaw = get(
+      "Account Type", "AccountType", "Account/Product Type", "Product Type",
+      "Savings/Susu", "Savings Or Susu", "Product", "Account", "Type"
     );
+    const accountType = parseAccountType(accountTypeRaw);
     const dailyContribution = parseAmount(
       get("Daily Contribution", "Daily Amount", "Contribution", "DailyContribution", "Daily")
     );
@@ -262,7 +269,10 @@ export async function POST(request: Request) {
       charged_by: user.id,
     });
 
-    // Create account if account type is specified
+    // Create account if account type is specified. Every branch that does
+    // NOT end in an account being created pushes a warning — previously this
+    // failed silently, which is indistinguishable from "the Account Type
+    // column was read correctly and just says nothing should be created."
     if (accountType === "savings") {
       await supabase.from("accounts").insert({
         client_id: inserted.id,
@@ -271,23 +281,50 @@ export async function POST(request: Request) {
         balance: balance ?? 0,
         created_by: user.id,
       });
-    } else if (accountType === "susu" && dailyContribution) {
-      await supabase.from("accounts").insert({
-        client_id: inserted.id,
-        product_type: "susu",
-        account_number: "",
-        daily_contribution_amount: dailyContribution,
-        balance: balance ?? 0,
-        created_by: user.id,
+    } else if (accountType === "susu") {
+      if (dailyContribution) {
+        await supabase.from("accounts").insert({
+          client_id: inserted.id,
+          product_type: "susu",
+          account_number: "",
+          daily_contribution_amount: dailyContribution,
+          balance: balance ?? 0,
+          created_by: user.id,
+        });
+      } else {
+        warnings.push({
+          row: rowNum,
+          name: fullName,
+          reason: "Account Type was \"Susu\" but Daily Contribution was missing — no account was created for this client.",
+        });
+      }
+    } else if (accountType === "fixed_deposit") {
+      warnings.push({
+        row: rowNum,
+        name: fullName,
+        reason: "Fixed Deposit accounts need a rate and term and can't be bulk-imported — no account was created for this client. Add it manually from the client's profile.",
+      });
+    } else if (str(accountTypeRaw) !== "") {
+      warnings.push({
+        row: rowNum,
+        name: fullName,
+        reason: `Account Type "${str(accountTypeRaw)}" was not recognized (expected Savings, Susu, or Fixed Deposit) — no account was created for this client.`,
+      });
+    } else if (balance != null || dailyContribution != null) {
+      warnings.push({
+        row: rowNum,
+        name: fullName,
+        reason: "Balance/Daily Contribution was provided but no Account Type column was found — no account was created for this client.",
       });
     }
-    // fixed_deposit requires principal, rate, and term — skipped on bulk import
   }
 
   return NextResponse.json({
     imported: succeeded.length,
     failed: failed.length,
+    warned: warnings.length,
     errors: failed,
+    warnings,
     client_codes: succeeded,
   });
 }
