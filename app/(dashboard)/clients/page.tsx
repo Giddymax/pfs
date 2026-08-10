@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Search, Lock, PiggyBank, Coins, Pencil, X, Users, UserPlus, History } from "lucide-react";
+import { Plus, Search, Lock, PiggyBank, Coins, Pencil, X, Users, UserPlus, History, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { PrintRegistrationCardButton } from "@/components/print-registration-card";
@@ -213,6 +213,15 @@ export default async function ClientsPage({
           <div className="flex flex-wrap items-center gap-2">
             <ExportCsvButton endpoint="/api/export/clients" filename="clients.csv" label="Export CSV" />
             {isAdmin && <ClientExcelButtons />}
+            {isAdmin && (
+              <Link
+                href="/clients/bulk-delete"
+                className="inline-flex items-center gap-1.5 rounded-md border border-[#B3432B]/25 px-3 py-1.5 text-[11.5px] font-medium text-[#963522] transition-colors hover:bg-[#B3432B]/[0.06]"
+              >
+                <Trash2 size={12} />
+                Bulk delete
+              </Link>
+            )}
             <Link
               href="/clients/new"
               className="inline-flex items-center gap-2 rounded-md bg-[#1D3461] px-5 py-2.5 text-[13.5px] font-semibold text-[#FFFFFF] transition-colors hover:bg-[#152847]"
