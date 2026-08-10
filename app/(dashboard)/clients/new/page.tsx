@@ -6,18 +6,7 @@ import { Camera, Loader2, UserRound, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { PageHeader } from "@/components/ui";
 
-// Postgres surfaces unique-constraint violations as raw constraint-name
-// messages (e.g. `duplicate key value violates unique constraint
-// "clients_phone_unique"`). Translate code 23505 into something a
-// non-technical front-desk user can act on.
 const FD_TERM_OPTIONS = [3, 6, 9, 12, 18, 24];
-
-function friendlyInsertError(error: { code?: string; message: string }) {
-  if (error.code === "23505" && error.message.includes("phone")) {
-    return "A client with this phone number is already registered. Search for them instead of creating a duplicate.";
-  }
-  return error.message;
-}
 
 export default function NewClientPage() {
   const router = useRouter();
@@ -147,7 +136,7 @@ export default function NewClientPage() {
         .select("id")
         .single();
 
-      if (insertError) throw new Error(friendlyInsertError(insertError));
+      if (insertError) throw new Error(insertError.message);
 
       if (form.account_type === "fixed_deposit") {
         // Fixed deposits are lump-sum term placements with their own
