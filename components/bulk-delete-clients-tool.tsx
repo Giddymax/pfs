@@ -50,6 +50,8 @@ export function BulkDeleteClientsTool() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const [confirmText, setConfirmText] = useState("");
+  const [transferred, setTransferred] = useState<"no" | "yes" | null>(null);
+  const [transferNote, setTransferNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [result, setResult] = useState<{ deletedCount: number; skipped: { id: string; name: string; reason: string }[] } | null>(null);
@@ -60,7 +62,8 @@ export function BulkDeleteClientsTool() {
   const blocked = useMemo(() => (candidates ?? []).filter((c) => !c.deletable), [candidates]);
   const selectedCount = selectedIds.size;
   const requiredPhrase = `DELETE ${selectedCount} CLIENTS`;
-  const confirmMatches = confirmText.trim() === requiredPhrase && selectedCount > 0;
+  const disclosureAnswered = transferred === "no" || (transferred === "yes" && transferNote.trim() !== "");
+  const confirmMatches = confirmText.trim() === requiredPhrase && selectedCount > 0 && disclosureAnswered;
 
   function toggleStatus(value: string) {
     setStatuses((prev) => {
@@ -136,7 +139,11 @@ export function BulkDeleteClientsTool() {
       const delRes = await fetch("/api/clients/bulk-delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids }),
+        body: JSON.stringify({
+          ids,
+          history_transferred: transferred === "yes",
+          transfer_note: transferred === "yes" ? transferNote.trim() : null,
+        }),
       });
       const delJson = await delRes.json();
       if (!delRes.ok) throw new Error(delJson.error ?? "Delete failed.");
@@ -146,6 +153,8 @@ export function BulkDeleteClientsTool() {
       setCandidates((prev) => (prev ?? []).filter((c) => !deletedSet.has(c.id)));
       setSelectedIds(new Set());
       setConfirmText("");
+      setTransferred(null);
+      setTransferNote("");
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "Delete failed.");
     } finally {
@@ -347,6 +356,46 @@ export function BulkDeleteClientsTool() {
               moment you confirm, before anything is removed. This cannot be undone.
             </p>
           </div>
+          <div className="mb-4">
+            <p className="mb-2 text-[12.5px] font-medium text-[#963522]">
+              Was any of this batch&apos;s balance or history transferred elsewhere before this deletion?
+            </p>
+            <div className="space-y-2">
+              <label className="flex items-start gap-2.5 rounded-md border border-[#B3432B]/20 bg-white px-3.5 py-2.5 text-[13px] text-[#0A2240] transition-colors has-[:checked]:border-[#0033AA]/40 has-[:checked]:bg-[#0033AA]/[0.04]">
+                <input
+                  type="radio"
+                  name="bulk-transferred"
+                  checked={transferred === "no"}
+                  onChange={() => setTransferred("no")}
+                  className="mt-0.5 h-4 w-4 border-[#0033AA]/30 text-[#0033AA] focus:ring-[#0062E1]"
+                />
+                No — this is a clean removal, nothing to transfer
+              </label>
+              <label className="flex items-start gap-2.5 rounded-md border border-[#B3432B]/20 bg-white px-3.5 py-2.5 text-[13px] text-[#0A2240] transition-colors has-[:checked]:border-[#B45309]/40 has-[:checked]:bg-[#B45309]/[0.04]">
+                <input
+                  type="radio"
+                  name="bulk-transferred"
+                  checked={transferred === "yes"}
+                  onChange={() => setTransferred("yes")}
+                  className="mt-0.5 h-4 w-4 border-[#0033AA]/30 text-[#B45309] focus:ring-[#B45309]"
+                />
+                Yes — some of their balance or history was moved somewhere first
+              </label>
+            </div>
+            {transferred === "yes" && (
+              <label className="mt-3 block">
+                <span className="mb-1.5 block text-[12px] font-medium text-[#B45309]">Where was it transferred? (required)</span>
+                <textarea
+                  value={transferNote}
+                  onChange={(e) => setTransferNote(e.target.value)}
+                  placeholder="e.g. Balances consolidated into surviving duplicate client records before removal"
+                  rows={3}
+                  className="w-full rounded-md border border-[#B45309]/25 bg-white px-3.5 py-2.5 text-[13px] outline-none transition-colors focus:border-[#B45309]"
+                />
+              </label>
+            )}
+          </div>
+
           <label className="block">
             <span className="mb-1.5 block text-[12.5px] font-medium text-[#963522]">
               Type <code className="rounded bg-[#963522]/10 px-1.5 py-0.5 font-mono">{requiredPhrase}</code> to confirm

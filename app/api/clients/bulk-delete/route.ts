@@ -26,6 +26,11 @@ export async function POST(request: Request) {
   if (ids.length === 0) {
     return NextResponse.json({ error: "No client ids provided" }, { status: 400 });
   }
+  const historyTransferred = body?.history_transferred === true;
+  const transferNote = typeof body?.transfer_note === "string" ? body.transfer_note.trim() : "";
+  if (historyTransferred && !transferNote) {
+    return NextResponse.json({ error: "A transfer note is required when history was transferred elsewhere" }, { status: 400 });
+  }
 
   const { data: clients, error: clientsError } = await supabase
     .from("clients")
@@ -65,15 +70,24 @@ export async function POST(request: Request) {
     safeIds.push(id);
   }
 
-  let deletedCount = 0;
-  if (safeIds.length > 0) {
-    const { error: deleteError, count } = await supabase
-      .from("clients")
-      .delete({ count: "exact" })
-      .in("id", safeIds);
-    if (deleteError) return NextResponse.json({ error: deleteError.message }, { status: 400 });
-    deletedCount = count ?? safeIds.length;
+  // Delete through delete_client_with_log — the single choke point that
+  // guarantees a snapshot + disclosure gets logged for every client removed
+  // this way, same as the single-client delete flow. One id at a time since
+  // the RPC snapshots+logs+deletes per client; a failure partway through
+  // still leaves a correct log for everything that succeeded before it.
+  const deletedIds: string[] = [];
+  for (const id of safeIds) {
+    const { error: rpcError } = await supabase.rpc("delete_client_with_log", {
+      p_client_id: id,
+      p_history_transferred: historyTransferred,
+      p_transfer_note: historyTransferred ? transferNote : null,
+    });
+    if (rpcError) {
+      skipped.push({ id, name: nameById.get(id) ?? id, reason: rpcError.message });
+      continue;
+    }
+    deletedIds.push(id);
   }
 
-  return NextResponse.json({ deletedCount, deletedIds: safeIds, skipped });
+  return NextResponse.json({ deletedCount: deletedIds.length, deletedIds, skipped });
 }

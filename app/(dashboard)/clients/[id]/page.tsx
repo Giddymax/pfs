@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Pencil, Plus, UserRound, Phone, MapPin, IdCard, Briefcase, HeartHandshake } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
+import { DeleteClientButton } from "@/components/delete-client-button";
 import { PrintRegistrationCardButton } from "@/components/print-registration-card";
 import { PrintTransactionHistoryButton } from "@/components/print-transaction-history-button";
 import { Card, ClientStatusBadge, LoanStatusBadge, EmptyState, PageHeader } from "@/components/ui";
@@ -106,13 +106,9 @@ export default async function ClientDetailPage({
                   <Pencil size={12} />
                   Edit
                 </Link>
-                <ConfirmDeleteButton
-                  table="clients"
+                <DeleteClientButton
                   id={client.id}
-                  label="Delete"
-                  confirmTitle="Delete this client?"
-                  confirmDescription={`This permanently removes ${client.full_name} and cannot be undone. Clients with existing loans cannot be deleted.`}
-                  redirectTo="/clients"
+                  fullName={client.full_name}
                   triggerClassName="inline-flex items-center gap-1.5 rounded-md border border-[#B3432B]/25 px-3 py-1.5 text-[11.5px] font-medium text-[#963522] transition-colors hover:bg-[#B3432B]/[0.06]"
                 />
               </>
