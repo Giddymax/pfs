@@ -54,9 +54,15 @@ function fmtDateTime(iso: string) {
 export function TransactionLogTable({
   transactions,
   error,
+  title = "Transaction log",
+  description = "Every deposit, withdrawal, fee, and reversal recorded in this period, newest first — including reversed/edited entries the totals above net out.",
+  showTypeFilter = true,
 }: {
   transactions: PeriodTransaction[];
   error?: string | null;
+  title?: string;
+  description?: string;
+  showTypeFilter?: boolean;
 }) {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
 
@@ -78,29 +84,30 @@ export function TransactionLogTable({
       >
         <div>
           <h2 className="text-[13px] font-semibold uppercase tracking-[0.1em] text-[#0A2240]">
-            Transaction log ({filtered.length}{typeFilter !== "all" ? ` of ${transactions.length}` : ""})
+            {title} ({filtered.length}{typeFilter !== "all" ? ` of ${transactions.length}` : ""})
           </h2>
           <p className="mt-0.5 text-[11.5px] text-[#0A2240]/45 print:hidden">
-            Every deposit, withdrawal, fee, and reversal recorded in this period, newest first — including
-            reversed/edited entries the totals above net out.
+            {description}
           </p>
         </div>
-        <div className="flex flex-wrap gap-1.5 print:hidden">
-          {FILTERS.map((f) => (
-            <button
-              key={f.value}
-              type="button"
-              onClick={() => setTypeFilter(f.value)}
-              className={`rounded-full px-3 py-1 text-[11.5px] font-medium transition-colors ${
-                typeFilter === f.value
-                  ? "bg-[#0033AA] text-white"
-                  : "border border-[#0033AA]/15 text-[#0A2240]/55 hover:border-[#0033AA]/30 hover:text-[#0A2240]"
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
+        {showTypeFilter && (
+          <div className="flex flex-wrap gap-1.5 print:hidden">
+            {FILTERS.map((f) => (
+              <button
+                key={f.value}
+                type="button"
+                onClick={() => setTypeFilter(f.value)}
+                className={`rounded-full px-3 py-1 text-[11.5px] font-medium transition-colors ${
+                  typeFilter === f.value
+                    ? "bg-[#0033AA] text-white"
+                    : "border border-[#0033AA]/15 text-[#0A2240]/55 hover:border-[#0033AA]/30 hover:text-[#0A2240]"
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {error ? (

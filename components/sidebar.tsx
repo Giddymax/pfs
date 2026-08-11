@@ -21,6 +21,7 @@ import {
   Wallet,
   CalendarClock,
   Scale,
+  ArrowUpFromLine,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { signOut } from "@/app/actions";
@@ -84,6 +85,15 @@ const NAV = [
     activeIcon: "text-[#0891B2]",
     idle: "group text-[#FFFFFF] hover:bg-[#0891B2]/15 hover:text-[#FFFFFF]",
     idleIcon: "text-[#FFFFFF] transition-colors group-hover:text-[#0891B2]",
+  },
+  {
+    href: "/reports/withdrawals",
+    label: "Withdrawals",
+    icon: ArrowUpFromLine,
+    active: "bg-[#B3432B]/15 text-[#FFFFFF]",
+    activeIcon: "text-[#F97066]",
+    idle: "group text-[#FFFFFF] hover:bg-[#B3432B]/15 hover:text-[#FFFFFF]",
+    idleIcon: "text-[#FFFFFF] transition-colors group-hover:text-[#F97066]",
   },
 ];
 
