@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { IBM_Plex_Sans } from "next/font/google";
 import { Eye, EyeOff, ArrowRight, ShieldCheck, Loader2 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { signIn } from "./actions";
@@ -9,18 +8,8 @@ import { signIn } from "./actions";
 // Stanbic's site uses a single corporate sans-serif (Benton Sans, licensed) for
 // both headings and body copy — IBM Plex Sans is the closest open equivalent,
 // so both "display" and "body" roles here draw from the same family.
-const display = IBM_Plex_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  style: ["normal", "italic"],
-  variable: "--font-display",
-});
-
-const body = IBM_Plex_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-body",
-});
+// --font-display and --font-body are both self-hosted IBM Plex Sans, defined
+// globally in app/globals.css (loaded by app/layout.tsx).
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -29,7 +18,7 @@ export default function LoginPage() {
 
   return (
     <div
-      className={`${display.variable} ${body.variable} min-h-screen w-full bg-[#FFFFFF] text-[#0A2240]`}
+      className="min-h-screen w-full bg-[#FFFFFF] text-[#0A2240]"
       style={{ fontFamily: "var(--font-body)" }}
     >
       <div className="grid min-h-screen lg:grid-cols-[1.08fr_1fr]">

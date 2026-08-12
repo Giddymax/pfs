@@ -3,6 +3,18 @@
 :root {
   --background: #f3f3f4;
   --foreground: #0a2240;
+
+  /* Self-hosted fonts (via @fontsource — bundled at install time, not
+     fetched from Google's CDN at build time). A Vercel build previously
+     failed outright because fonts.gstatic.com 404'd on next/font/google's
+     live fetch; these variables now point at locally-bundled @font-face
+     rules instead, so that class of failure can't happen again. */
+  --font-geist-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-sidebar-brand: "Playfair Display", serif;
+  --font-sidebar-nav: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-sidebar-accounts: "IBM Plex Mono", ui-monospace, monospace;
 }
 
 @theme inline {

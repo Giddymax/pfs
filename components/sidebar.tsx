@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Playfair_Display, Space_Grotesk, IBM_Plex_Mono } from "next/font/google";
 import {
   LayoutDashboard,
   Users,
@@ -31,10 +30,9 @@ import clsx from "clsx";
 // Three distinct typefaces give the rail its own visual rhythm — a serif for
 // the brand lockup (gravitas), a geometric sans for primary destinations
 // (modern, structural), and a monospace for the Accounts ledger group
-// (numeric/registry feel) — each layered in via its own CSS variable.
-const brandFont = Playfair_Display({ subsets: ["latin"], weight: ["600", "700"], variable: "--font-sidebar-brand" });
-const navFont = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600"], variable: "--font-sidebar-nav" });
-const acctFont = IBM_Plex_Mono({ subsets: ["latin"], weight: ["500", "600"], variable: "--font-sidebar-accounts" });
+// (numeric/registry feel). All three are self-hosted and loaded globally by
+// app/layout.tsx; --font-sidebar-brand/-nav/-accounts are defined in
+// app/globals.css.
 
 // Each nav item carries its own accent so the rail reads as a set of distinct
 // destinations rather than one flat block — active state, hover tint, and icon
@@ -223,9 +221,6 @@ export function Sidebar({
       />
       <aside
         className={clsx(
-          brandFont.variable,
-          navFont.variable,
-          acctFont.variable,
           "sidebar-aurora sidebar-drawer flex h-screen w-64 shrink-0 flex-col text-[#FFFFFF] lg:sticky lg:top-0 lg:!transform-none",
           mobileOpen && "open"
         )}
