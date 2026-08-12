@@ -21,6 +21,7 @@ import {
   CalendarClock,
   Scale,
   ArrowUpFromLine,
+  ArrowDownToLine,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { signOut } from "@/app/actions";
@@ -84,6 +85,15 @@ const NAV = [
     activeIcon: "text-[#0891B2]",
     idle: "group text-[#FFFFFF] hover:bg-[#0891B2]/15 hover:text-[#FFFFFF]",
     idleIcon: "text-[#FFFFFF] transition-colors group-hover:text-[#0891B2]",
+  },
+  {
+    href: "/reports/deposits",
+    label: "Deposits",
+    icon: ArrowDownToLine,
+    active: "bg-[#1F6E4A]/15 text-[#FFFFFF]",
+    activeIcon: "text-[#4ADE80]",
+    idle: "group text-[#FFFFFF] hover:bg-[#1F6E4A]/15 hover:text-[#FFFFFF]",
+    idleIcon: "text-[#FFFFFF] transition-colors group-hover:text-[#4ADE80]",
   },
   {
     href: "/reports/withdrawals",

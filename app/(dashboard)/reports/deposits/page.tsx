@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { Search, Wallet, ArrowUpFromLine, Percent, Scale } from "lucide-react";
+import { Search, Wallet, ArrowDownToLine, PiggyBank, Coins } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { SummaryControls } from "@/components/summary-controls";
 import { TransactionLogTable } from "@/components/transaction-log-table";
@@ -58,7 +58,7 @@ function fmtDate(iso: string) {
   });
 }
 
-export default async function WithdrawalsPage({
+export default async function DepositsPage({
   searchParams,
 }: {
   searchParams: Promise<{ from?: string; to?: string; preset?: string; q?: string }>;
@@ -87,28 +87,27 @@ export default async function WithdrawalsPage({
 
   const [{ data: periodTxnRows, error: txnError }, accountSummary] = await Promise.all([
     supabase.rpc("list_period_transactions", { p_from: from, p_to: to }),
-    // Same shared calculation the Overview dashboard, Bank page, and Finance
-    // page use, so "Account Balance" here always matches those screens.
+    // Same shared calculation the Overview dashboard, Bank page, Finance
+    // page, and Withdrawals page use, so "Account Balance" here always
+    // matches those screens.
     computeAccountSummary(supabase, rc),
   ]);
 
-  const allWithdrawals = ((periodTxnRows ?? []) as PeriodTransaction[]).filter((t) => t.type === "withdrawal");
+  const allDeposits = ((periodTxnRows ?? []) as PeriodTransaction[]).filter((t) => t.type === "deposit");
 
   // Stat cards reflect the whole selected period regardless of the search box
   // below — search only narrows which rows are visible in the log table.
-  const activeWithdrawals = allWithdrawals.filter((t) => !t.reversed_at);
-  const totalWithdrawals = round2(activeWithdrawals.reduce((s, t) => s + t.amount, 0));
-  // Commission mirrors the app-wide definition (lib/finance/account-summary.ts):
-  // susu withdrawals are commission-exempt by construction (record_withdrawal
-  // hard-codes fee=0 for susu); any fee on a susu row is an early-withdrawal
-  // penalty, not a commission, so only savings-account fees count here.
-  const totalCommissions = round2(
-    activeWithdrawals.filter((t) => t.product_type === "savings").reduce((s, t) => s + t.fee, 0)
+  const activeDeposits = allDeposits.filter((t) => !t.reversed_at);
+  const totalDeposits = round2(activeDeposits.reduce((s, t) => s + t.amount, 0));
+  const savingsDeposits = round2(
+    activeDeposits.filter((t) => t.product_type === "savings").reduce((s, t) => s + t.amount, 0)
   );
-  const netBalance = round2(totalWithdrawals - totalCommissions);
+  const susuDeposits = round2(
+    activeDeposits.filter((t) => t.product_type === "susu").reduce((s, t) => s + t.amount, 0)
+  );
 
-  const searchedWithdrawals = q
-    ? allWithdrawals.filter((t) => {
+  const searchedDeposits = q
+    ? allDeposits.filter((t) => {
         const term = q.toLowerCase();
         return (
           t.client_full_name?.toLowerCase().includes(term) ||
@@ -117,20 +116,20 @@ export default async function WithdrawalsPage({
           t.notes?.toLowerCase().includes(term)
         );
       })
-    : allWithdrawals;
+    : allDeposits;
 
   return (
     <div>
       <PageHeader
         back="/"
         eyebrow="Reports"
-        title="Withdrawals"
-        description="Search for an account to withdraw from directly, or review every withdrawal recorded across all accounts for any date range you choose."
+        title="Deposits"
+        description="Search for an account to deposit into directly, or review every deposit recorded across all accounts for any date range you choose."
       />
 
-      {/* Account picker — record a withdrawal directly from this page */}
+      {/* Account picker — record a deposit directly from this page */}
       <div className="mb-6">
-        <AccountPicker mode="withdrawal" />
+        <AccountPicker mode="deposit" />
       </div>
 
       {/* Date controls */}
@@ -155,22 +154,22 @@ export default async function WithdrawalsPage({
           icon={<Wallet size={16} />}
         />
         <StatCard
-          label="Total withdrawals"
-          value={formatGHS(totalWithdrawals)}
-          hint={`${activeWithdrawals.length} withdrawal${activeWithdrawals.length !== 1 ? "s" : ""} in this period`}
-          icon={<ArrowUpFromLine size={16} />}
+          label="Total deposits"
+          value={formatGHS(totalDeposits)}
+          hint={`${activeDeposits.length} deposit${activeDeposits.length !== 1 ? "s" : ""} in this period`}
+          icon={<ArrowDownToLine size={16} />}
         />
         <StatCard
-          label="Total commissions"
-          value={formatGHS(totalCommissions)}
-          hint="Savings withdrawals only — susu is commission-exempt"
-          icon={<Percent size={16} />}
+          label="Savings deposits"
+          value={formatGHS(savingsDeposits)}
+          hint="Savings accounts only"
+          icon={<PiggyBank size={16} />}
         />
         <StatCard
-          label="Net balance"
-          value={formatGHS(netBalance)}
-          hint="Withdrawals paid out minus commission retained"
-          icon={<Scale size={16} />}
+          label="Daily Susu deposits"
+          value={formatGHS(susuDeposits)}
+          hint="Susu accounts only"
+          icon={<Coins size={16} />}
           highlight
         />
       </div>
@@ -199,12 +198,12 @@ export default async function WithdrawalsPage({
         </button>
       </form>
 
-      {/* Withdrawal log */}
+      {/* Deposit log */}
       <TransactionLogTable
-        transactions={searchedWithdrawals}
-        error={txnError?.message ?? (txnError ? "Could not load the withdrawal log." : null)}
-        title="Withdrawal log"
-        description={`Every withdrawal recorded in this period, newest first — including reversed/edited entries the totals above net out.${q ? ` Filtered by "${q}".` : ""}`}
+        transactions={searchedDeposits}
+        error={txnError?.message ?? (txnError ? "Could not load the deposit log." : null)}
+        title="Deposit log"
+        description={`Every deposit recorded in this period, newest first — including reversed/edited entries the totals above net out.${q ? ` Filtered by "${q}".` : ""}`}
         showTypeFilter={false}
       />
     </div>

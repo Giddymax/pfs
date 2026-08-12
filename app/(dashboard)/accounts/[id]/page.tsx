@@ -18,8 +18,9 @@ import { SusuClaimActions } from "@/components/susu-claim-actions";
 import { ResetSusuButton } from "@/components/reset-susu-button";
 import { ClearTransactionsButton } from "@/components/clear-transactions-button";
 import { getSettings } from "@/lib/settings/cache";
+import { computeSusuQualification, type SusuQualification } from "@/lib/susu/qualification";
 import { formatGHS } from "@/lib/loan";
-import type { Account, Client, Profile, SusuClaim, SusuCycle, SusuPayment, Transaction } from "@/lib/types";
+import type { Account, Client, Profile, SusuClaim, SusuPayment, Transaction } from "@/lib/types";
 
 const PRODUCT_LABEL: Record<Account["product_type"], string> = {
   savings: "Savings account",
@@ -56,21 +57,25 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
   })) as TxnWithAccount[];
   const isSusu = account.product_type === "susu";
 
-  let cycles: SusuCycle[] = [];
   let claims: SusuClaim[] = [];
   let payments: SusuPayment[] = [];
+  let activeCycle: SusuQualification["activeCycle"] = null;
+  let normalCycle: SusuQualification["normalCycle"] = null;
+  let emergencyCycle: SusuQualification["emergencyCycle"] = null;
+  let isQualifiedToWithdraw = false;
   if (isSusu) {
-    const [{ data: cycleRows }, { data: claimRows }, { data: paymentRows }] = await Promise.all([
-      supabase.from("susu_cycles").select("*").eq("account_id", id).order("cycle_number", { ascending: false }).returns<SusuCycle[]>(),
-      supabase.from("susu_claims").select("*").eq("account_id", id).order("requested_at", { ascending: false }).returns<SusuClaim[]>(),
+    const [qualification, { data: paymentRows }] = await Promise.all([
+      computeSusuQualification(supabase, id, account.balance),
       supabase.from("susu_payments").select("*").eq("account_id", id).order("day_in_cycle", { ascending: false }).returns<SusuPayment[]>(),
     ]);
-    cycles = cycleRows ?? [];
-    claims = claimRows ?? [];
+    claims = qualification.claims;
+    activeCycle = qualification.activeCycle;
+    normalCycle = qualification.normalCycle;
+    emergencyCycle = qualification.emergencyCycle;
+    isQualifiedToWithdraw = qualification.isQualified;
     payments = paymentRows ?? [];
   }
 
-  const activeCycle = cycles.find((c) => c.status === "in_progress") ?? null;
   // Max day recorded in the active cycle (payments ordered desc by day_in_cycle)
   const dayInCycle = activeCycle
     ? Math.max(0, ...payments.filter((p) => p.cycle_id === activeCycle.id).map((p) => p.day_in_cycle))
@@ -78,15 +83,6 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
   // The full cycle is 31 days — day 31's contribution becomes the company fee
   const CLIENT_DAYS = 31;
   const clientDayInCycle = Math.min(dayInCycle, CLIENT_DAYS);
-  const liveClaimStatuses: SusuClaim["status"][] = ["pending_admin", "approved"];
-  const claimedCycleIds = new Set(claims.filter((c) => liveClaimStatuses.includes(c.status) || c.status === "paid").map((c) => c.cycle_id));
-  const normalCycle = cycles.find((c) => c.status === "complete" && !claimedCycleIds.has(c.id)) ?? null;
-  const emergencyCycle =
-    activeCycle && !claims.some((c) => c.cycle_id === activeCycle.id && c.claim_type === "emergency" && c.status !== "rejected")
-      ? activeCycle
-      : null;
-  // Qualified only when a complete unclaimed cycle exists (full 31-day cycle finished)
-  const isQualifiedToWithdraw = account.balance > 0 && normalCycle !== null;
 
   // Susu KPI values — grounded in the live account balance so deletions always reflect correctly
   const daily = account.daily_contribution_amount ?? 0;
