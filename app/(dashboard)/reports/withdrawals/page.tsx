@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SummaryControls } from "@/components/summary-controls";
 import { TransactionLogTable } from "@/components/transaction-log-table";
 import { AccountPicker } from "@/components/account-picker";
+import { ExportCsvButton } from "@/components/export-csv-button";
 import { PageHeader, StatCard } from "@/components/ui";
 import { getSettings } from "@/lib/settings/cache";
 import { computeAccountSummary } from "@/lib/finance/account-summary";
@@ -126,6 +127,14 @@ export default async function WithdrawalsPage({
         eyebrow="Reports"
         title="Withdrawals"
         description="Search for an account to withdraw from directly, or review every withdrawal recorded across all accounts for any date range you choose."
+        action={
+          <ExportCsvButton
+            endpoint="/api/reports/withdrawals/export"
+            filename={`withdrawals-${from}-to-${to}.xlsx`}
+            label="Export Excel"
+            params={{ from, to, ...(q ? { q } : {}) }}
+          />
+        }
       />
 
       {/* Account picker — record a withdrawal directly from this page */}
