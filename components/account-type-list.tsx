@@ -1,14 +1,24 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Search, Users, Wallet, ArrowDownToLine, ArrowUpFromLine, ReceiptText } from "lucide-react";
+import { Search, Users, Wallet, ArrowDownToLine, ArrowUpFromLine, ReceiptText, Percent } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader, AccountStatusBadge, EmptyState, StatCard } from "@/components/ui";
 import { TableFilter, type FilterOption } from "@/components/table-filter";
 import { ExportCsvButton } from "@/components/export-csv-button";
 import { formatGHS, round2 } from "@/lib/loan";
 import { getSettings } from "@/lib/settings/cache";
+import { computeAccountSummary } from "@/lib/finance/account-summary";
 import { PrintAccountListButton } from "@/components/print-account-list-button";
 import type { Account, ProductType } from "@/lib/types";
+
+const DEFAULT_REVENUE_COMPONENTS = {
+  interest: true,
+  commission: true,
+  susu_fees: true,
+  card_fees: true,
+  sms_fees: true,
+  processing_fees: true,
+};
 
 const PRODUCT_BY_SLUG: Record<string, { product_type: ProductType; label: string; description: string }> = {
   savings: {
@@ -90,6 +100,15 @@ export async function AccountTypeList({
   const totalWdr     = sum("wdr");
   const totalComm    = sum("comm");
 
+  // Susu fees (day-31 cycle fee + early-withdrawal penalties) — sourced from
+  // the same shared helper the Overview/Bank/Finance pages use, so this
+  // figure can never drift from those screens.
+  let susuFees = 0;
+  if (product.product_type === "susu") {
+    const rc = { ...DEFAULT_REVENUE_COMPONENTS, ...(settings.overview_kpi?.total_revenue?.components ?? {}) };
+    susuFees = (await computeAccountSummary(supabase, rc)).susuFees;
+  }
+
   const hasSearch = !!q?.trim();
   const hasFilter = !!status;
 
@@ -132,11 +151,12 @@ export async function AccountTypeList({
           <StatCard label="Total commission"  value={formatGHS(totalComm)}      icon={<ReceiptText size={16} />} />
         </div>
       ) : (
-        <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <StatCard label="Total clients"       value={String(totalCount ?? 0)}  icon={<Users size={16} />} />
-          <StatCard label="Total balance"       value={formatGHS(totalBalance)}   icon={<Wallet size={16} />} />
-          <StatCard label="Total contributions" value={formatGHS(totalDep)}       icon={<ArrowDownToLine size={16} />} />
-          <StatCard label="Total withdrawn"     value={formatGHS(totalWdr)}       icon={<ArrowUpFromLine size={16} />} />
+        <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
+          <StatCard size="sm" label="Susu fees"          value={formatGHS(susuFees)}      icon={<Percent size={13} />} highlight />
+          <StatCard size="sm" label="Total clients"       value={String(totalCount ?? 0)}  icon={<Users size={13} />} />
+          <StatCard size="sm" label="Total balance"       value={formatGHS(totalBalance)}   icon={<Wallet size={13} />} />
+          <StatCard size="sm" label="Total contributions" value={formatGHS(totalDep)}       icon={<ArrowDownToLine size={13} />} />
+          <StatCard size="sm" label="Total withdrawn"     value={formatGHS(totalWdr)}       icon={<ArrowUpFromLine size={13} />} />
         </div>
       )}
 
