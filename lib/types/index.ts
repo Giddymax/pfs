@@ -164,7 +164,6 @@ export interface RevenueComponents {
   sms_fees: boolean;
   sms_charges?: boolean;
   processing_fees: boolean;
-  investment_revenue: boolean;
 }
 
 export interface KpiRevenueConfig extends KpiCardConfig {
@@ -185,7 +184,6 @@ export interface OverviewKpiSettings {
   sms_fees: KpiCardConfig;
   processing_fees: KpiCardConfig;
   loan_interest: KpiCardConfig;
-  investment_revenue: KpiCardConfig;
   cash_at_hand: KpiCardConfig;
   cash_at_bank: KpiCardConfig;
 }

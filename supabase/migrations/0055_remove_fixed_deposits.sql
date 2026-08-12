@@ -32,17 +32,12 @@ delete from susu_cycles
 delete from accounts where product_type = 'fixed_deposit';
 
 -- ========================================
--- 2. Drop the dedicated Fixed Deposit tables and their support objects.
---    fd_events cascades away with fixed_deposits (fd_id references it with
---    on delete cascade), but is dropped explicitly for clarity.
--- ========================================
-drop table if exists fd_events;
-drop table if exists fixed_deposits;
-drop sequence if exists fd_code_seq;
-drop function if exists generate_fd_number();
-
--- ========================================
--- 3. Drop every FD lifecycle RPC (0011_fd_rpcs.sql).
+-- 2. Drop every FD lifecycle RPC (0011_fd_rpcs.sql) BEFORE the table —
+--    several of them declare `fixed_deposits%rowtype` locals (or return
+--    `fixed_deposits` directly), which makes Postgres register a dependency
+--    on the table's row type. Dropping the table first fails with
+--    "cannot drop table ... because other objects depend on it" unless the
+--    dependent functions are gone first.
 -- ========================================
 drop function if exists compute_fd_terms(numeric, numeric, int, date);
 drop function if exists open_fixed_deposit(uuid, numeric, numeric, int, uuid, date);
@@ -53,6 +48,16 @@ drop function if exists reject_early_withdrawal(uuid, uuid);
 drop function if exists process_early_withdrawal_payout(uuid, uuid);
 drop function if exists process_maturity_payout(uuid, uuid);
 drop function if exists process_rollover(uuid, int, numeric, boolean, uuid);
+
+-- ========================================
+-- 3. Now safe to drop the dedicated Fixed Deposit tables and their support
+--    objects. fd_events cascades away with fixed_deposits (fd_id references
+--    it with on delete cascade), but is dropped explicitly for clarity.
+-- ========================================
+drop table if exists fd_events;
+drop table if exists fixed_deposits;
+drop sequence if exists fd_code_seq;
+drop function if exists generate_fd_number();
 
 -- ========================================
 -- 4. Tighten the accounts table: only savings/susu can exist now, so drop

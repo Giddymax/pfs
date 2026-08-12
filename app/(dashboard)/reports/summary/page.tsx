@@ -24,10 +24,6 @@ interface PeriodSummary {
   card_fee_count: number;
   card_fee_total: number;
   sms_cost_total: number;
-  investment_returned_count: number;
-  investment_returned_total: number;
-  investment_placed_count: number;
-  investment_placed_total: number;
   expenditure_count: number;
   expenditure_total: number;
   susu_fee_total: number;
@@ -217,13 +213,6 @@ export default async function SummaryPage({
                 sign="+"
                 color="text-[#1F6E4A]"
               />
-              <MetricRow
-                label="Returned investment revenue"
-                amount={summary.investment_returned_total}
-                count={summary.investment_returned_count}
-                sign="+"
-                color="text-[#1F6E4A]"
-              />
               <TotalRow label="Total inflows" amount={summary.total_inflows} />
             </Section>
 
@@ -247,13 +236,6 @@ export default async function SummaryPage({
                 label="Expenditures"
                 amount={summary.expenditure_total}
                 count={summary.expenditure_count}
-                sign="−"
-                color="text-[#963522]"
-              />
-              <MetricRow
-                label="New investments placed"
-                amount={summary.investment_placed_total}
-                count={summary.investment_placed_count}
                 sign="−"
                 color="text-[#963522]"
               />
