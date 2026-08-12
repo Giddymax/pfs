@@ -9,7 +9,6 @@ import {
   HandCoins,
   PiggyBank,
   Coins,
-  Landmark,
   LogOut,
   ShieldCheck,
   Settings,
@@ -115,15 +114,6 @@ const ACCOUNT_NAV = [
     activeIcon: "text-[#0284C7]",
     idle: "group text-[#FFFFFF] hover:bg-[#0284C7]/15 hover:text-[#FFFFFF]",
     idleIcon: "text-[#FFFFFF] transition-colors group-hover:text-[#0284C7]",
-  },
-  {
-    href: "/fixed-deposits",
-    label: "Fixed Deposit",
-    icon: Landmark,
-    active: "bg-[#4F46E5]/15 text-[#FFFFFF]",
-    activeIcon: "text-[#4F46E5]",
-    idle: "group text-[#FFFFFF] hover:bg-[#4F46E5]/15 hover:text-[#FFFFFF]",
-    idleIcon: "text-[#FFFFFF] transition-colors group-hover:text-[#4F46E5]",
   },
 ];
 

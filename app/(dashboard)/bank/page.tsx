@@ -57,7 +57,6 @@ export default async function BankPage() {
     { data: txns },
     { data: savingsRows },
     { data: susuRows },
-    { data: fdRows },
     { data: cardFeeRows },
     { data: commissionRows },
     { data: susuFeeRows },
@@ -77,7 +76,6 @@ export default async function BankPage() {
       .returns<BankTxn[]>(),
     supabase.from("accounts").select("dep").eq("product_type", "savings"),
     supabase.from("accounts").select("dep").eq("product_type", "susu"),
-    supabase.from("fixed_deposits").select("principal").not("status", "in", '("withdrawn","rolled_over")'),
     supabase.from("card_fees").select("amount"),
     supabase.from("transactions").select("fee").eq("type", "withdrawal").is("reversed_at", null),
     supabase.from("susu_payments").select("amount").eq("day_in_cycle", 31),
@@ -97,7 +95,7 @@ export default async function BankPage() {
   // revenue-component visibility toggles, so the two never silently diverge.
   const rc = { ...DEFAULT_REVENUE_COMPONENTS, ...(settings.overview_kpi?.total_revenue?.components ?? {}) };
 
-  const combined = round2(sum(savingsRows, "dep") + sum(susuRows, "dep") + sum(fdRows, "principal"));
+  const combined = round2(sum(savingsRows, "dep") + sum(susuRows, "dep"));
   const cardFees = sum(cardFeeRows, "amount");
   const commission = sum(commissionRows, "fee");
   const susuFees = sum(susuFeeRows, "amount");

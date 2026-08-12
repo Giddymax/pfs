@@ -1,14 +1,13 @@
 import Link from "next/link";
-import { CalendarClock, HandCoins, Landmark, Coins, AlertTriangle, Sparkles } from "lucide-react";
+import { CalendarClock, HandCoins, Coins, AlertTriangle, Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui";
 import { DisburseInterestButton } from "@/components/disburse-interest-button";
 import { formatGHS } from "@/lib/loan";
 import { INTEREST_MIN_BALANCE, INTEREST_PERIOD_END, INTEREST_PERIOD_START, isInterestWindowElapsed } from "@/lib/interest";
-import type { Client, FixedDeposit, Loan, SusuCycle } from "@/lib/types";
+import type { Client, Loan, SusuCycle } from "@/lib/types";
 
 type LoanRow = Loan & { client: Client };
-type FdRow = FixedDeposit & { client: Client };
 type SusuRow = SusuCycle & {
   account: { account_number: string; client: Client };
   maxDay: number;
@@ -16,7 +15,6 @@ type SusuRow = SusuCycle & {
 
 type EventItem =
   | { kind: "loan"; date: Date; daysOut: number; data: LoanRow }
-  | { kind: "fd"; date: Date; daysOut: number; data: FdRow }
   | { kind: "susu"; daysOut: number; data: SusuRow };
 
 interface InterestEligibleRow {
@@ -66,7 +64,7 @@ export default async function UpcomingPage() {
     interestEligible = (data ?? []) as InterestEligibleRow[];
   }
 
-  const [{ data: loanRows }, { data: fdRows }, { data: cycleRows }, { data: paymentRows }] = await Promise.all([
+  const [{ data: loanRows }, { data: cycleRows }, { data: paymentRows }] = await Promise.all([
     supabase
       .from("loans")
       .select("*, client:clients(*)")
@@ -74,14 +72,6 @@ export default async function UpcomingPage() {
       .lte("due_date", in30)
       .order("due_date", { ascending: true })
       .returns<LoanRow[]>(),
-    supabase
-      .from("fixed_deposits")
-      .select("*, client:clients(*)")
-      .in("status", ["active", "matured"])
-      .lte("maturity_date", in30)
-      .gte("maturity_date", today)
-      .order("maturity_date", { ascending: true })
-      .returns<FdRow[]>(),
     supabase
       .from("susu_cycles")
       .select("*, account:accounts(account_number, client:clients(*))")
@@ -110,10 +100,6 @@ export default async function UpcomingPage() {
       const days = daysFromNow(l.due_date!);
       return { kind: "loan", date: new Date(l.due_date!), daysOut: days, data: l };
     }),
-    ...(fdRows ?? []).map((f): EventItem => {
-      const days = daysFromNow(f.maturity_date);
-      return { kind: "fd", date: new Date(f.maturity_date), daysOut: days, data: f };
-    }),
     ...susuEvents.map((s): EventItem => ({
       kind: "susu",
       daysOut: 31 - s.maxDay, // days until day-31
@@ -136,7 +122,7 @@ export default async function UpcomingPage() {
         back="/"
         eyebrow="Events"
         title="Upcoming Events"
-        description="Loans due, fixed deposit maturities, and susu cycles completing in the next 30 days."
+        description="Loans due and susu cycles completing in the next 30 days."
       />
 
       {/* Interest-eligible clients */}
@@ -182,7 +168,6 @@ export default async function UpcomingPage() {
         {overdue > 0 && <Chip label="Overdue loans" value={overdue} color="red" />}
         {dueThisWeek > 0 && <Chip label="Due this week" value={dueThisWeek} color="amber" />}
         <Chip label="Loans due" value={events.filter((e) => e.kind === "loan").length} color="pink" />
-        <Chip label="FD maturities" value={events.filter((e) => e.kind === "fd").length} color="purple" />
         <Chip label="Susu nearing day 31" value={susuEvents.length} color="teal" />
       </div>
 
@@ -217,31 +202,6 @@ export default async function UpcomingPage() {
                     </p>
                   </div>
                   <DaysBadge days={event.daysOut} red={isOverdue} />
-                </Link>
-              );
-            }
-
-            if (event.kind === "fd") {
-              const f = event.data;
-              return (
-                <Link
-                  key={`fd-${f.id}`}
-                  href={`/fixed-deposits`}
-                  className="flex flex-wrap items-center gap-3 rounded-xl border border-[#0A2240]/8 bg-white px-5 py-4 shadow-sm transition-colors hover:bg-[#0033AA]/[0.02]"
-                >
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#7C3AED]/10">
-                    <Landmark size={17} className="text-[#7C3AED]" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[13.5px] font-semibold text-[#0A2240]">
-                      {f.client.full_name}
-                      <span className="ml-2 text-[11.5px] font-normal text-[#0A2240]/45">{f.fd_number}</span>
-                    </p>
-                    <p className="text-[12px] text-[#0A2240]/45">
-                      FD matures {fmtDate(f.maturity_date)} · {formatGHS(f.principal)} @ {f.annual_rate_percent}% p.a.
-                    </p>
-                  </div>
-                  <DaysBadge days={event.daysOut} />
                 </Link>
               );
             }
@@ -285,13 +245,12 @@ export default async function UpcomingPage() {
   );
 }
 
-function Chip({ label, value, color }: { label: string; value: number; color: "blue" | "red" | "amber" | "pink" | "purple" | "teal" }) {
+function Chip({ label, value, color }: { label: string; value: number; color: "blue" | "red" | "amber" | "pink" | "teal" }) {
   const styles = {
     blue: "border-[#0033AA]/20 bg-[#EFF6FF] text-[#0033AA]",
     red: "border-[#B91C1C]/20 bg-[#FEF2F2] text-[#B91C1C]",
     amber: "border-[#D97706]/25 bg-[#FFFBEB] text-[#92400E]",
     pink: "border-[#DB2777]/20 bg-[#FDF2F8] text-[#9D174D]",
-    purple: "border-[#7C3AED]/20 bg-[#F5F3FF] text-[#5B21B6]",
     teal: "border-[#0891B2]/20 bg-[#ECFEFF] text-[#0E7490]",
   };
   return (

@@ -16,7 +16,7 @@ interface PeriodTransaction {
   client_code: string;
   account_id: string;
   account_number: string;
-  product_type: "savings" | "susu" | "fixed_deposit";
+  product_type: "savings" | "susu";
   recorded_by_name: string | null;
   edited_by_name: string | null;
   edited_at: string | null;
@@ -28,7 +28,6 @@ interface PeriodTransaction {
 const PRODUCT_LABEL: Record<PeriodTransaction["product_type"], string> = {
   savings: "Savings",
   susu: "Daily Susu",
-  fixed_deposit: "Fixed Deposit",
 };
 
 type TypeFilter = "all" | PeriodTransaction["type"];

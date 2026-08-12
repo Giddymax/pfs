@@ -16,14 +16,12 @@ const DEFAULTS: Settings = {
     company_tel: null,
   },
   card_fee_amount: 20,
-  fd_terms_months: [3, 6, 9, 12, 18, 24],
   emergency_claim_penalty_basis: "daily_contribution_amount",
   sms_monthly_fee: 2,
   overview_kpi: {
     total_clients:   { visible: true },
     total_savings:   { visible: true, calc: "dep" },
     total_susu:      { visible: true, calc: "dep" },
-    total_fd:        { visible: true },
     combined_total:  { visible: true },
     total_revenue:   { visible: true, components: { interest: true, commission: true, susu_fees: true, card_fees: true, sms_fees: true, sms_charges: true, processing_fees: true, investment_revenue: true } },
     account_balance: { visible: true },
@@ -52,7 +50,6 @@ export async function getSettings(): Promise<Settings> {
   const value: Settings = {
     sms: { ...DEFAULTS.sms, ...(byKey.get("sms") as Partial<SmsSettings> | undefined) },
     card_fee_amount: (byKey.get("card_fee_amount") as number | undefined) ?? DEFAULTS.card_fee_amount,
-    fd_terms_months: (byKey.get("fd_terms_months") as number[] | undefined) ?? DEFAULTS.fd_terms_months,
     emergency_claim_penalty_basis: "daily_contribution_amount",
     sms_monthly_fee: (byKey.get("sms_monthly_fee") as number | undefined) ?? DEFAULTS.sms_monthly_fee,
     overview_kpi: (byKey.get("overview_kpi") as OverviewKpiSettings | undefined) ?? DEFAULTS.overview_kpi,

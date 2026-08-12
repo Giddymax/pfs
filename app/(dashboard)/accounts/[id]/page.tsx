@@ -24,7 +24,6 @@ import type { Account, Client, Profile, SusuClaim, SusuCycle, SusuPayment, Trans
 const PRODUCT_LABEL: Record<Account["product_type"], string> = {
   savings: "Savings account",
   susu: "Daily susu account",
-  fixed_deposit: "Fixed deposit account",
 };
 
 export default async function AccountDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -101,29 +100,27 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
   return (
     <div>
       <PageHeader
-        back={account.product_type === "fixed_deposit" ? "/fixed-deposits" : `/accounts/${account.product_type}`}
+        back={`/accounts/${account.product_type}`}
         eyebrow={PRODUCT_LABEL[account.product_type]}
         title={account.account_number}
         description={`Opened ${formatDate(account.opening_date)} · ${account.client.full_name}`}
         action={
           isStaffOrAdmin && (
             <div className="flex flex-wrap items-center gap-2.5">
-              {account.product_type !== "fixed_deposit" && (
-                isSusu ? (
-                  <>
-                    <SusuContributionForm accountId={account.id} dailyAmount={account.daily_contribution_amount} />
-                    <SusuWithdrawalForm accountId={account.id} availableBalance={account.balance} dailyAmount={daily} isQualified={isQualifiedToWithdraw} emergencyCycle={emergencyCycle} />
-                    <SusuClaimRequestButton accountId={account.id} normalCycle={normalCycle} emergencyCycle={emergencyCycle} />
-                    {isAdmin && <ResetSusuButton accountId={account.id} />}
-                  </>
-                ) : (
-                  <>
-                    <RecordTransactionForm accountId={account.id} kind="deposit" />
-                    <RecordTransactionForm accountId={account.id} kind="withdrawal" />
-                  </>
-                )
+              {isSusu ? (
+                <>
+                  <SusuContributionForm accountId={account.id} dailyAmount={account.daily_contribution_amount} />
+                  <SusuWithdrawalForm accountId={account.id} availableBalance={account.balance} dailyAmount={daily} isQualified={isQualifiedToWithdraw} emergencyCycle={emergencyCycle} />
+                  <SusuClaimRequestButton accountId={account.id} normalCycle={normalCycle} emergencyCycle={emergencyCycle} />
+                  {isAdmin && <ResetSusuButton accountId={account.id} />}
+                </>
+              ) : (
+                <>
+                  <RecordTransactionForm accountId={account.id} kind="deposit" />
+                  <RecordTransactionForm accountId={account.id} kind="withdrawal" />
+                </>
               )}
-              {isAdmin && account.product_type !== "fixed_deposit" && <RecalculateAccountButton accountId={account.id} />}
+              {isAdmin && <RecalculateAccountButton accountId={account.id} />}
               {isAdmin && <ClearTransactionsButton accountId={account.id} />}
               <ExportCsvButton
                 endpoint="/api/export/transactions"

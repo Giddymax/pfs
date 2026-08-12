@@ -196,11 +196,6 @@ const PRODUCTS = [
     desc: "Small daily contributions that build up over a 31-day cycle.",
   },
   {
-    label: "Fixed Deposits",
-    href: "/about/fixed-deposits",
-    desc: "Lock your savings and earn guaranteed interest.",
-  },
-  {
     label: "Client Loans",
     href: "/about/client-loans",
     desc: "Affordable micro-loans with flexible repayment terms.",

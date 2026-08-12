@@ -11,7 +11,6 @@ import {
   Users,
   PiggyBank,
   Repeat,
-  Lock,
   Layers,
   TrendingUp,
   Wallet,
@@ -43,7 +42,6 @@ export default async function OverviewPage() {
     total_clients:   { visible: true },
     total_savings:   { visible: true, calc: "dep" as const },
     total_susu:      { visible: true, calc: "dep" as const },
-    total_fd:        { visible: true },
     combined_total:  { visible: true },
     total_revenue:   { visible: true, components: { interest: true, commission: true, susu_fees: true, card_fees: true, sms_fees: true, processing_fees: true, investment_revenue: true } },
     account_balance: { visible: true },
@@ -72,7 +70,6 @@ export default async function OverviewPage() {
     // Per-category totals — queried directly so a stale/broken RPC never zeroes them out
     { data: savingsRows },
     { data: susuRows },
-    { data: fdRows },
     // Revenue components
     { data: commissionRows },
     { data: susuFeeRows },
@@ -98,7 +95,6 @@ export default async function OverviewPage() {
     supabase.from("clients").select("*", { count: "exact", head: true }),
     supabase.from("accounts").select("id, balance, dep").eq("product_type", "savings"),
     supabase.from("accounts").select("id, balance, dep").eq("product_type", "susu"),
-    supabase.from("fixed_deposits").select("principal").not("status", "in", '("withdrawn","rolled_over")'),
     supabase.from("transactions").select("fee, account_id").eq("type", "withdrawal").is("reversed_at", null),
     supabase.from("susu_payments").select("amount").eq("day_in_cycle", 31),
     supabase.from("loans").select("processing_fee"),
@@ -137,8 +133,7 @@ export default async function OverviewPage() {
 
   const totalSavings  = sum(savingsRows, "dep");
   const totalSusu     = sum(susuRows,   "dep");
-  const totalFD       = sum(fdRows,     "principal");
-  const combined      = round2(totalSavings + totalSusu + totalFD);
+  const combined      = round2(totalSavings + totalSusu);
 
   // Revenue components
   const rc = kpi.total_revenue.components;
@@ -255,20 +250,11 @@ export default async function OverviewPage() {
             icon={<Repeat size={17} />}
           />
         )}
-        {kpi.total_fd.visible && (
-          <SummaryCard
-            label="Total Fixed Deposits"
-            value={formatGHS(totalFD)}
-            hint="Principal only — no interest added"
-            tone="violet"
-            icon={<Lock size={17} />}
-          />
-        )}
         {kpi.combined_total.visible && (
           <SummaryCard
             label="Combined Account Total"
             value={formatGHS(combined)}
-            hint={`Savings ${formatGHS(totalSavings)} + Susu ${formatGHS(totalSusu)} + FD ${formatGHS(totalFD)}`}
+            hint={`Savings ${formatGHS(totalSavings)} + Susu ${formatGHS(totalSusu)}`}
             tone="orange"
             icon={<Layers size={17} />}
           />

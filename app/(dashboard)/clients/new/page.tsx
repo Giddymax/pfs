@@ -6,8 +6,6 @@ import { Camera, Loader2, UserRound, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { PageHeader } from "@/components/ui";
 
-const FD_TERM_OPTIONS = [3, 6, 9, 12, 18, 24];
-
 export default function NewClientPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -34,9 +32,6 @@ export default function NewClientPage() {
     account_type: "",
     opening_deposit: "",
     daily_contribution_amount: "",
-    principal: "",
-    annual_rate_percent: "",
-    term_months: "",
   });
 
   function update<K extends keyof typeof form>(key: K, value: string) {
@@ -75,21 +70,6 @@ export default function NewClientPage() {
     if (form.account_type === "susu" && !(Number(form.daily_contribution_amount) > 0)) {
       setError("Enter the agreed daily contribution amount.");
       return;
-    }
-
-    if (form.account_type === "fixed_deposit") {
-      if (!(Number(form.principal) > 0)) {
-        setError("Enter the fixed deposit principal amount.");
-        return;
-      }
-      if (!(Number(form.annual_rate_percent) >= 0)) {
-        setError("Enter the fixed deposit's annual interest rate.");
-        return;
-      }
-      if (!FD_TERM_OPTIONS.includes(Number(form.term_months))) {
-        setError("Select the fixed deposit's term.");
-        return;
-      }
     }
 
     setSubmitting(true);
@@ -138,42 +118,23 @@ export default function NewClientPage() {
 
       if (insertError) throw new Error(insertError.message);
 
-      if (form.account_type === "fixed_deposit") {
-        // Fixed deposits are lump-sum term placements with their own
-        // maturity/rollover lifecycle — they live in `fixed_deposits`,
-        // not the shared `accounts` ledger table, so they're opened via
-        // the dedicated route (which calls the `open_fixed_deposit` RPC).
-        const res = await fetch("/api/fixed-deposits", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            client_id: inserted.id,
-            principal: Number(form.principal),
-            annual_rate_percent: Number(form.annual_rate_percent),
-            term_months: Number(form.term_months),
-          }),
-        });
-        const json = await res.json();
-        if (!res.ok) throw new Error("Client saved, but opening the fixed deposit failed: " + json.error);
-      } else {
-        const accountInsert: Record<string, unknown> = {
-          client_id: inserted.id,
-          product_type: form.account_type,
-          created_by: user?.id ?? null,
-        };
+      const accountInsert: Record<string, unknown> = {
+        client_id: inserted.id,
+        product_type: form.account_type,
+        created_by: user?.id ?? null,
+      };
 
-        if (form.account_type === "savings") {
-          const opening = form.opening_deposit ? Number(form.opening_deposit) : 0;
-          accountInsert.balance = opening;
-          accountInsert.minimum_opening_deposit = form.opening_deposit ? opening : null;
-        } else if (form.account_type === "susu") {
-          accountInsert.daily_contribution_amount = Number(form.daily_contribution_amount);
-          accountInsert.cycle_length_days = 31;
-        }
-
-        const { error: accountError } = await supabase.from("accounts").insert(accountInsert);
-        if (accountError) throw new Error("Client saved, but opening the account failed: " + accountError.message);
+      if (form.account_type === "savings") {
+        const opening = form.opening_deposit ? Number(form.opening_deposit) : 0;
+        accountInsert.balance = opening;
+        accountInsert.minimum_opening_deposit = form.opening_deposit ? opening : null;
+      } else if (form.account_type === "susu") {
+        accountInsert.daily_contribution_amount = Number(form.daily_contribution_amount);
+        accountInsert.cycle_length_days = 31;
       }
+
+      const { error: accountError } = await supabase.from("accounts").insert(accountInsert);
+      if (accountError) throw new Error("Client saved, but opening the account failed: " + accountError.message);
 
       // Card fee — new clients pay the configured fee; old/migrated clients
       // get a zero-amount row so the isMigrated flag works correctly everywhere.
@@ -401,16 +362,12 @@ export default function NewClientPage() {
                     account_type: v,
                     opening_deposit: "",
                     daily_contribution_amount: "",
-                    principal: "",
-                    annual_rate_percent: "",
-                    term_months: "",
                   }))
                 }
               >
                 <option value="">Select account type</option>
                 <option value="savings">Savings</option>
                 <option value="susu">Daily Susu</option>
-                <option value="fixed_deposit">Fixed Deposit</option>
               </Select>
             </Field>
 
@@ -420,7 +377,7 @@ export default function NewClientPage() {
                   type="number"
                   value={form.opening_deposit}
                   onChange={(v) => update("opening_deposit", v)}
-                 
+
                 />
               </Field>
             )}
@@ -431,51 +388,14 @@ export default function NewClientPage() {
                   type="number"
                   value={form.daily_contribution_amount}
                   onChange={(v) => update("daily_contribution_amount", v)}
-                 
+
                 />
               </Field>
-            )}
-
-            {form.account_type === "fixed_deposit" && (
-              <>
-                <Field label="Principal amount (GHS)" required>
-                  <Input
-                    type="number"
-                    value={form.principal}
-                    onChange={(v) => update("principal", v)}
-                   
-                  />
-                </Field>
-                <Field label="Annual interest rate (%)" required>
-                  <Input
-                    type="number"
-                    value={form.annual_rate_percent}
-                    onChange={(v) => update("annual_rate_percent", v)}
-                   
-                  />
-                </Field>
-                <Field label="Term" required>
-                  <Select value={form.term_months} onChange={(v) => update("term_months", v)}>
-                    <option value="">Select term</option>
-                    {FD_TERM_OPTIONS.map((m) => (
-                      <option key={m} value={m}>
-                        {m} months
-                      </option>
-                    ))}
-                  </Select>
-                </Field>
-              </>
             )}
           </div>
           {form.account_type === "susu" && (
             <p className="mt-3 text-[12px] text-[#0A2240]/45">
               Standard cycle is 31 days; the collector keeps one day&apos;s contribution as commission at cycle-end.
-            </p>
-          )}
-          {form.account_type === "fixed_deposit" && (
-            <p className="mt-3 text-[12px] text-[#0A2240]/45">
-              Maturity date and expected interest are computed automatically (simple interest) from the principal,
-              rate and term. Early withdrawal forfeits all accrued interest.
             </p>
           )}
         </section>

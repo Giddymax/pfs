@@ -31,7 +31,6 @@ export default function EditClientPage({ params }: { params: Promise<{ id: strin
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<EditableAccount[]>([]);
-  const [fixedDepositCount, setFixedDepositCount] = useState(0);
 
   const [form, setForm] = useState({
     client_code: "",
@@ -97,9 +96,8 @@ export default function EditClientPage({ params }: { params: Promise<{ id: strin
         setSmsOptIn(client.sms_opt_in);
         setExistingPhotoUrl(client.photo_url);
 
-        const convertible = (accts ?? []).filter((a): a is Account & { product_type: "savings" | "susu" } => a.product_type === "savings" || a.product_type === "susu");
         setAccounts(
-          convertible.map((a) => ({
+          (accts ?? []).map((a) => ({
             id: a.id,
             account_number: a.account_number,
             status: a.status,
@@ -108,7 +106,6 @@ export default function EditClientPage({ params }: { params: Promise<{ id: strin
             daily_contribution_amount: a.daily_contribution_amount != null ? String(a.daily_contribution_amount) : "",
           }))
         );
-        setFixedDepositCount((accts ?? []).filter((a) => a.product_type === "fixed_deposit").length);
 
         setLoading(false);
       }
@@ -348,7 +345,7 @@ export default function EditClientPage({ params }: { params: Promise<{ id: strin
           </div>
         </section>
 
-        {(accounts.length > 0 || fixedDepositCount > 0) && (
+        {accounts.length > 0 && (
           <section className="rounded-xl border border-[#0033AA]/8 bg-white p-6">
             <h2 className="mb-1 text-[14px] font-semibold text-[#0033AA]">Deposit accounts</h2>
             <p className="mb-4 text-[12.5px] text-[#0A2240]/50">
@@ -387,11 +384,6 @@ export default function EditClientPage({ params }: { params: Promise<{ id: strin
                 </div>
               ))}
             </div>
-            {fixedDepositCount > 0 && (
-              <p className="mt-4 text-[12px] text-[#0A2240]/45">
-                This client also holds {fixedDepositCount} fixed deposit{fixedDepositCount > 1 ? "s" : ""}, which can&apos;t be converted to another account type here.
-              </p>
-            )}
           </section>
         )}
 

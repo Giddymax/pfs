@@ -271,8 +271,6 @@ function detailColumnLabel(productType: ProductType) {
       return "Phone";
     case "susu":
       return "Daily contribution";
-    case "fixed_deposit":
-      return "Principal / tenor";
   }
 }
 
@@ -286,10 +284,6 @@ function detailColumnValue(account: Account) {
     }
     case "susu":
       return account.daily_contribution_amount != null ? `${formatGHS(account.daily_contribution_amount)} / day` : "—";
-    case "fixed_deposit":
-      return account.principal_amount != null && account.tenor_days != null
-        ? `${formatGHS(account.principal_amount)} · ${account.tenor_days} days`
-        : "—";
   }
 }
 

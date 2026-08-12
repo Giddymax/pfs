@@ -37,13 +37,12 @@ export default async function SettingsPage() {
         back="/"
         eyebrow="Administration"
         title="Settings"
-        description="Configure SMS notifications, the registration card fee, and fixed-deposit terms. These values apply across the system immediately."
+        description="Configure SMS notifications and the registration card fee. These values apply across the system immediately."
       />
 
       <SettingsForm
         sms={{ ...DEFAULT_SMS_SETTINGS, ...(byKey.get("sms") as Partial<SmsSettings> | undefined) }}
         cardFeeAmount={(byKey.get("card_fee_amount") as number | undefined) ?? 20}
-        fdTermsMonths={(byKey.get("fd_terms_months") as number[] | undefined) ?? [3, 6, 9, 12, 18, 24]}
         smsMonthlyFee={(byKey.get("sms_monthly_fee") as number | undefined) ?? 2}
       />
 

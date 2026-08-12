@@ -129,7 +129,6 @@ export function ClientStatusBadge({ status }: { status: ClientStatus }) {
 const ACCOUNT_STATUS_STYLES: Record<AccountStatus, string> = {
   active: "bg-[#1F6E4A]/10 text-[#1F6E4A] border-[#1F6E4A]/25",
   dormant: "bg-[#0062E1]/12 text-[#0A4DA6] border-[#0062E1]/25",
-  matured: "bg-[#0033AA]/8 text-[#0033AA] border-[#0033AA]/20",
   closed: "bg-[#0A2240]/8 text-[#0A2240]/45 border-[#0A2240]/15",
 };
 

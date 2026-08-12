@@ -24,10 +24,6 @@ interface PeriodSummary {
   card_fee_count: number;
   card_fee_total: number;
   sms_cost_total: number;
-  fd_principal_count: number;
-  fd_principal_total: number;
-  fd_payout_count: number;
-  fd_payout_total: number;
   investment_returned_count: number;
   investment_returned_total: number;
   investment_placed_count: number;
@@ -54,7 +50,7 @@ interface PeriodTransaction {
   client_code: string;
   account_id: string;
   account_number: string;
-  product_type: "savings" | "susu" | "fixed_deposit";
+  product_type: "savings" | "susu";
   recorded_by_name: string | null;
   edited_by_name: string | null;
   edited_at: string | null;
@@ -208,13 +204,6 @@ export default async function SummaryPage({
                 color="text-[#1F6E4A]"
               />
               <MetricRow
-                label="Fixed deposits opened"
-                amount={summary.fd_principal_total}
-                count={summary.fd_principal_count}
-                sign="+"
-                color="text-[#1F6E4A]"
-              />
-              <MetricRow
                 label="Loan repayments received"
                 amount={summary.repayment_total}
                 count={summary.repayment_count}
@@ -251,13 +240,6 @@ export default async function SummaryPage({
                 label="Loans disbursed"
                 amount={summary.loans_issued_total}
                 count={summary.loans_issued_count}
-                sign="−"
-                color="text-[#963522]"
-              />
-              <MetricRow
-                label="Fixed deposit payouts"
-                amount={summary.fd_payout_total}
-                count={summary.fd_payout_count}
                 sign="−"
                 color="text-[#963522]"
               />

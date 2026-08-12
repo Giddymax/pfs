@@ -60,12 +60,8 @@ export interface Loan {
   client?: Client;
 }
 
-export type ProductType = "savings" | "susu" | "fixed_deposit";
-export type AccountStatus = "active" | "dormant" | "closed" | "matured";
-export type MaturityInstruction =
-  | "payout_full"
-  | "rollover_principal"
-  | "rollover_principal_and_interest";
+export type ProductType = "savings" | "susu";
+export type AccountStatus = "active" | "dormant" | "closed";
 
 export interface Account {
   id: string;
@@ -87,11 +83,6 @@ export interface Account {
   // daily susu
   daily_contribution_amount: number | null;
   cycle_length_days: number | null;
-  // fixed deposit
-  principal_amount: number | null;
-  tenor_days: number | null;
-  maturity_date: string | null;
-  maturity_instruction: MaturityInstruction | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -184,7 +175,6 @@ export interface OverviewKpiSettings {
   total_clients: KpiCardConfig;
   total_savings: KpiCardCalcConfig;
   total_susu: KpiCardCalcConfig;
-  total_fd: KpiCardConfig;
   combined_total: KpiCardConfig;
   total_revenue: KpiRevenueConfig;
   account_balance: KpiCardConfig;
@@ -203,7 +193,6 @@ export interface OverviewKpiSettings {
 export interface Settings {
   sms: SmsSettings;
   card_fee_amount: number;
-  fd_terms_months: number[];
   emergency_claim_penalty_basis: "daily_contribution_amount";
   overview_kpi: OverviewKpiSettings;
   sms_monthly_fee: number;
@@ -279,42 +268,3 @@ export interface SusuClaim {
   paid_at: string | null;
 }
 
-export type FdTermMonths = 3 | 6 | 9 | 12 | 18 | 24;
-export type FdStatus = "active" | "matured" | "pending_early" | "approved_early" | "withdrawn" | "rolled_over";
-
-export interface FixedDeposit {
-  id: string;
-  fd_number: string;
-  client_id: string;
-  principal: number;
-  annual_rate_percent: number;
-  term_months: number;
-  start_date: string;
-  maturity_date: string;
-  expected_interest: number;
-  expected_payout: number;
-  status: FdStatus;
-  rolled_into_fd_id: string | null;
-  rolled_from_fd_id: string | null;
-  created_by: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export type FdEventType =
-  | "early_withdrawal_requested"
-  | "early_withdrawal_approved"
-  | "early_withdrawal_rejected"
-  | "matured_paid_out"
-  | "rollover_requested"
-  | "rollover_completed";
-
-export interface FdEvent {
-  id: string;
-  fd_id: string;
-  event_type: FdEventType;
-  amount: number | null;
-  actor_id: string | null;
-  notes: string | null;
-  created_at: string;
-}

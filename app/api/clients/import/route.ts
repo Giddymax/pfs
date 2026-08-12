@@ -6,11 +6,10 @@ function str(v: unknown): string {
   return v != null ? String(v).trim() : "";
 }
 
-function parseAccountType(v: unknown): "savings" | "susu" | "fixed_deposit" | null {
+function parseAccountType(v: unknown): "savings" | "susu" | null {
   const s = str(v).toLowerCase().replace(/[\s_-]/g, "");
   if (s === "savings" || s === "sav" || s === "save") return "savings";
   if (s === "susu" || s === "dailysusu" || s === "sus" || s === "daily") return "susu";
-  if (s === "fixeddeposit" || s === "fixed" || s === "fd" || s === "fxd" || s === "fixeddepositfd") return "fixed_deposit";
   return null;
 }
 
@@ -298,17 +297,11 @@ export async function POST(request: Request) {
           reason: "Account Type was \"Susu\" but Daily Contribution was missing — no account was created for this client.",
         });
       }
-    } else if (accountType === "fixed_deposit") {
-      warnings.push({
-        row: rowNum,
-        name: fullName,
-        reason: "Fixed Deposit accounts need a rate and term and can't be bulk-imported — no account was created for this client. Add it manually from the client's profile.",
-      });
     } else if (str(accountTypeRaw) !== "") {
       warnings.push({
         row: rowNum,
         name: fullName,
-        reason: `Account Type "${str(accountTypeRaw)}" was not recognized (expected Savings, Susu, or Fixed Deposit) — no account was created for this client.`,
+        reason: `Account Type "${str(accountTypeRaw)}" was not recognized (expected Savings or Susu) — no account was created for this client.`,
       });
     } else if (balance != null || dailyContribution != null) {
       warnings.push({
