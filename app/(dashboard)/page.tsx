@@ -185,7 +185,7 @@ export default async function OverviewPage() {
           <SummaryCard
             label="Account Balance"
             value={formatGHS(accountBalance)}
-            hint={`Combined ${formatGHS(combinedTotal)} - Withdrawals ${formatGHS(totalWithdrawals)}`}
+            hint="Actual cash position: client deposits + retained fees − loans out + repayments − expenditures"
             tone="purple"
             icon={<Wallet size={17} />}
           />

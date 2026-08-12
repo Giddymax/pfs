@@ -160,7 +160,7 @@ export default async function WithdrawalsPage({
         <StatCard
           label="Account Balance"
           value={formatGHS(accountSummary.accountBalance)}
-          hint="Combined account total minus withdrawals — matches Overview"
+          hint="Actual cash position — matches Overview"
           icon={<Wallet size={16} />}
         />
         <StatCard

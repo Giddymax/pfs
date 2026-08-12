@@ -3,17 +3,15 @@ import { round2 } from "@/lib/loan";
 import type { RevenueComponents } from "@/lib/types";
 
 export interface AccountSummary {
-  // Gross lifetime deposits — no withdrawals or deductions netted in. This
-  // is deliberate, not an oversight: Combined Account Total (below) is a
-  // GROSS figure, and Withdrawals nets it down exactly once to produce
-  // Account Balance. If these used current per-account balance instead
-  // (already net of that account's own withdrawals/commission), Account
-  // Balance would subtract total withdrawals a second time. Do not swap
-  // this for `balance` without also removing the withdrawals subtraction.
+  // Gross lifetime deposits — no withdrawals or deductions netted in. Total
+  // Savings/Total Daily Susu are deliberately gross figures (see
+  // Combined Account Total below); Account Balance is where the netted,
+  // "what we actually have" figure lives — see its own comment.
   totalSavings: number;
   totalSusu: number;
   // Revenue components (each already gated by revenueComponents before it's
-  // folded into totalRevenue below).
+  // folded into totalRevenue below). This is a P&L/income view — how much
+  // the company has earned — not a cash-reconciliation view.
   loanInterest: number;
   commission: number; // savings withdrawals only — susu is commission-exempt
   susuFees: number;    // day-31 company fee + susu early-withdrawal penalties
@@ -25,7 +23,52 @@ export interface AccountSummary {
   combinedTotal: number;
   // Total withdrawn across all accounts, all time, excluding reversed txns.
   totalWithdrawals: number;
-  // Account Balance = Combined Account Total - Withdrawals
+  // Total loan principal actually disbursed (cash out) and total repayments
+  // actually received (cash in, principal + interest combined — see
+  // accountBalance's comment for why interest isn't added a second time).
+  loansDisbursed: number;
+  loanRepayments: number;
+  totalExpenditures: number;
+  // ─────────────────────────────────────────────────────────────────────
+  // Account Balance — actual cash position, not a deposits-plus-revenue
+  // figure. Built from a real balance-sheet identity:
+  //
+  //   Cash = Client Deposit Liability + Company Equity − Loans Receivable
+  //
+  //   Client Deposit Liability = Σ(accounts.balance) for savings + susu —
+  //     already correctly net of that account's own withdrawals,
+  //     commission, and fee deductions (recalculate_account() is the single
+  //     writer for this column), so this is NOT the same as
+  //     totalSavings + totalSusu (which are gross).
+  //
+  //   Company Equity added back = Card Fees + Commission + Processing Fees
+  //     + SMS Fees. These aren't fresh income "on top of" the liability
+  //     figure — Commission/Processing Fees/SMS Fees are deducted straight
+  //     out of a client's account balance (verified in record_withdrawal
+  //     and activate_loan), so Σ(balance) above is already lower by exactly
+  //     these amounts. Adding them back here is what makes the identity
+  //     balance to real, unmoved cash — omitting them would understate cash
+  //     by the fee total even though no money actually left the business.
+  //     Card Fees are the one genuine fresh inflow (paid in cash at
+  //     registration, never netted against any account balance).
+  //
+  //   Loans Receivable (net) = Loans Disbursed − Loan Repayments (gross,
+  //     principal + interest together). Loan Interest is deliberately NOT
+  //     added a second time here — it's already part of "Loan Repayments"
+  //     (a repayment is principal + interest in one cash receipt), so
+  //     re-adding it would double-count the interest portion. It still
+  //     shows up correctly in Total Revenue above, which is a separate,
+  //     non-cash-additive P&L view.
+  //
+  //   Susu Fees are deliberately excluded from this reconciliation (they DO
+  //     still count in Total Revenue above) — a normal susu claim payout
+  //     only withdraws (total_collected − company_fee), and that company
+  //     fee remainder is never verified to be swept out of the account's
+  //     balance/dep into company funds in every code path. Until that's
+  //     confirmed, adding susu fees here risked overstating cash.
+  //
+  //   Expenditures are a real cash outflow, subtracted directly.
+  // ─────────────────────────────────────────────────────────────────────
   accountBalance: number;
   // Cash at Bank + Cash at Hand = Account Balance (split by the company's
   // recorded bank ledger; neither side ever shows negative).
@@ -40,20 +83,20 @@ function sum(rows: any[] | null, key: string) {
 
 /**
  * Single source of truth for the company-wide account totals shown on the
- * Overview dashboard, the Bank page, and the Finance page — every page that
- * shows "Total Savings", "Total Daily Susu", "Total Revenue", "Combined
- * Account Total", "Account Balance", "Total Withdrawals", "Cash at Bank", or
- * "Cash at Hand" calls this same function, so those figures can never drift
- * between screens.
+ * Overview dashboard, the Bank page, the Finance page, and the
+ * Deposits/Withdrawals reports — every page that shows "Total Savings",
+ * "Total Daily Susu", "Total Revenue", "Combined Account Total", "Account
+ * Balance", "Total Withdrawals", "Cash at Bank", or "Cash at Hand" calls
+ * this same function, so those figures can never drift between screens.
  *
- *   Combined Account Total      = Total Savings + Total Daily Susu + Total Revenue
- *   Account Balance             = Combined Account Total - Withdrawals
+ *   Combined Account Total = Total Savings + Total Daily Susu + Total Revenue
+ *   Account Balance        = see the AccountSummary.accountBalance comment —
+ *                             a real cash-position reconciliation, not
+ *                             "Combined Account Total minus Withdrawals"
+ *                             (that formula had no way to account for money
+ *                             out on loan, which understates nothing only
+ *                             by coincidence once any loan is outstanding).
  *   Cash at Hand + Cash at Bank = Account Balance
- *
- * Total Savings/Total Daily Susu are gross deposits (accounts.dep), not
- * current balance — see the AccountSummary field comment for why: it keeps
- * "Withdrawals" from being subtracted twice (once implicitly inside a
- * balance figure, once explicitly here).
  */
 export async function computeAccountSummary(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -70,6 +113,11 @@ export async function computeAccountSummary(
     { data: processingFeeRows },
     { data: collectedInterest },
     { data: bankTxnRows },
+    { data: savingsBalanceRows },
+    { data: susuBalanceRows },
+    { data: loanPrincipalRows },
+    { data: repaymentRows },
+    { data: expenditureRows },
   ] = await Promise.all([
     supabase.from("accounts").select("id, dep").eq("product_type", "savings"),
     supabase.from("accounts").select("id, dep").eq("product_type", "susu"),
@@ -81,6 +129,11 @@ export async function computeAccountSummary(
     supabase.from("loans").select("processing_fee"),
     supabase.rpc("compute_collected_loan_interest"),
     supabase.from("bank_transactions").select("type, amount"),
+    supabase.from("accounts").select("balance").eq("product_type", "savings"),
+    supabase.from("accounts").select("balance").eq("product_type", "susu"),
+    supabase.from("loans").select("principal").in("status", ["active", "completed", "defaulted"]),
+    supabase.from("loan_repayments").select("amount"),
+    supabase.from("expenditures").select("amount"),
   ]);
 
   const totalSavings = sum(savingsRows, "dep");
@@ -119,7 +172,22 @@ export async function computeAccountSummary(
   );
 
   const combinedTotal = round2(totalSavings + totalSusu + totalRevenue);
-  const accountBalance = round2(combinedTotal - totalWithdrawals);
+
+  const loansDisbursed = sum(loanPrincipalRows, "principal");
+  const loanRepayments = sum(repaymentRows, "amount");
+  const totalExpenditures = sum(expenditureRows, "amount");
+
+  const clientDepositLiability = round2(sum(savingsBalanceRows, "balance") + sum(susuBalanceRows, "balance"));
+  const accountBalance = round2(
+    clientDepositLiability
+    + cardFees
+    + commission
+    + processingFees
+    + totalSmsFees
+    - loansDisbursed
+    + loanRepayments
+    - totalExpenditures
+  );
 
   const rawCashAtBank = round2(
     (bankTxnRows ?? []).reduce((s, t) => {
@@ -144,6 +212,9 @@ export async function computeAccountSummary(
     totalRevenue,
     combinedTotal,
     totalWithdrawals,
+    loansDisbursed,
+    loanRepayments,
+    totalExpenditures,
     accountBalance,
     cashAtBank,
     cashAtHand,
