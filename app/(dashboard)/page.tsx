@@ -9,6 +9,7 @@ import {
   ArrowUpRight,
   ArrowDownToLine,
   ArrowUpFromLine,
+  Users,
   PiggyBank,
   Repeat,
   Layers,
@@ -63,11 +64,13 @@ export default async function OverviewPage() {
 
   const [
     summary,
+    { count: clientCount },
     { data: loans },
     { data: recentClients },
     { data: recentTxns },
   ] = await Promise.all([
     computeAccountSummary(supabase, rc),
+    supabase.from("clients").select("*", { count: "exact", head: true }),
     supabase
       .from("loans")
       .select("*, client:clients(*)")
@@ -111,6 +114,15 @@ export default async function OverviewPage() {
       />
 
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {kpi.total_clients.visible && (
+          <SummaryCard
+            label="Total Clients"
+            value={String(clientCount ?? 0)}
+            hint="All registered clients"
+            tone="red"
+            icon={<Users size={17} />}
+          />
+        )}
         {kpi.total_savings.visible && (
           <SummaryCard
             label="Total Savings"
@@ -343,6 +355,7 @@ export default async function OverviewPage() {
 }
 
 const TONES = {
+  red:     { tint: "bg-[#DC2626]/8",  icon: "text-[#DC2626]",  bar: "bg-[#DC2626]" },
   teal:    { tint: "bg-[#0D9488]/8",  icon: "text-[#0D9488]",  bar: "bg-[#0D9488]" },
   green:   { tint: "bg-[#16A34A]/8",  icon: "text-[#16A34A]",  bar: "bg-[#16A34A]" },
   orange:  { tint: "bg-[#EA580C]/8",  icon: "text-[#EA580C]",  bar: "bg-[#EA580C]" },
