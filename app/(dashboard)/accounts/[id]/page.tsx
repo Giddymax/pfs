@@ -106,14 +106,14 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
               {isSusu ? (
                 <>
                   <SusuContributionForm accountId={account.id} dailyAmount={account.daily_contribution_amount} />
-                  <SusuWithdrawalForm accountId={account.id} availableBalance={account.balance} dailyAmount={daily} isQualified={isQualifiedToWithdraw} emergencyCycle={emergencyCycle} />
+                  {isAdmin && <SusuWithdrawalForm accountId={account.id} availableBalance={account.balance} dailyAmount={daily} isQualified={isQualifiedToWithdraw} emergencyCycle={emergencyCycle} />}
                   <SusuClaimRequestButton accountId={account.id} normalCycle={normalCycle} emergencyCycle={emergencyCycle} />
                   {isAdmin && <ResetSusuButton accountId={account.id} />}
                 </>
               ) : (
                 <>
                   <RecordTransactionForm accountId={account.id} kind="deposit" />
-                  <RecordTransactionForm accountId={account.id} kind="withdrawal" />
+                  {isAdmin && <RecordTransactionForm accountId={account.id} kind="withdrawal" />}
                 </>
               )}
               {isAdmin && <RecalculateAccountButton accountId={account.id} />}

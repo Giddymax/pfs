@@ -13,6 +13,14 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
+  // This route inserts the withdrawal transaction directly via the
+  // service-role client rather than through record_withdrawal, so it isn't
+  // covered by that RPC's is_admin() gate — it needs its own explicit check.
+  const { data: callerProfile } = await supabase.from("profiles").select("role").eq("id", user.id).single<Pick<Profile, "role">>();
+  if (callerProfile?.role !== "admin") {
+    return NextResponse.json({ error: "Only an admin can process an emergency withdrawal" }, { status: 403 });
+  }
+
   const body = await request.json().catch(() => null);
   const accountId = body?.account_id;
   const reason = typeof body?.reason === "string" ? body.reason.trim() : "";

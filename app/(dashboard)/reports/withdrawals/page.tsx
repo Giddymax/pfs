@@ -78,6 +78,8 @@ export default async function WithdrawalsPage({
     .single<Profile>();
   if (!profile) redirect("/");
 
+  const isAdmin = profile.role === "admin";
+
   const params = await searchParams;
   const from = params.from ?? monthStartISO();
   const to = params.to ?? todayISO();
@@ -126,7 +128,11 @@ export default async function WithdrawalsPage({
         back="/"
         eyebrow="Reports"
         title="Withdrawals"
-        description="Search for an account to withdraw from directly, or review every withdrawal recorded across all accounts for any date range you choose."
+        description={
+          isAdmin
+            ? "Search for an account to withdraw from directly, or review every withdrawal recorded across all accounts for any date range you choose."
+            : "Review every withdrawal recorded across all accounts for any date range you choose. Recording a withdrawal is restricted to admins."
+        }
         action={
           <ExportCsvButton
             endpoint="/api/reports/withdrawals/export"
@@ -137,10 +143,12 @@ export default async function WithdrawalsPage({
         }
       />
 
-      {/* Account picker — record a withdrawal directly from this page */}
-      <div className="mb-6">
-        <AccountPicker mode="withdrawal" />
-      </div>
+      {/* Account picker — record a withdrawal directly from this page (admin only) */}
+      {isAdmin && (
+        <div className="mb-6">
+          <AccountPicker mode="withdrawal" />
+        </div>
+      )}
 
       {/* Date controls */}
       <div className="mb-6">
