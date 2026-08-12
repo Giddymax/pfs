@@ -143,20 +143,20 @@ export async function AccountTypeList({
 
       {/* KPI */}
       {product.product_type === "savings" ? (
-        <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-5">
-          <StatCard label="Total clients"     value={String(totalCount ?? 0)}  icon={<Users size={16} />} />
-          <StatCard label="Total balance"     value={formatGHS(totalBalance)}   icon={<Wallet size={16} />} />
-          <StatCard label="Total deposits"    value={formatGHS(totalDep)}       icon={<ArrowDownToLine size={16} />} />
-          <StatCard label="Total withdrawals" value={formatGHS(totalWdr)}       icon={<ArrowUpFromLine size={16} />} />
-          <StatCard label="Total commission"  value={formatGHS(totalComm)}      icon={<ReceiptText size={16} />} />
+        <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
+          <StatCard size="sm" label="Total clients"     value={String(totalCount ?? 0)}  icon={<Users size={13} />} />
+          <StatCard size="sm" label="Total balance"     value={formatGHS(totalBalance)}   icon={<Wallet size={13} />} />
+          <StatCard size="sm" label="Total deposits"    value={formatGHS(totalDep)}       icon={<ArrowDownToLine size={13} />} />
+          <StatCard size="sm" label="Total withdrawals" value={formatGHS(totalWdr)}       icon={<ArrowUpFromLine size={13} />} />
+          <StatCard size="sm" label="Total commission"  value={formatGHS(totalComm)}      icon={<ReceiptText size={13} />} />
         </div>
       ) : (
         <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
-          <StatCard size="sm" label="Susu fees"          value={formatGHS(susuFees)}      icon={<Percent size={13} />} highlight />
           <StatCard size="sm" label="Total clients"       value={String(totalCount ?? 0)}  icon={<Users size={13} />} />
           <StatCard size="sm" label="Total balance"       value={formatGHS(totalBalance)}   icon={<Wallet size={13} />} />
           <StatCard size="sm" label="Total contributions" value={formatGHS(totalDep)}       icon={<ArrowDownToLine size={13} />} />
           <StatCard size="sm" label="Total withdrawn"     value={formatGHS(totalWdr)}       icon={<ArrowUpFromLine size={13} />} />
+          <StatCard size="sm" label="Susu fees"           value={formatGHS(susuFees)}      icon={<Percent size={13} />} highlight />
         </div>
       )}
 
