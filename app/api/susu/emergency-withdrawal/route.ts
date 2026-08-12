@@ -68,18 +68,6 @@ export async function POST(request: Request) {
 
   if (txnError) return NextResponse.json({ error: txnError.message }, { status: 400 });
 
-  // Reset account balance to 0 and update counters
-  const { error: acctError } = await admin
-    .from("accounts")
-    .update({
-      balance: 0,
-      wdr: account.balance,
-      comm: companyFee,
-    })
-    .eq("id", accountId);
-
-  if (acctError) return NextResponse.json({ error: acctError.message }, { status: 400 });
-
   // Close the cycle and record the company fee
   if (activeCycle) {
     await admin
@@ -92,8 +80,18 @@ export async function POST(request: Request) {
       .eq("id", activeCycle.id);
   }
 
-  // Recalculate account to get accurate counters
-  await admin.rpc("recalculate_account", { p_account_id: accountId });
+  // Recalculate balance/dep/wdr/comm from the transactions table — this is
+  // the single source of truth for those cached totals, so no manual
+  // `accounts.update()` is needed here (a prior version set wdr/comm/balance
+  // by hand, which *overwrote* wdr with the pre-withdrawal balance instead of
+  // adding to it, silently discarding any earlier withdrawals on the account).
+  //
+  // Must go through the session-authenticated client, not `admin` — the RPC
+  // is gated by is_admin(), which reads auth.uid(); the service-role client
+  // carries no user JWT, so auth.uid() is null and the call always fails
+  // (this previously failed silently since the error was never checked).
+  const { error: recalcError } = await supabase.rpc("recalculate_account", { p_account_id: accountId });
+  if (recalcError) return NextResponse.json({ error: recalcError.message }, { status: 400 });
 
   // Send SMS notifications
   const { data: client } = await admin

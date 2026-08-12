@@ -93,8 +93,12 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     }
   }
 
-  // Recalculate account balance, dep, wdr, comm from remaining transactions
-  const { error: recalcError } = await admin.rpc("recalculate_account", {
+  // Recalculate account balance, dep, wdr, comm from remaining transactions.
+  // Must go through the session-authenticated client, not `admin` — the RPC
+  // is gated by is_admin(), which reads auth.uid(); the service-role client
+  // carries no user JWT, so auth.uid() is null and the call always fails
+  // (silently corrupting the account's cached totals) when called via `admin`.
+  const { error: recalcError } = await supabase.rpc("recalculate_account", {
     p_account_id: txn.account_id,
   });
 
