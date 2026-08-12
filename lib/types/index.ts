@@ -175,6 +175,7 @@ export interface OverviewKpiSettings {
   total_savings: KpiCardCalcConfig;
   total_susu: KpiCardCalcConfig;
   combined_total: KpiCardConfig;
+  combined_excl_revenue: KpiCardConfig;
   total_revenue: KpiRevenueConfig;
   account_balance: KpiCardConfig;
   total_withdrawals: KpiCardConfig;
