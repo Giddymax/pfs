@@ -56,7 +56,9 @@ export async function GET(request: Request) {
   const { data, error } = await supabase.rpc("list_period_transactions", { p_from: from, p_to: to });
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-  let txns = ((data ?? []) as PeriodTransaction[]).filter((t) => t.type === "withdrawal");
+  // Reversed transactions were undone — an external accounting export should
+  // never include them, only the settled record.
+  let txns = ((data ?? []) as PeriodTransaction[]).filter((t) => t.type === "withdrawal" && !t.reversed_at);
   if (q) txns = txns.filter((t) => matchesSearch(t, q));
 
   const rows = txns.map((t) => {
@@ -74,8 +76,6 @@ export async function GET(request: Request) {
       "Recorded By": t.recorded_by_name ?? "",
       "Edited By": t.edited_by_name ?? "",
       "Original Amount (GHS)": t.original_amount ?? "",
-      "Reversed By": t.reversed_by_name ?? "",
-      "Reversed At": t.reversed_at ? new Date(t.reversed_at).toLocaleString("en-GB") : "",
       "Notes": t.notes ?? "",
     };
   });
@@ -83,6 +83,6 @@ export async function GET(request: Request) {
   return xlsxResponse(rows, {
     sheetName: "Withdrawals",
     filename: `withdrawals-${from}-to-${to}.xlsx`,
-    colWidths: [12, 10, 24, 12, 16, 14, 14, 16, 18, 18, 16, 18, 18, 14, 30],
+    colWidths: [12, 10, 24, 12, 16, 14, 14, 16, 18, 18, 16, 30],
   });
 }

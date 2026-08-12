@@ -9,7 +9,6 @@ interface TxnRow {
   fee: number | null;
   bal_after: number | null;
   notes: string | null;
-  reversed_at: string | null;
   account: { account_number: string; product_type: string } | null;
   client: { full_name: string; client_code: string } | null;
   recorder: { full_name: string } | null;
@@ -23,9 +22,12 @@ export async function GET(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
+  // Reversed transactions were undone — an external accounting export should
+  // never include them, only the settled record.
   let query = supabase
     .from("transactions")
     .select("*, account:accounts(account_number, product_type), client:clients(full_name, client_code), recorder:recorded_by(full_name)")
+    .is("reversed_at", null)
     .order("created_at", { ascending: false });
 
   if (accountId) query = query.eq("account_id", accountId);
@@ -47,13 +49,12 @@ export async function GET(request: Request) {
       "Balance After (GHS)": t.bal_after ?? "",
       "Notes": t.notes ?? "",
       "Recorded By": t.recorder?.full_name ?? "",
-      "Reversed": t.reversed_at ? "Yes" : "No",
     };
   });
 
   return xlsxResponse(rows, {
     sheetName: "Transactions",
     filename: `transactions-${new Date().toISOString().slice(0, 10)}.xlsx`,
-    colWidths: [12, 10, 24, 12, 16, 12, 10, 14, 12, 16, 30, 18, 10],
+    colWidths: [12, 10, 24, 12, 16, 12, 10, 14, 12, 16, 30, 18],
   });
 }
