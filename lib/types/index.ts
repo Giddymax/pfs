@@ -145,6 +145,7 @@ export interface SmsSettings {
   sms_payment: boolean;
   sms_admin_deposit: boolean;
   sms_admin_withdrawal: boolean;
+  sms_admin_registration: boolean;
   company_tel: string | null;
 }
 

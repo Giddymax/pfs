@@ -110,10 +110,22 @@ export function SettingsForm({
             />
           </div>
           <p className="text-[12px] text-[#0A2240]/45">
-            Every admin alert falls into exactly one of these two switches. &ldquo;Withdrawals &amp; deductions&rdquo;
-            covers regular withdrawals and susu withdrawals/emergency withdrawals/claims. &ldquo;Deposits &amp;
-            other events&rdquo; covers everything else — deposits, loan payments, susu contributions, and reversals.
+            Every transaction-related admin alert falls into exactly one of these two switches.
+            &ldquo;Withdrawals &amp; deductions&rdquo; covers regular withdrawals and susu withdrawals/emergency
+            withdrawals/claims. &ldquo;Deposits &amp; other events&rdquo; covers everything else — deposits, loan
+            payments, susu contributions, and reversals.
           </p>
+          <div className="border-t border-[#0033AA]/6 pt-4">
+            <Toggle
+              label="Admin SMS — new client registered"
+              checked={smsSettings.sms_admin_registration}
+              onChange={(v) => setSmsSettings((s) => ({ ...s, sms_admin_registration: v }))}
+            />
+            <p className="mt-2 text-[12px] text-[#0A2240]/45">
+              Sent to the company phone only (not the client) whenever a new client is registered. Independent of
+              the two switches above.
+            </p>
+          </div>
           <div className="grid grid-cols-1 gap-5 border-t border-[#0033AA]/6 pt-4 sm:grid-cols-2">
             <label className="block">
               <span className="mb-1.5 block text-[13px] font-medium text-[#0033AA]/75">Company phone (admin alerts)</span>

@@ -27,15 +27,20 @@ export function shouldSendClientSms(event: ClientSmsEvent, client: { sms_opt_in:
 }
 
 /**
- * Every admin/company alert falls into exactly one of two buckets:
- * "withdrawal" (any event where money is being deducted/paid out — regular
- * withdrawals, susu withdrawals/emergency withdrawals/claims) gated by
- * sms_admin_withdrawal, or everything else (deposits, susu/loan payments in,
- * reversals) gated by sms_admin_deposit. Callers that don't pass a category
- * default to the "deposit" (non-withdrawal) bucket.
+ * Every transaction-related admin/company alert falls into exactly one of
+ * two buckets: "withdrawal" (any event where money is being deducted/paid
+ * out — regular withdrawals, susu withdrawals/emergency withdrawals/claims)
+ * gated by sms_admin_withdrawal, or everything else (deposits, susu/loan
+ * payments in, reversals) gated by sms_admin_deposit. Callers that don't
+ * pass a category default to the "deposit" (non-withdrawal) bucket.
+ *
+ * "registration" is a separate, dedicated toggle (sms_admin_registration) —
+ * a new client isn't a deposit or a withdrawal, so it doesn't share either
+ * bucket.
  */
-export function shouldSendAdminSms(settings: Settings, category: "deposit" | "withdrawal" = "deposit"): boolean {
+export function shouldSendAdminSms(settings: Settings, category: "deposit" | "withdrawal" | "registration" = "deposit"): boolean {
   if (!settings.sms.sms_enabled || !settings.sms.sms_admin_enabled || !settings.sms.company_tel) return false;
 
+  if (category === "registration") return settings.sms.sms_admin_registration;
   return category === "withdrawal" ? settings.sms.sms_admin_withdrawal : settings.sms.sms_admin_deposit;
 }

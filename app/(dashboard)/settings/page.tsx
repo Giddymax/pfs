@@ -14,6 +14,7 @@ const DEFAULT_SMS_SETTINGS: SmsSettings = {
   sms_payment: true,
   sms_admin_deposit: true,
   sms_admin_withdrawal: true,
+  sms_admin_registration: true,
   company_tel: null,
 };
 

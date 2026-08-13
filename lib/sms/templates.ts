@@ -37,6 +37,9 @@ export const smsTemplates = {
   loanRepaymentReceivedAdmin: (clientName: string, amount: number, remainingBalance: number) =>
     `LOAN: ${clientName} paid ${formatGHS(amount)}. Outstanding: ${formatGHS(remainingBalance)}.`,
 
+  clientRegisteredAdmin: (clientName: string, clientCode: string, registeredBy?: string | null) =>
+    `NEW CLIENT: ${clientName} (${clientCode}) registered${registeredBy ? ` by ${registeredBy}` : ""}.`,
+
   adminEmergencyClaimAlert: (clientName: string, amount: number, reason?: string) =>
     `${clientName} requested an emergency susu claim of ${formatGHS(amount)}.${reason ? ` Reason: ${reason}.` : ""} Review for approval.`,
 

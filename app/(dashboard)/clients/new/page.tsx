@@ -160,6 +160,13 @@ export default function NewClientPage() {
         console.error("card_fees block threw:", feeErr);
       }
 
+      // Admin-only "new client registered" SMS — never blocks registration.
+      try {
+        await fetch(`/api/clients/${inserted.id}/notify-registration`, { method: "POST" });
+      } catch (notifyErr) {
+        console.error("registration notification failed:", notifyErr);
+      }
+
       window.location.href = `/clients/${inserted.id}`;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");

@@ -13,6 +13,7 @@ const DEFAULTS: Settings = {
     sms_payment: true,
     sms_admin_deposit: true,
     sms_admin_withdrawal: true,
+    sms_admin_registration: true,
     company_tel: null,
   },
   card_fee_amount: 20,
