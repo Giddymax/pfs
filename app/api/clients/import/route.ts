@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import { createClient } from "@/lib/supabase/server";
+import { getSettings } from "@/lib/settings/cache";
+import { shouldSendAdminSms } from "@/lib/sms/gating";
+import { sendSms } from "@/lib/sms/arkesel";
+import { smsTemplates } from "@/lib/sms/templates";
 
 function str(v: unknown): string {
   return v != null ? String(v).trim() : "";
@@ -92,9 +96,9 @@ export async function POST(request: Request) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, full_name")
     .eq("id", user.id)
-    .single<{ role: string }>();
+    .single<{ role: string; full_name: string }>();
 
   if (!profile || !["admin", "staff"].includes(profile.role)) {
     return NextResponse.json({ error: "Not authorised" }, { status: 403 });
@@ -144,6 +148,15 @@ export async function POST(request: Request) {
     .maybeSingle<{ value: number | string }>();
   const rawFee = feeSetting?.value;
   const cardFeeAmount = typeof rawFee === "number" ? rawFee : typeof rawFee === "string" ? Number(rawFee) : 20;
+
+  // Admin "new client registered" SMS — imported clients are treated exactly
+  // like a manual registration (app/(dashboard)/clients/new), one alert per
+  // client. Sent in a batch after the row loop (not per-row inside it) so a
+  // large spreadsheet doesn't serialize dozens of network round-trips onto
+  // the import's response time.
+  const settings = await getSettings();
+  const notifyRegistration = shouldSendAdminSms(settings, "registration");
+  const toNotify: { id: string; fullName: string; clientCode: string }[] = [];
 
   const succeeded: string[] = [];
   const failed: { row: number; name: string; reason: string }[] = [];
@@ -258,6 +271,9 @@ export async function POST(request: Request) {
     }
 
     succeeded.push(inserted.client_code);
+    if (notifyRegistration) {
+      toNotify.push({ id: inserted.id, fullName, clientCode: inserted.client_code });
+    }
 
     // Card fee — "new" clients pay the configured fee; old/migrated (or
     // unspecified) clients get a zero-amount row so the Client Type column
@@ -310,6 +326,20 @@ export async function POST(request: Request) {
         reason: "Balance/Daily Contribution was provided but no Account Type column was found — no account was created for this client.",
       });
     }
+  }
+
+  if (toNotify.length > 0) {
+    await Promise.all(
+      toNotify.map((c) =>
+        sendSms({
+          to: settings.sms.company_tel!,
+          message: smsTemplates.clientRegisteredAdmin(c.fullName, c.clientCode, profile.full_name),
+          event: "client_registered_admin",
+          recipientType: "admin",
+          relatedClientId: c.id,
+        })
+      )
+    );
   }
 
   return NextResponse.json({
