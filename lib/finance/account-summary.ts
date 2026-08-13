@@ -2,6 +2,18 @@ import { createClient } from "@/lib/supabase/server";
 import { round2 } from "@/lib/loan";
 import type { RevenueComponents } from "@/lib/types";
 
+// PFS CONSOLIDATED FUND (client PFS/26/0133) — a company-owned savings
+// account, not a real client's money. It exists to formally hold revenue
+// the company has already earned, so its balance/deposits are excluded from
+// Total Savings and Client Deposit Liability (counting it there would
+// misrepresent company equity as money owed to a depositor), and its
+// lifetime deposits are subtracted from Total Revenue (that revenue has
+// been committed to the fund, not left idle). Account Balance is
+// deliberately NOT adjusted for it — the money never left the business, so
+// excluding it from Client Deposit Liability already keeps Account Balance
+// correct without a second, redundant subtraction.
+const CONSOLIDATED_FUND_ACCOUNT_NUMBER = "SAV-00079";
+
 export interface AccountSummary {
   // Gross lifetime deposits — no withdrawals or deductions netted in. Total
   // Savings/Total Daily Susu are deliberately gross figures (see Combined
@@ -12,6 +24,10 @@ export interface AccountSummary {
   // actually have" figure lives.
   totalSavings: number;
   totalSusu: number;
+  // Lifetime deposits into PFS CONSOLIDATED FUND (SAV-00079) — already
+  // excluded from totalSavings/Client Deposit Liability above and from
+  // totalRevenue below; exposed here purely for the dedicated stat card.
+  consolidatedFundDeposits: number;
   // Revenue components (each already gated by revenueComponents before it's
   // folded into totalRevenue below). This is a P&L/income view — how much
   // the company has earned — not a cash-reconciliation view.
@@ -26,6 +42,9 @@ export interface AccountSummary {
   cardFees: number;
   totalSmsFees: number;
   processingFees: number;
+  // Net of PFS CONSOLIDATED FUND's lifetime deposits (see
+  // consolidatedFundDeposits and CONSOLIDATED_FUND_ACCOUNT_NUMBER above) —
+  // revenue committed to the fund is no longer counted as available revenue.
   totalRevenue: number;
   // Combined Account Total = Total Savings + Total Daily Susu ONLY — a pure
   // client-liability figure (what's owed to depositors), deliberately not
@@ -146,6 +165,7 @@ export async function computeAccountSummary(
     { data: expenditureRows },
     { data: susuClaimPenaltyRows },
     { data: sweptFeeRows },
+    { data: fundAccount },
   ] = await Promise.all([
     supabase.from("accounts").select("id, dep").eq("product_type", "savings"),
     supabase.from("accounts").select("id, dep").eq("product_type", "susu"),
@@ -157,7 +177,7 @@ export async function computeAccountSummary(
     supabase.from("loans").select("processing_fee"),
     supabase.rpc("compute_collected_loan_interest"),
     supabase.from("bank_transactions").select("type, amount"),
-    supabase.from("accounts").select("balance").eq("product_type", "savings"),
+    supabase.from("accounts").select("id, balance").eq("product_type", "savings"),
     supabase.from("accounts").select("balance").eq("product_type", "susu"),
     supabase.from("loans").select("principal").in("status", ["active", "completed", "defaulted"]),
     supabase.from("loan_repayments").select("amount"),
@@ -175,9 +195,19 @@ export async function computeAccountSummary(
     // figure accountBalance needs. Excludes SMS-fee `type='fee'` rows, which
     // use a different notes pattern and are already counted via smsFeeRows.
     supabase.from("transactions").select("amount").eq("type", "fee").ilike("notes", "%swept to company funds%"),
+    supabase.from("accounts").select("id, dep").eq("account_number", CONSOLIDATED_FUND_ACCOUNT_NUMBER).maybeSingle(),
   ]);
 
-  const totalSavings = sum(savingsRows, "dep");
+  const fund = fundAccount as { id: string; dep: number } | null;
+  const consolidatedFundDeposits = round2(Number(fund?.dep ?? 0));
+
+  // Total Savings excludes PFS CONSOLIDATED FUND — see the constant's
+  // comment above. Every other savings account counts normally.
+  const totalSavings = round2(
+    (savingsRows ?? [])
+      .filter((r: { id: string }) => r.id !== fund?.id)
+      .reduce((s: number, r: { dep: number }) => s + Number(r.dep ?? 0), 0)
+  );
   const totalSusu = sum(susuRows, "dep");
   const totalWithdrawals = sum(withdrawalRows, "amount");
 
@@ -211,7 +241,8 @@ export async function computeAccountSummary(
     (revenueComponents.susu_fees ? susuFees : 0) +
     (revenueComponents.card_fees ? cardFees : 0) +
     (revenueComponents.sms_fees ? totalSmsFees : 0) +
-    (revenueComponents.processing_fees ? processingFees : 0)
+    (revenueComponents.processing_fees ? processingFees : 0) -
+    consolidatedFundDeposits
   );
 
   const combinedTotal = round2(totalSavings + totalSusu);
@@ -220,7 +251,14 @@ export async function computeAccountSummary(
   const loanRepayments = sum(repaymentRows, "amount");
   const totalExpenditures = sum(expenditureRows, "amount");
 
-  const clientDepositLiability = round2(sum(savingsBalanceRows, "balance") + sum(susuBalanceRows, "balance"));
+  // Client Deposit Liability excludes PFS CONSOLIDATED FUND for the same
+  // reason totalSavings does — it isn't money owed to a depositor.
+  const savingsBalanceExclFund = round2(
+    (savingsBalanceRows ?? [])
+      .filter((r: { id: string }) => r.id !== fund?.id)
+      .reduce((s: number, r: { balance: number }) => s + Number(r.balance ?? 0), 0)
+  );
+  const clientDepositLiability = round2(savingsBalanceExclFund + sum(susuBalanceRows, "balance"));
   const accountBalance = round2(
     clientDepositLiability
     + cardFees
@@ -247,6 +285,7 @@ export async function computeAccountSummary(
   return {
     totalSavings,
     totalSusu,
+    consolidatedFundDeposits,
     loanInterest,
     commission,
     susuFees,

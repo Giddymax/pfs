@@ -18,6 +18,7 @@ import {
   Banknote,
   Landmark,
   CreditCard,
+  Lock,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Loan, Client, Profile, Transaction } from "@/lib/types";
@@ -39,6 +40,7 @@ export default async function OverviewPage() {
     total_susu:      { visible: true, calc: "dep" as const },
     combined_total:  { visible: true },
     total_revenue:   { visible: true, components: { interest: true, commission: true, susu_fees: true, card_fees: true, sms_fees: true, processing_fees: true } },
+    consolidated_fund: { visible: true },
     account_balance: { visible: true },
     total_withdrawals: { visible: true },
     card_fees:           { visible: true },
@@ -90,7 +92,7 @@ export default async function OverviewPage() {
   ]);
 
   const {
-    totalSavings, totalSusu, loanInterest, commission, susuFees, cardFees,
+    totalSavings, totalSusu, consolidatedFundDeposits, loanInterest, commission, susuFees, cardFees,
     totalSmsFees, processingFees, totalRevenue, combinedTotal, totalWithdrawals,
     accountBalance, cashAtBank, cashAtHand,
   } = summary;
@@ -150,9 +152,19 @@ export default async function OverviewPage() {
               rc.card_fees       && `Card Fees ${formatGHS(cardFees)}`,
               rc.sms_fees        && `SMS Fees ${formatGHS(totalSmsFees)}`,
               rc.processing_fees && `Processing Fees ${formatGHS(processingFees)}`,
+              consolidatedFundDeposits > 0 && `Less Consolidated Fund ${formatGHS(consolidatedFundDeposits)}`,
             ].filter(Boolean).join(" + ")}
             tone="emerald"
             icon={<TrendingUp size={17} />}
+          />
+        )}
+        {kpi.consolidated_fund.visible && (
+          <SummaryCard
+            label="PFS Consolidated Fund"
+            value={formatGHS(consolidatedFundDeposits)}
+            hint="SAV-00079 (PFS/26/0133) — company-owned, deducted from Total Revenue, excluded from Total Savings"
+            tone="violet"
+            icon={<Lock size={17} />}
           />
         )}
         {kpi.card_fees.visible && (
@@ -354,6 +366,7 @@ const TONES = {
   amber:   { tint: "bg-[#D97706]/8",  icon: "text-[#D97706]",  bar: "bg-[#D97706]" },
   blue:    { tint: "bg-[#1D4ED8]/8",  icon: "text-[#1D4ED8]",  bar: "bg-[#1D4ED8]" },
   pink:    { tint: "bg-[#DB2777]/8",  icon: "text-[#DB2777]",  bar: "bg-[#DB2777]" },
+  violet:  { tint: "bg-[#7C3AED]/8",  icon: "text-[#7C3AED]",  bar: "bg-[#7C3AED]" },
 } as const;
 
 function SummaryCard({
