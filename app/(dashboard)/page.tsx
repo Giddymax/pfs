@@ -18,7 +18,6 @@ import {
   Banknote,
   Landmark,
   CreditCard,
-  Minus,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Loan, Client, Profile, Transaction } from "@/lib/types";
@@ -39,7 +38,6 @@ export default async function OverviewPage() {
     total_savings:   { visible: true, calc: "dep" as const },
     total_susu:      { visible: true, calc: "dep" as const },
     combined_total:  { visible: true },
-    combined_excl_revenue: { visible: true },
     total_revenue:   { visible: true, components: { interest: true, commission: true, susu_fees: true, card_fees: true, sms_fees: true, processing_fees: true } },
     account_balance: { visible: true },
     total_withdrawals: { visible: true },
@@ -170,18 +168,9 @@ export default async function OverviewPage() {
           <SummaryCard
             label="Combined Account Total"
             value={formatGHS(combinedTotal)}
-            hint={`Savings ${formatGHS(totalSavings)} + Susu ${formatGHS(totalSusu)} + Revenue ${formatGHS(totalRevenue)}`}
+            hint={`Savings ${formatGHS(totalSavings)} + Susu ${formatGHS(totalSusu)} — client deposits only, excludes revenue`}
             tone="orange"
             icon={<Layers size={17} />}
-          />
-        )}
-        {kpi.combined_excl_revenue.visible && (
-          <SummaryCard
-            label="Combined Total − Revenue"
-            value={formatGHS(combinedTotal - totalRevenue)}
-            hint={`Combined ${formatGHS(combinedTotal)} - Revenue ${formatGHS(totalRevenue)} = Savings + Susu only`}
-            tone="indigo"
-            icon={<Minus size={17} />}
           />
         )}
         {kpi.total_withdrawals.visible && (
@@ -365,7 +354,6 @@ const TONES = {
   amber:   { tint: "bg-[#D97706]/8",  icon: "text-[#D97706]",  bar: "bg-[#D97706]" },
   blue:    { tint: "bg-[#1D4ED8]/8",  icon: "text-[#1D4ED8]",  bar: "bg-[#1D4ED8]" },
   pink:    { tint: "bg-[#DB2777]/8",  icon: "text-[#DB2777]",  bar: "bg-[#DB2777]" },
-  indigo:  { tint: "bg-[#4F46E5]/8",  icon: "text-[#4F46E5]",  bar: "bg-[#4F46E5]" },
 } as const;
 
 function SummaryCard({

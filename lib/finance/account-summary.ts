@@ -4,9 +4,12 @@ import type { RevenueComponents } from "@/lib/types";
 
 export interface AccountSummary {
   // Gross lifetime deposits — no withdrawals or deductions netted in. Total
-  // Savings/Total Daily Susu are deliberately gross figures (see
-  // Combined Account Total below); Account Balance is where the netted,
-  // "what we actually have" figure lives — see its own comment.
+  // Savings/Total Daily Susu are deliberately gross figures (see Combined
+  // Account Total below). Also deliberately NOT the same value as
+  // clientDepositLiability used inside accountBalance (see that field's
+  // comment) — this is dep (lifetime contributions), not balance (net of
+  // withdrawals/fees); Account Balance is where the netted, "what we
+  // actually have" figure lives.
   totalSavings: number;
   totalSusu: number;
   // Revenue components (each already gated by revenueComponents before it's
@@ -24,7 +27,11 @@ export interface AccountSummary {
   totalSmsFees: number;
   processingFees: number;
   totalRevenue: number;
-  // Combined Account Total = Total Savings + Total Daily Susu + Total Revenue
+  // Combined Account Total = Total Savings + Total Daily Susu ONLY — a pure
+  // client-liability figure (what's owed to depositors), deliberately not
+  // mixed with Total Revenue (what the company has earned — a fundamentally
+  // different pool of money; see Total Revenue above and Account Balance's
+  // own comment for where revenue actually belongs).
   combinedTotal: number;
   // Total withdrawn across all accounts, all time, excluding reversed txns.
   totalWithdrawals: number;
@@ -106,7 +113,9 @@ function sum(rows: any[] | null, key: string) {
  * Balance", "Total Withdrawals", "Cash at Bank", or "Cash at Hand" calls
  * this same function, so those figures can never drift between screens.
  *
- *   Combined Account Total = Total Savings + Total Daily Susu + Total Revenue
+ *   Combined Account Total = Total Savings + Total Daily Susu (client
+ *                            liability only — see the AccountSummary.combinedTotal
+ *                            comment for why Total Revenue isn't mixed in)
  *   Account Balance        = see the AccountSummary.accountBalance comment —
  *                             a real cash-position reconciliation, not
  *                             "Combined Account Total minus Withdrawals"
@@ -205,7 +214,7 @@ export async function computeAccountSummary(
     (revenueComponents.processing_fees ? processingFees : 0)
   );
 
-  const combinedTotal = round2(totalSavings + totalSusu + totalRevenue);
+  const combinedTotal = round2(totalSavings + totalSusu);
 
   const loansDisbursed = sum(loanPrincipalRows, "principal");
   const loanRepayments = sum(repaymentRows, "amount");

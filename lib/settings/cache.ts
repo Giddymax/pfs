@@ -24,7 +24,6 @@ const DEFAULTS: Settings = {
     total_savings:   { visible: true, calc: "dep" },
     total_susu:      { visible: true, calc: "dep" },
     combined_total:  { visible: true },
-    combined_excl_revenue: { visible: true },
     total_revenue:   { visible: true, components: { interest: true, commission: true, susu_fees: true, card_fees: true, sms_fees: true, sms_charges: true, processing_fees: true } },
     account_balance: { visible: true },
     total_withdrawals: { visible: true },
