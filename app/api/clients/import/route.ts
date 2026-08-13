@@ -49,13 +49,6 @@ function parseStatus(v: unknown): "active" | "inactive" | null {
   return null;
 }
 
-function parseClientType(v: unknown): "new" | "old" | null {
-  const s = str(v).toLowerCase().replace(/[\s_()-]/g, "");
-  if (s === "new") return "new";
-  if (s === "old" || s === "oldmigrated" || s === "migrated") return "old";
-  return null;
-}
-
 function parseDate(v: unknown): string | null {
   if (v == null || str(v) === "") return null;
   if (typeof v === "number") {
@@ -138,16 +131,6 @@ export async function POST(request: Request) {
   if (rows.length === 0) {
     return NextResponse.json({ error: "The spreadsheet appears to be empty or has no data rows." }, { status: 400 });
   }
-
-  // Card fee amount for "new" clients — old/migrated clients get a zero-amount
-  // row, matching the manual registration flow (app/(dashboard)/clients/new).
-  const { data: feeSetting } = await supabase
-    .from("settings")
-    .select("value")
-    .eq("key", "card_fee_amount")
-    .maybeSingle<{ value: number | string }>();
-  const rawFee = feeSetting?.value;
-  const cardFeeAmount = typeof rawFee === "number" ? rawFee : typeof rawFee === "string" ? Number(rawFee) : 20;
 
   // Admin "new client registered" SMS — imported clients are treated exactly
   // like a manual registration (app/(dashboard)/clients/new), one alert per
@@ -238,10 +221,6 @@ export async function POST(request: Request) {
     const balance = parseBalance(
       get("Balance", "Account Balance", "Current Balance", "AccountBalance", "CurrentBalance")
     );
-    const clientType = parseClientType(
-      get("Client Type", "ClientType", "Migration Status", "Migrated")
-    );
-
     const payload = {
       full_name: fullName,
       phone,
@@ -275,12 +254,15 @@ export async function POST(request: Request) {
       toNotify.push({ id: inserted.id, fullName, clientCode: inserted.client_code });
     }
 
-    // Card fee — "new" clients pay the configured fee; old/migrated (or
-    // unspecified) clients get a zero-amount row so the Client Type column
-    // and the isMigrated flag work correctly everywhere else in the app.
+    // Card fee — every Excel-imported client is treated as Old (Migrated),
+    // regardless of any Client Type column in the spreadsheet: a zero-amount
+    // row, so no registration fee is charged and the isMigrated flag (which
+    // just checks whether any card_fees row for the client is > 0) reads
+    // "Old (Migrated)" everywhere else in the app. Only the manual
+    // /clients/new flow can register a client as "New".
     await supabase.from("card_fees").insert({
       client_id: inserted.id,
-      amount: clientType === "new" ? cardFeeAmount : 0,
+      amount: 0,
       charged_by: user.id,
     });
 
@@ -366,7 +348,6 @@ export async function GET() {
     "Town": "Kumasi",
     "Next of Kin Name": "Kofi Owusu",
     "Next of Kin Phone": "0244000002",
-    "Client Type": "new",
     "Account Type": "savings",
     "Daily Contribution": "",
     "Balance": "50",
@@ -378,7 +359,7 @@ export async function GET() {
   ws["!cols"] = [
     { wch: 28 }, { wch: 16 }, { wch: 16 }, { wch: 10 }, { wch: 14 },
     { wch: 20 }, { wch: 20 }, { wch: 32 }, { wch: 18 }, { wch: 24 },
-    { wch: 18 }, { wch: 10 }, { wch: 16 }, { wch: 18 }, { wch: 10 }, { wch: 10 },
+    { wch: 18 }, { wch: 16 }, { wch: 18 }, { wch: 10 }, { wch: 10 },
   ];
   XLSX.utils.book_append_sheet(wb, ws, "Clients");
 
