@@ -14,7 +14,12 @@ export interface AccountSummary {
   // the company has earned — not a cash-reconciliation view.
   loanInterest: number;
   commission: number; // savings withdrawals only — susu is commission-exempt
-  susuFees: number;    // day-31 company fee + susu early-withdrawal penalties
+  susuFees: number;    // ACCRUAL basis, for the P&L view — day-31 fee the
+                        // moment it's contributed (whether or not the cycle
+                        // has been claimed yet) + instant-route
+                        // early-withdrawal penalties + paid emergency-claim
+                        // penalties. See susuFeesSwept below for why this
+                        // figure specifically is NOT what accountBalance uses.
   cardFees: number;
   totalSmsFees: number;
   processingFees: number;
@@ -29,6 +34,16 @@ export interface AccountSummary {
   loansDisbursed: number;
   loanRepayments: number;
   totalExpenditures: number;
+  // CASH basis — only the susu fee/penalty money that has actually been
+  // swept out of a client's balance via a real transaction (instant-route
+  // early-withdrawal penalties, plus pay_susu_claim's fee sweep for paid
+  // claims). Deliberately narrower than susuFees above: a completed cycle's
+  // day-31 fee is recognized as revenue (in susuFees) the moment it's
+  // contributed, but the cash doesn't actually leave the client's balance
+  // until their claim is paid — which can be immediate, delayed, or never.
+  // accountBalance can only add back money that's verifiably gone from the
+  // liability figure, so it uses this, not susuFees.
+  susuFeesSwept: number;
   // ─────────────────────────────────────────────────────────────────────
   // Account Balance — actual cash position, not a deposits-plus-revenue
   // figure. Built from a real balance-sheet identity:
@@ -60,12 +75,14 @@ export interface AccountSummary {
   //     shows up correctly in Total Revenue above, which is a separate,
   //     non-cash-additive P&L view.
   //
-  //   Susu Fees are deliberately excluded from this reconciliation (they DO
-  //     still count in Total Revenue above) — a normal susu claim payout
-  //     only withdraws (total_collected − company_fee), and that company
-  //     fee remainder is never verified to be swept out of the account's
-  //     balance/dep into company funds in every code path. Until that's
-  //     confirmed, adding susu fees here risked overstating cash.
+  //   Susu Fees Swept (NOT susuFees — see that field's own comment) IS added
+  //     back, same reasoning as the other revenue components above —
+  //     pay_susu_claim now sweeps the company's fee/penalty share out of the
+  //     client's balance into a real `type='fee'` transaction at payout time
+  //     (see 0059_susu_fee_sweep.sql), instead of silently leaving it
+  //     sitting in Σ(balance) forever. Using the accrual figure here instead
+  //     would double-count any completed-but-unclaimed cycle's fee, which is
+  //     still sitting, uncollected, inside Σ(balance) above.
   //
   //   Expenditures are a real cash outflow, subtracted directly.
   // ─────────────────────────────────────────────────────────────────────
@@ -118,6 +135,8 @@ export async function computeAccountSummary(
     { data: loanPrincipalRows },
     { data: repaymentRows },
     { data: expenditureRows },
+    { data: susuClaimPenaltyRows },
+    { data: sweptFeeRows },
   ] = await Promise.all([
     supabase.from("accounts").select("id, dep").eq("product_type", "savings"),
     supabase.from("accounts").select("id, dep").eq("product_type", "susu"),
@@ -134,6 +153,19 @@ export async function computeAccountSummary(
     supabase.from("loans").select("principal").in("status", ["active", "completed", "defaulted"]),
     supabase.from("loan_repayments").select("amount"),
     supabase.from("expenditures").select("amount"),
+    // Emergency susu claims paid via pay_susu_claim — the penalty swept into
+    // company funds at payout time (0059_susu_fee_sweep.sql). Normal-claim
+    // fees are already counted via susuFeeRows (the original day-31
+    // contribution); the instant emergency-withdrawal route's penalty is
+    // already counted via commissionRows below — this is the one susu-fee
+    // source that had no revenue tracking anywhere before the sweep fix.
+    supabase.from("susu_claims").select("penalty_amount").eq("claim_type", "emergency").eq("status", "paid"),
+    // Cash actually swept out of a client's balance via pay_susu_claim's fee
+    // sweep (0059_susu_fee_sweep.sql tags every sweep transaction's notes
+    // this way, for both normal and emergency claims) — the cash-basis
+    // figure accountBalance needs. Excludes SMS-fee `type='fee'` rows, which
+    // use a different notes pattern and are already counted via smsFeeRows.
+    supabase.from("transactions").select("amount").eq("type", "fee").ilike("notes", "%swept to company funds%"),
   ]);
 
   const totalSavings = sum(savingsRows, "dep");
@@ -156,7 +188,9 @@ export async function computeAccountSummary(
   const susuEarlyWithdrawalFee = round2(
     feeRows.filter((r) => susuAccountIds.has(r.account_id)).reduce((s, r) => s + Number(r.fee ?? 0), 0)
   );
-  const susuFees = round2(sum(susuFeeRows, "amount") + susuEarlyWithdrawalFee);
+  const susuClaimPenalties = sum(susuClaimPenaltyRows, "penalty_amount");
+  const susuFees = round2(sum(susuFeeRows, "amount") + susuEarlyWithdrawalFee + susuClaimPenalties);
+  const susuFeesSwept = round2(susuEarlyWithdrawalFee + sum(sweptFeeRows, "amount"));
   const cardFees = sum(cardFeeRows, "amount");
   const totalSmsFees = sum(smsFeeRows, "amount");
   const processingFees = sum(processingFeeRows, "processing_fee");
@@ -184,6 +218,7 @@ export async function computeAccountSummary(
     + commission
     + processingFees
     + totalSmsFees
+    + susuFeesSwept
     - loansDisbursed
     + loanRepayments
     - totalExpenditures
@@ -215,6 +250,7 @@ export async function computeAccountSummary(
     loansDisbursed,
     loanRepayments,
     totalExpenditures,
+    susuFeesSwept,
     accountBalance,
     cashAtBank,
     cashAtHand,
