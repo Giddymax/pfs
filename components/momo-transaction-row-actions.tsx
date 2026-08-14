@@ -2,17 +2,24 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Pencil, Trash2, X } from "lucide-react";
+import { Loader2, Pencil, Trash2, Undo2, X } from "lucide-react";
 import { MOMO_TYPES, type MomoTransactionType } from "@/lib/momo/types";
 import type { MomoTransaction } from "@/lib/types";
 
-// Admin edit/reverse for a single MoMo transaction row — the page these
-// render on is already admin-only (app/(dashboard)/momo/layout.tsx), so
-// there's no separate role check needed here, but the API routes underneath
-// still verify independently (never trust the client alone).
+// Admin edit/reverse/delete for a single MoMo transaction row — the page
+// these render on is already admin-only (app/(dashboard)/momo/layout.tsx),
+// so there's no separate role check needed here, but the API routes
+// underneath still verify independently (never trust the client alone).
+//
+// Reverse and Delete are deliberately different actions, matching PFS's own
+// transaction rows: Reverse (DELETE /api/momo/transactions/[id]) flags
+// reversed_at and keeps the row for the record — it drops out of totals and
+// the export but stays visible in the log. Delete (DELETE
+// /api/momo/transactions/[id]/delete) removes the row entirely and cannot
+// be undone.
 export function MomoTransactionRowActions({ transaction }: { transaction: MomoTransaction }) {
   const router = useRouter();
-  const [mode, setMode] = useState<"closed" | "edit" | "reverse">("closed");
+  const [mode, setMode] = useState<"closed" | "edit" | "reverse" | "delete">("closed");
   const [phone, setPhone] = useState(transaction.phone_number);
   const [type, setType] = useState<MomoTransactionType>(transaction.type);
   const [amount, setAmount] = useState(String(transaction.amount));
@@ -91,6 +98,22 @@ export function MomoTransactionRowActions({ transaction }: { transaction: MomoTr
     }
   }
 
+  async function handleDelete() {
+    setSubmitting(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/momo/transactions/${transaction.id}/delete`, { method: "DELETE" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Could not delete this transaction. Try again.");
+
+      setMode("closed");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not delete this transaction. Try again.");
+      setSubmitting(false);
+    }
+  }
+
   return (
     <>
       <div className="flex items-center gap-1.5">
@@ -107,6 +130,14 @@ export function MomoTransactionRowActions({ transaction }: { transaction: MomoTr
           className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#B3432B]/20 text-[#963522]/70 transition-colors hover:bg-[#B3432B]/[0.06] hover:text-[#963522]"
           aria-label="Reverse transaction"
           title="Reverse transaction"
+        >
+          <Undo2 size={13} />
+        </button>
+        <button
+          onClick={() => setMode("delete")}
+          className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#B3432B]/20 text-[#963522]/70 transition-colors hover:bg-[#B3432B]/[0.06] hover:text-[#963522]"
+          aria-label="Delete transaction"
+          title="Delete transaction"
         >
           <Trash2 size={13} />
         </button>
@@ -228,6 +259,42 @@ export function MomoTransactionRowActions({ transaction }: { transaction: MomoTr
                   >
                     {submitting && <Loader2 size={14} className="animate-spin" />}
                     {submitting ? "Reversing…" : "Yes, reverse it"}
+                  </button>
+                </div>
+              </>
+            )}
+
+            {mode === "delete" && (
+              <>
+                <div className="mb-4 flex items-start justify-between">
+                  <h3 className="text-[15px] font-semibold text-[#963522]">Delete this transaction?</h3>
+                  <button onClick={close} className="text-[#0A2240]/35 hover:text-[#0A2240]">
+                    <X size={18} />
+                  </button>
+                </div>
+                <p className="mb-2 text-[13.5px] leading-relaxed text-[#0A2240]/70">
+                  This will permanently remove the <strong>{transaction.phone_number}</strong> entry from the log —
+                  unlike Reverse, nothing is kept for the record.
+                </p>
+                <p className="mb-5 text-[13px] font-semibold text-[#963522]">
+                  This action cannot be undone.
+                </p>
+                {error && (
+                  <div className="mb-4 rounded-md border border-[#B3432B]/25 bg-[#B3432B]/[0.06] px-3.5 py-2.5 text-[12.5px] text-[#963522]">
+                    {error}
+                  </div>
+                )}
+                <div className="flex justify-end gap-2.5">
+                  <button onClick={close} className="rounded-md px-4 py-2 text-[13px] font-medium text-[#0A2240]/55 hover:text-[#0A2240]">
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    disabled={submitting}
+                    className="inline-flex items-center gap-2 rounded-md bg-[#B3432B] px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[#963522] disabled:opacity-60"
+                  >
+                    {submitting && <Loader2 size={14} className="animate-spin" />}
+                    {submitting ? "Deleting…" : "Yes, delete"}
                   </button>
                 </div>
               </>
