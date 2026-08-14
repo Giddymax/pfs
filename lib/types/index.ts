@@ -278,7 +278,7 @@ export interface MomoTransaction {
   amount: number; // the principal that moved through the customer's MoMo wallet
   charge: number; // what PFS billed for facilitating it — see 0063_momo_transactions_amount.sql
   note: string | null;
-  recorded_by: string;
+  recorded_by: string | null; // nullable since 0064_staff_delete_set_null.sql — set null if the staff member's account was later deleted
   reversed_at: string | null;
   created_at: string;
   // joined
