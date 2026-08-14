@@ -205,31 +205,30 @@ const ADMIN_NAV = [
 ];
 
 // MoMo's own nav (see momo-mini-app-brief.md §3) — replaces NAV/ACCOUNT_NAV/
-// ADMIN_NAV entirely while active, never sits underneath them. Dark-ink
-// active/idle classes here, not PFS's white-on-dark scheme, because the
-// MoMo sidebar background (.sidebar-momo, app/globals.css) is sky blue.
-// Idle text/icons stay near-full opacity (not the ~70% PFS uses on its dark
-// green ground) — this is a light, high-luminance surface, so a
-// translucent dark ink washes out fast; full weight and near-full opacity
-// keep it readable.
+// ADMIN_NAV entirely while active, never sits underneath them. Bold white
+// text/icons here (the MoMo sidebar background, .sidebar-momo in
+// app/globals.css, is deep blue — dark enough for white to read clearly,
+// unlike the lighter tones tried earlier). Hover flips to a solid white
+// pill, so hover states flip the text/icon to dark ink to stay legible on
+// that white ground.
 const MOMO_NAV = [
   {
     href: "/momo",
     label: "Overview",
     icon: LayoutDashboard,
-    active: "bg-[#1A1A1A]/12 text-[#1A1A1A]",
-    activeIcon: "text-[#1A1A1A]",
-    idle: "group text-[#1A1A1A]/90 hover:bg-white hover:text-[#1A1A1A]",
-    idleIcon: "text-[#1A1A1A]/90 transition-colors group-hover:text-[#1A1A1A]",
+    active: "bg-white/20 text-white",
+    activeIcon: "text-white",
+    idle: "group text-white hover:bg-white hover:text-[#1A1A1A]",
+    idleIcon: "text-white transition-colors group-hover:text-[#1A1A1A]",
   },
   {
     href: "/momo/transactions",
     label: "Transactions",
     icon: ArrowLeftRight,
-    active: "bg-[#1A1A1A]/12 text-[#1A1A1A]",
-    activeIcon: "text-[#1A1A1A]",
-    idle: "group text-[#1A1A1A]/90 hover:bg-white hover:text-[#1A1A1A]",
-    idleIcon: "text-[#1A1A1A]/90 transition-colors group-hover:text-[#1A1A1A]",
+    active: "bg-white/20 text-white",
+    activeIcon: "text-white",
+    idle: "group text-white hover:bg-white hover:text-[#1A1A1A]",
+    idleIcon: "text-white transition-colors group-hover:text-[#1A1A1A]",
   },
 ];
 
@@ -261,7 +260,7 @@ export function Sidebar({
       <aside
         className={clsx(
           "sidebar-drawer flex h-screen w-64 shrink-0 flex-col lg:sticky lg:top-0 lg:!transform-none",
-          inMomo ? "sidebar-momo text-[#1A1A1A]" : "sidebar-aurora text-[#FFFFFF]",
+          inMomo ? "sidebar-momo text-[#FFFFFF]" : "sidebar-aurora text-[#FFFFFF]",
           mobileOpen && "open"
         )}
       >
@@ -280,7 +279,7 @@ export function Sidebar({
             priority
           />
           <p
-            className="mt-2.5 text-[13px] font-bold tracking-[0.2em] text-[#1A1A1A]"
+            className="mt-2.5 text-[13px] font-bold tracking-[0.2em] text-white"
             style={{ fontFamily: "var(--font-sidebar-brand)" }}
           >
             MOMO
@@ -305,7 +304,7 @@ export function Sidebar({
               "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-[11.5px] font-semibold transition-colors",
               !inMomo
                 ? "bg-[#FFFFFF]/18 text-[#FFFFFF]"
-                : "text-[#1A1A1A]/80 hover:bg-white hover:text-[#1A1A1A]"
+                : "text-white/85 hover:bg-white hover:text-[#1A1A1A]"
             )}
           >
             <Landmark size={13} />
@@ -316,7 +315,7 @@ export function Sidebar({
             className={clsx(
               "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-[11.5px] font-semibold transition-colors",
               inMomo
-                ? "bg-[#1A1A1A]/10 text-[#1A1A1A]"
+                ? "bg-white/20 text-white"
                 : "text-[#FFFFFF]/70 hover:bg-[#FFFFFF]/10 hover:text-[#FFFFFF]"
             )}
           >
@@ -336,7 +335,7 @@ export function Sidebar({
                 href={href}
                 style={{ fontFamily: "var(--font-sidebar-nav)" }}
                 className={clsx(
-                  "flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-[14px] font-semibold transition-colors",
+                  "flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-[14px] font-bold transition-colors",
                   active ? activeCls : idle
                 )}
               >
@@ -420,12 +419,12 @@ export function Sidebar({
         )}
       </nav>
 
-      <div className={clsx("border-t px-4 py-5", inMomo ? "border-[#1A1A1A]/10" : "border-[#163013]/10")}>
+      <div className={clsx("border-t px-4 py-5", inMomo ? "border-white/15" : "border-[#163013]/10")}>
         <Link
           href="/profile"
           className={clsx(
-            "mb-4 flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors",
-            inMomo ? "bg-[#1A1A1A]/5 hover:bg-white" : "bg-[#163013]/5 hover:bg-[#163013]/10"
+            "group mb-4 flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors",
+            inMomo ? "bg-white/10 hover:bg-white" : "bg-[#163013]/5 hover:bg-[#163013]/10"
           )}
         >
           <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#0033AA]/12 text-[12px] font-semibold text-[#0033AA]">
@@ -437,8 +436,8 @@ export function Sidebar({
             )}
           </span>
           <div className="min-w-0 leading-tight">
-            <p className={clsx("truncate text-[13px] font-semibold", inMomo ? "text-[#1A1A1A]" : "text-[#FFFFFF]")}>{profile.full_name}</p>
-            <p className={clsx("flex items-center gap-1 text-[11px]", inMomo ? "font-medium text-[#1A1A1A]/90" : "text-[#FFFFFF]")}>
+            <p className={clsx("truncate text-[13px] font-bold", inMomo ? "text-white group-hover:text-[#1A1A1A]" : "text-[#FFFFFF]")}>{profile.full_name}</p>
+            <p className={clsx("flex items-center gap-1 text-[11px]", inMomo ? "font-semibold text-white group-hover:text-[#1A1A1A]" : "text-[#FFFFFF]")}>
               {profile.role === "admin" && <ShieldCheck size={11} className="text-[#0033AA]" />}
               {profile.role === "admin" ? "Administrator" : "Staff"}
             </p>
@@ -449,7 +448,7 @@ export function Sidebar({
             type="submit"
             className={clsx(
               "flex w-full items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-[13px] transition-colors",
-              inMomo ? "font-semibold text-[#1A1A1A] hover:bg-white" : "font-medium text-[#FFFFFF] hover:bg-[#163013]/5"
+              inMomo ? "font-bold text-white hover:bg-white hover:text-[#1A1A1A]" : "font-medium text-[#FFFFFF] hover:bg-[#163013]/5"
             )}
           >
             <LogOut size={16} />

@@ -208,11 +208,12 @@ body {
   background-color: #177245;
 }
 
-/* MoMo's own sidebar skin — sky blue, not PFS's green/navy. Text/icons in
-   the MoMo nav (components/sidebar.tsx) are dark ink, not white, since white
-   fails contrast on this background — see momo-mini-app-brief.md §4. */
+/* MoMo's own sidebar skin — deep blue, not PFS's green/navy. Text/icons in
+   the MoMo nav (components/sidebar.tsx) are bold white, since this
+   background is dark enough for white to read clearly — see
+   momo-mini-app-brief.md §4. */
 .sidebar-momo {
-  background-color: #38BDF8;
+  background-color: #1E3A8A;
 }
 
 .animate-fade-up {
