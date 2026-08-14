@@ -25,6 +25,7 @@ import {
   Smartphone,
   ArrowLeftRight,
 } from "lucide-react";
+import Image from "next/image";
 import { Logo } from "@/components/logo";
 import { signOut } from "@/app/actions";
 import type { Profile } from "@/lib/types";
@@ -264,19 +265,36 @@ export function Sidebar({
           mobileOpen && "open"
         )}
       >
-      <div className="flex items-center gap-3 px-6 py-7">
-        <Logo size={36} />
-        <div className="leading-tight" style={{ fontFamily: "var(--font-sidebar-brand)" }}>
-          {inMomo ? (
-            <p className="text-[17px] font-bold tracking-[0.08em] text-[#1A1A1A]">MoMo</p>
-          ) : (
-            <>
-              <p className="text-[15px] font-bold tracking-[0.06em] text-[#FFFFFF]">Prime Financial</p>
-              <p className="text-[9px] italic tracking-[0.32em] text-[#FFFFFF]">Service</p>
-            </>
-          )}
+      {inMomo ? (
+        // MoMo's own brand block — the three-network banner, not the PFS
+        // logo mark. Shaped differently from the row below on purpose (a
+        // wide banner, not an icon + text row) because the source image
+        // itself is a 600×307 banner, not a square mark.
+        <div className="px-6 pb-5 pt-7">
+          <Image
+            src="/images/momo-logo.jpg"
+            alt="MTN, AirtelTigo, Telecel"
+            width={600}
+            height={307}
+            className="w-full rounded-lg"
+            priority
+          />
+          <p
+            className="mt-2.5 text-[13px] font-bold tracking-[0.2em] text-[#1A1A1A]"
+            style={{ fontFamily: "var(--font-sidebar-brand)" }}
+          >
+            MOMO
+          </p>
         </div>
-      </div>
+      ) : (
+        <div className="flex items-center gap-3 px-6 py-7">
+          <Logo size={36} />
+          <div className="leading-tight" style={{ fontFamily: "var(--font-sidebar-brand)" }}>
+            <p className="text-[15px] font-bold tracking-[0.06em] text-[#FFFFFF]">Prime Financial</p>
+            <p className="text-[9px] italic tracking-[0.32em] text-[#FFFFFF]">Service</p>
+          </div>
+        </div>
+      )}
 
       {/* App switcher — admin-only, route-driven (see momo-mini-app-brief.md §3) */}
       {isAdmin && (
