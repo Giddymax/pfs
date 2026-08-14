@@ -4,8 +4,7 @@ import clsx from "clsx";
 // StatCard, whose value/icon colors are hard-coded to PFS's navy/green
 // palette with no way to retint. This one carries MoMo's own identity
 // instead (see momo-mini-app-brief.md §4), while matching StatCard's layout
-// (label, icon, value, optional hint) so the two read as siblings, not
-// strangers.
+// (label, icon, value) so the two read as siblings, not strangers.
 //
 // `tone` gives every card the same light-tint-plus-matching-border
 // treatment the original yellow "emphasis" card used, just varied — green,
@@ -23,13 +22,11 @@ const TONES: Record<MomoStatTone, { border: string; bg: string; icon: string; va
 export function MomoStatCard({
   label,
   value,
-  hint,
   icon,
   tone = "neutral",
 }: {
   label: string;
   value: string;
-  hint?: string;
   icon?: React.ReactNode;
   tone?: MomoStatTone;
 }) {
@@ -41,7 +38,6 @@ export function MomoStatCard({
         {icon && <span className={clsx("shrink-0", t.icon)}>{icon}</span>}
       </div>
       <p className={clsx("break-words text-[1.25rem] font-semibold tracking-tight sm:text-[1.6rem]", t.value)}>{value}</p>
-      {hint && <p className="mt-1 text-[12px] text-[#1A1A1A]/45">{hint}</p>}
     </div>
   );
 }
