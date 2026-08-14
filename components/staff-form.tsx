@@ -32,10 +32,12 @@ export function AddStaffButton() {
 export function EditStaffButton({
   profileId,
   fullName,
+  email,
   role,
 }: {
   profileId: string;
   fullName: string;
+  email: string;
   role: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -54,6 +56,7 @@ export function EditStaffButton({
           mode="edit"
           profileId={profileId}
           defaultFullName={fullName}
+          defaultEmail={email}
           defaultRole={role}
           onClose={() => setOpen(false)}
         />
@@ -161,18 +164,20 @@ function StaffModal({
   mode,
   profileId,
   defaultFullName = "",
+  defaultEmail = "",
   defaultRole = "staff",
   onClose,
 }: {
   mode: Mode;
   profileId?: string;
   defaultFullName?: string;
+  defaultEmail?: string;
   defaultRole?: string;
   onClose: () => void;
 }) {
   const router = useRouter();
   const [fullName, setFullName] = useState(defaultFullName);
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(defaultEmail);
   const [password, setPassword] = useState("");
   const [role, setRole] = useState(defaultRole);
   const [loading, setLoading] = useState(false);
@@ -188,7 +193,7 @@ function StaffModal({
     const body =
       mode === "create"
         ? { email, password, full_name: fullName, role }
-        : { full_name: fullName, role };
+        : { full_name: fullName, email, role };
 
     const res = await fetch(url, {
       method,
@@ -237,30 +242,34 @@ function StaffModal({
             />
           </Field>
 
+          <Field label="Email address">
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+
+              className="w-full rounded-md border border-[#0A2240]/15 px-3 py-2.5 text-[13.5px] text-[#0A2240] focus:border-[#0033AA] focus:outline-none focus:ring-1 focus:ring-[#0033AA]/20"
+            />
+            {mode === "edit" && (
+              <p className="mt-1 text-[11px] text-[#0A2240]/40">
+                This is also their sign-in email — changing it updates their login.
+              </p>
+            )}
+          </Field>
+
           {mode === "create" && (
-            <>
-              <Field label="Email address">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                 
-                  className="w-full rounded-md border border-[#0A2240]/15 px-3 py-2.5 text-[13.5px] text-[#0A2240] focus:border-[#0033AA] focus:outline-none focus:ring-1 focus:ring-[#0033AA]/20"
-                />
-              </Field>
-              <Field label="Password">
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={8}
-                 
-                  className="w-full rounded-md border border-[#0A2240]/15 px-3 py-2.5 text-[13.5px] text-[#0A2240] focus:border-[#0033AA] focus:outline-none focus:ring-1 focus:ring-[#0033AA]/20"
-                />
-              </Field>
-            </>
+            <Field label="Password">
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={8}
+
+                className="w-full rounded-md border border-[#0A2240]/15 px-3 py-2.5 text-[13.5px] text-[#0A2240] focus:border-[#0033AA] focus:outline-none focus:ring-1 focus:ring-[#0033AA]/20"
+              />
+            </Field>
           )}
 
           <Field label="Role">
