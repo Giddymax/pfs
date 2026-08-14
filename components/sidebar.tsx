@@ -207,9 +207,9 @@ const ADMIN_NAV = [
 // MoMo's own nav (see momo-mini-app-brief.md §3) — replaces NAV/ACCOUNT_NAV/
 // ADMIN_NAV entirely while active, never sits underneath them. Dark-ink
 // active/idle classes here, not PFS's white-on-dark scheme, because the
-// MoMo sidebar background (.sidebar-momo, app/globals.css) is bright yellow.
+// MoMo sidebar background (.sidebar-momo, app/globals.css) is sky blue.
 // Idle text/icons stay near-full opacity (not the ~70% PFS uses on its dark
-// green ground) — yellow is a light, high-luminance surface, so a
+// green ground) — this is a light, high-luminance surface, so a
 // translucent dark ink washes out fast; full weight and near-full opacity
 // keep it readable.
 const MOMO_NAV = [
