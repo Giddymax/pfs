@@ -150,6 +150,13 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
         }
       />
 
+      {account.account_number === "SAV-00079" && (
+        <div className="mb-6 rounded-lg border border-[#7C3AED]/25 bg-[#7C3AED]/[0.05] px-4 py-3 text-[13px] text-[#5B21B6]">
+          <strong className="font-semibold">PFS Consolidated Fund.</strong> Deposits to this account can only be
+          recorded at or after 20:30 each day — attempts before then are rejected.
+        </div>
+      )}
+
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Balance" value={formatGHS(account.balance)} icon={<Wallet size={16} />} />
         <StatCard label="Lifetime deposits" value={formatGHS(account.dep)} icon={<PiggyBank size={16} />} />
