@@ -48,25 +48,28 @@ export default async function MomoOverviewPage() {
           label="Transactions today"
           value={String(todaySummary.transactionCount)}
           icon={<ArrowLeftRight size={16} />}
+          tone="blue"
         />
         <MomoStatCard
           label="Amount moved today"
           value={formatGHS(todaySummary.totalAmount)}
           hint="What passed through customers' MoMo wallets"
           icon={<Receipt size={16} />}
+          tone="green"
         />
         <MomoStatCard
           label="Charges collected today"
           value={formatGHS(todaySummary.totalCharge)}
           hint="MoMo revenue — never part of PFS's Total Revenue"
           icon={<Coins size={16} />}
-          emphasis
+          tone="yellow"
         />
         <MomoStatCard
           label="All-time charges collected"
           value={formatGHS(allTimeSummary.totalCharge)}
           hint={`${allTimeSummary.transactionCount} transaction${allTimeSummary.transactionCount === 1 ? "" : "s"} total`}
           icon={<Receipt size={16} />}
+          tone="blue"
         />
       </div>
 

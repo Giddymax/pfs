@@ -100,17 +100,19 @@ export default async function MomoTransactionsPage({
         <MomoStatCard
           label="Transactions in period"
           value={String(summary.transactionCount)}
+          tone="blue"
         />
         <MomoStatCard
           label="Amount moved in period"
           value={formatGHS(summary.totalAmount)}
           hint="What passed through customers' MoMo wallets"
+          tone="green"
         />
         <MomoStatCard
           label="Charges collected in period"
           value={formatGHS(summary.totalCharge)}
           hint="What PFS billed for it — MoMo's revenue"
-          emphasis
+          tone="yellow"
         />
       </div>
 
