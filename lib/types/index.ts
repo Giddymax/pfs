@@ -268,3 +268,19 @@ export interface SusuClaim {
   paid_at: string | null;
 }
 
+// MoMo mini-app (see momo-mini-app-brief.md) — a flat, independent
+// transaction log, not related to Client/Account/Transaction above. No
+// wallet, no balance, no foreign key to clients — see the brief's §7 for why.
+export interface MomoTransaction {
+  id: string;
+  phone_number: string;
+  type: "cash_in" | "cash_out" | "deposit" | "airtime" | "data_bundle" | "mashup";
+  charge: number;
+  note: string | null;
+  recorded_by: string;
+  reversed_at: string | null;
+  created_at: string;
+  // joined
+  recorder?: { full_name: string } | null;
+}
+

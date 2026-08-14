@@ -21,6 +21,9 @@ import {
   Scale,
   ArrowUpFromLine,
   ArrowDownToLine,
+  Landmark,
+  Smartphone,
+  ArrowLeftRight,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { signOut } from "@/app/actions";
@@ -200,6 +203,31 @@ const ADMIN_NAV = [
   },
 ];
 
+// MoMo's own nav (see momo-mini-app-brief.md §3) — replaces NAV/ACCOUNT_NAV/
+// ADMIN_NAV entirely while active, never sits underneath them. Dark-ink
+// active/idle classes here, not PFS's white-on-dark scheme, because the
+// MoMo sidebar background (.sidebar-momo, app/globals.css) is bright yellow.
+const MOMO_NAV = [
+  {
+    href: "/momo",
+    label: "Overview",
+    icon: LayoutDashboard,
+    active: "bg-[#1A1A1A]/10 text-[#1A1A1A]",
+    activeIcon: "text-[#1A1A1A]",
+    idle: "group text-[#1A1A1A]/70 hover:bg-[#1A1A1A]/8 hover:text-[#1A1A1A]",
+    idleIcon: "text-[#1A1A1A]/70 transition-colors group-hover:text-[#1A1A1A]",
+  },
+  {
+    href: "/momo/transactions",
+    label: "Transactions",
+    icon: ArrowLeftRight,
+    active: "bg-[#1A1A1A]/10 text-[#1A1A1A]",
+    activeIcon: "text-[#1A1A1A]",
+    idle: "group text-[#1A1A1A]/70 hover:bg-[#1A1A1A]/8 hover:text-[#1A1A1A]",
+    idleIcon: "text-[#1A1A1A]/70 transition-colors group-hover:text-[#1A1A1A]",
+  },
+];
+
 export function Sidebar({
   profile,
   mobileOpen = false,
@@ -210,6 +238,12 @@ export function Sidebar({
   onMobileClose?: () => void;
 }) {
   const pathname = usePathname();
+  const isAdmin = profile.role === "admin";
+  // Admin-only, for now (momo-mini-app-brief.md §3) — staff never navigate
+  // here (the switcher below is hidden from them, and the /momo layout
+  // redirects direct URL access), so inMomo is effectively always false for
+  // a staff session.
+  const inMomo = pathname.startsWith("/momo");
 
   return (
     <>
@@ -221,71 +255,78 @@ export function Sidebar({
       />
       <aside
         className={clsx(
-          "sidebar-aurora sidebar-drawer flex h-screen w-64 shrink-0 flex-col text-[#FFFFFF] lg:sticky lg:top-0 lg:!transform-none",
+          "sidebar-drawer flex h-screen w-64 shrink-0 flex-col lg:sticky lg:top-0 lg:!transform-none",
+          inMomo ? "sidebar-momo text-[#1A1A1A]" : "sidebar-aurora text-[#FFFFFF]",
           mobileOpen && "open"
         )}
       >
       <div className="flex items-center gap-3 px-6 py-7">
         <Logo size={36} />
         <div className="leading-tight" style={{ fontFamily: "var(--font-sidebar-brand)" }}>
-          <p className="text-[15px] font-bold tracking-[0.06em] text-[#FFFFFF]">Prime Financial</p>
-          <p className="text-[9px] italic tracking-[0.32em] text-[#FFFFFF]">Service</p>
+          {inMomo ? (
+            <p className="text-[17px] font-bold tracking-[0.08em] text-[#1A1A1A]">MoMo</p>
+          ) : (
+            <>
+              <p className="text-[15px] font-bold tracking-[0.06em] text-[#FFFFFF]">Prime Financial</p>
+              <p className="text-[9px] italic tracking-[0.32em] text-[#FFFFFF]">Service</p>
+            </>
+          )}
         </div>
       </div>
 
+      {/* App switcher — admin-only, route-driven (see momo-mini-app-brief.md §3) */}
+      {isAdmin && (
+        <div className="flex gap-1.5 px-4 pb-4">
+          <Link
+            href="/"
+            className={clsx(
+              "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-[11.5px] font-semibold transition-colors",
+              !inMomo
+                ? "bg-[#FFFFFF]/18 text-[#FFFFFF]"
+                : "text-[#1A1A1A]/55 hover:bg-[#1A1A1A]/8 hover:text-[#1A1A1A]"
+            )}
+          >
+            <Landmark size={13} />
+            Financial Service
+          </Link>
+          <Link
+            href="/momo"
+            className={clsx(
+              "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-[11.5px] font-semibold transition-colors",
+              inMomo
+                ? "bg-[#1A1A1A]/10 text-[#1A1A1A]"
+                : "text-[#FFFFFF]/70 hover:bg-[#FFFFFF]/10 hover:text-[#FFFFFF]"
+            )}
+          >
+            <Smartphone size={13} />
+            MoMo
+          </Link>
+        </div>
+      )}
+
       <nav className="sidebar-nav flex-1 space-y-1 overflow-y-auto px-3 py-2">
-        {NAV.filter(({ href }) => href !== "/" || profile.role === "admin").map(({ href, label, icon: Icon, active: activeCls, activeIcon, idle, idleIcon }) => {
-          const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
-          return (
-            <Link
-              key={href}
-              href={href}
-              style={{ fontFamily: "var(--font-sidebar-nav)" }}
-              className={clsx(
-                "flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-[14px] font-medium transition-colors",
-                active ? activeCls : idle
-              )}
-            >
-              <Icon size={17} className={active ? activeIcon : idleIcon} />
-              {label}
-            </Link>
-          );
-        })}
-
-        <p
-          className="px-3.5 pb-1.5 pt-5 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#FFFFFF]"
-          style={{ fontFamily: "var(--font-sidebar-accounts)" }}
-        >
-          Accounts
-        </p>
-        {ACCOUNT_NAV.map(({ href, label, icon: Icon, active: activeCls, activeIcon, idle, idleIcon }) => {
-          const active = pathname.startsWith(href);
-          return (
-            <Link
-              key={href}
-              href={href}
-              style={{ fontFamily: "var(--font-sidebar-accounts)" }}
-              className={clsx(
-                "flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-[13.5px] font-medium transition-colors",
-                active ? activeCls : idle
-              )}
-            >
-              <Icon size={17} className={active ? activeIcon : idleIcon} />
-              {label}
-            </Link>
-          );
-        })}
-
-        {profile.role === "admin" && (
+        {inMomo ? (
+          MOMO_NAV.map(({ href, label, icon: Icon, active: activeCls, activeIcon, idle, idleIcon }) => {
+            const active = href === "/momo" ? pathname === "/momo" : pathname.startsWith(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                style={{ fontFamily: "var(--font-sidebar-nav)" }}
+                className={clsx(
+                  "flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-[14px] font-medium transition-colors",
+                  active ? activeCls : idle
+                )}
+              >
+                <Icon size={17} className={active ? activeIcon : idleIcon} />
+                {label}
+              </Link>
+            );
+          })
+        ) : (
           <>
-            <p
-              className="px-3.5 pb-1.5 pt-5 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#FFFFFF]"
-              style={{ fontFamily: "var(--font-sidebar-accounts)" }}
-            >
-              Admin
-            </p>
-            {ADMIN_NAV.map(({ href, label, icon: Icon, active: activeCls, activeIcon, idle, idleIcon }) => {
-              const active = pathname.startsWith(href);
+            {NAV.filter(({ href }) => href !== "/" || profile.role === "admin").map(({ href, label, icon: Icon, active: activeCls, activeIcon, idle, idleIcon }) => {
+              const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
               return (
                 <Link
                   key={href}
@@ -301,14 +342,69 @@ export function Sidebar({
                 </Link>
               );
             })}
+
+            <p
+              className="px-3.5 pb-1.5 pt-5 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#FFFFFF]"
+              style={{ fontFamily: "var(--font-sidebar-accounts)" }}
+            >
+              Accounts
+            </p>
+            {ACCOUNT_NAV.map(({ href, label, icon: Icon, active: activeCls, activeIcon, idle, idleIcon }) => {
+              const active = pathname.startsWith(href);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  style={{ fontFamily: "var(--font-sidebar-accounts)" }}
+                  className={clsx(
+                    "flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-[13.5px] font-medium transition-colors",
+                    active ? activeCls : idle
+                  )}
+                >
+                  <Icon size={17} className={active ? activeIcon : idleIcon} />
+                  {label}
+                </Link>
+              );
+            })}
+
+            {profile.role === "admin" && (
+              <>
+                <p
+                  className="px-3.5 pb-1.5 pt-5 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#FFFFFF]"
+                  style={{ fontFamily: "var(--font-sidebar-accounts)" }}
+                >
+                  Admin
+                </p>
+                {ADMIN_NAV.map(({ href, label, icon: Icon, active: activeCls, activeIcon, idle, idleIcon }) => {
+                  const active = pathname.startsWith(href);
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
+                      style={{ fontFamily: "var(--font-sidebar-nav)" }}
+                      className={clsx(
+                        "flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-[14px] font-medium transition-colors",
+                        active ? activeCls : idle
+                      )}
+                    >
+                      <Icon size={17} className={active ? activeIcon : idleIcon} />
+                      {label}
+                    </Link>
+                  );
+                })}
+              </>
+            )}
           </>
         )}
       </nav>
 
-      <div className="border-t border-[#163013]/10 px-4 py-5">
+      <div className={clsx("border-t px-4 py-5", inMomo ? "border-[#1A1A1A]/10" : "border-[#163013]/10")}>
         <Link
           href="/profile"
-          className="mb-4 flex items-center gap-3 rounded-lg bg-[#163013]/5 px-3 py-2.5 transition-colors hover:bg-[#163013]/10"
+          className={clsx(
+            "mb-4 flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors",
+            inMomo ? "bg-[#1A1A1A]/5 hover:bg-[#1A1A1A]/10" : "bg-[#163013]/5 hover:bg-[#163013]/10"
+          )}
         >
           <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#0033AA]/12 text-[12px] font-semibold text-[#0033AA]">
             {profile.photo_url ? (
@@ -319,8 +415,8 @@ export function Sidebar({
             )}
           </span>
           <div className="min-w-0 leading-tight">
-            <p className="truncate text-[13px] font-semibold text-[#FFFFFF]">{profile.full_name}</p>
-            <p className="flex items-center gap-1 text-[11px] text-[#FFFFFF]">
+            <p className={clsx("truncate text-[13px] font-semibold", inMomo ? "text-[#1A1A1A]" : "text-[#FFFFFF]")}>{profile.full_name}</p>
+            <p className={clsx("flex items-center gap-1 text-[11px]", inMomo ? "text-[#1A1A1A]/70" : "text-[#FFFFFF]")}>
               {profile.role === "admin" && <ShieldCheck size={11} className="text-[#0033AA]" />}
               {profile.role === "admin" ? "Administrator" : "Staff"}
             </p>
@@ -329,7 +425,10 @@ export function Sidebar({
         <form action={signOut}>
           <button
             type="submit"
-            className="flex w-full items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-[13px] font-medium text-[#FFFFFF] transition-colors hover:bg-[#163013]/5 hover:text-[#FFFFFF]"
+            className={clsx(
+              "flex w-full items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-[13px] font-medium transition-colors",
+              inMomo ? "text-[#1A1A1A] hover:bg-[#1A1A1A]/5" : "text-[#FFFFFF] hover:bg-[#163013]/5"
+            )}
           >
             <LogOut size={16} />
             Sign out
