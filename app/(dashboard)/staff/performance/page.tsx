@@ -3,6 +3,7 @@ import { ShieldCheck, Users, PiggyBank, Coins, UserRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Card, PageHeader } from "@/components/ui";
 import { ExportCsvButton } from "@/components/export-csv-button";
+import { SummaryControls } from "@/components/summary-controls";
 import { formatGHS, round2 } from "@/lib/loan";
 import type { Profile } from "@/lib/types";
 
@@ -17,7 +18,28 @@ interface StaffPerformanceRow {
   susu_collected: number;
 }
 
-export default async function StaffPerformancePage() {
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function monthStartISO() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+}
+
+function fmtDate(iso: string) {
+  return new Date(iso + "T00:00:00").toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+export default async function StaffPerformancePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string; to?: string; preset?: string }>;
+}) {
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -27,7 +49,11 @@ export default async function StaffPerformancePage() {
     .from("profiles").select("*").eq("id", user.id).single<Profile>();
   if (!profile || profile.role !== "admin") redirect("/");
 
-  const { data: rows } = await supabase.rpc("staff_performance");
+  const params = await searchParams;
+  const from = params.from ?? monthStartISO();
+  const to = params.to ?? todayISO();
+
+  const { data: rows } = await supabase.rpc("staff_performance", { p_from: from, p_to: to });
 
   const staff = (rows ?? []) as StaffPerformanceRow[];
 
@@ -42,8 +68,28 @@ export default async function StaffPerformancePage() {
         eyebrow="Administration"
         title="Staff performance"
         description="Track how much each staff member has contributed — clients registered, savings deposits collected, and daily susu contributions recorded."
-        action={<ExportCsvButton endpoint="/api/staff/performance/export" filename="staff-performance.xlsx" label="Export Excel" />}
+        action={
+          <ExportCsvButton
+            endpoint="/api/staff/performance/export"
+            filename={`staff-performance-${from}-to-${to}.xlsx`}
+            label="Export Excel"
+            params={{ from, to }}
+          />
+        }
       />
+
+      {/* Date controls */}
+      <div className="mb-6">
+        <SummaryControls from={from} to={to} preset={params.preset ?? "this_month"} />
+      </div>
+
+      {/* Period band */}
+      <div className="mb-6 rounded-lg border border-[#0033AA]/10 bg-[#0033AA]/[0.03] px-5 py-3.5">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0033AA]/50">Period</p>
+        <p className="mt-0.5 text-[15px] font-semibold text-[#0A2240]">
+          {fmtDate(from)} — {fmtDate(to)}
+        </p>
+      </div>
 
       {/* Summary cards */}
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -75,7 +121,8 @@ export default async function StaffPerformancePage() {
         <div className="border-b border-[#0033AA]/8 px-5 py-4">
           <h2 className="text-[15px] font-semibold text-[#0033AA]">Individual performance</h2>
           <p className="mt-0.5 text-[12.5px] text-[#0A2240]/45">
-            Sorted by most clients registered. Susu collected = sum of daily contributions recorded by each staff.
+            For the period above. Sorted by most clients registered. Susu collected = sum of daily contributions
+            recorded by each staff.
           </p>
         </div>
 
