@@ -15,6 +15,7 @@ export function MomoTransactionRowActions({ transaction }: { transaction: MomoTr
   const [mode, setMode] = useState<"closed" | "edit" | "reverse">("closed");
   const [phone, setPhone] = useState(transaction.phone_number);
   const [type, setType] = useState<MomoTransactionType>(transaction.type);
+  const [amount, setAmount] = useState(String(transaction.amount));
   const [charge, setCharge] = useState(String(transaction.charge));
   const [note, setNote] = useState(transaction.note ?? "");
   const [submitting, setSubmitting] = useState(false);
@@ -25,6 +26,7 @@ export function MomoTransactionRowActions({ transaction }: { transaction: MomoTr
     setError(null);
     setPhone(transaction.phone_number);
     setType(transaction.type);
+    setAmount(String(transaction.amount));
     setCharge(String(transaction.charge));
     setNote(transaction.note ?? "");
   }
@@ -33,9 +35,14 @@ export function MomoTransactionRowActions({ transaction }: { transaction: MomoTr
     e.preventDefault();
     setError(null);
 
+    const amountNum = Number(amount);
     const chargeNum = Number(charge);
     if (!phone.trim()) {
       setError("Enter the phone number.");
+      return;
+    }
+    if (!amount || amountNum < 0) {
+      setError("Enter an amount of 0 or more.");
       return;
     }
     if (!charge || chargeNum < 0) {
@@ -51,6 +58,7 @@ export function MomoTransactionRowActions({ transaction }: { transaction: MomoTr
         body: JSON.stringify({
           phone_number: phone.trim(),
           type,
+          amount: amountNum,
           charge: chargeNum,
           note: note.trim() || null,
         }),
@@ -143,6 +151,17 @@ export function MomoTransactionRowActions({ transaction }: { transaction: MomoTr
                         <option key={t.value} value={t.value}>{t.label}</option>
                       ))}
                     </select>
+                  </label>
+                  <label className="block">
+                    <span className="mb-1.5 block text-[12.5px] font-medium text-[#0A2240]/75">Amount (GHS)</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      className="w-full rounded-md border border-[#0A2240]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] outline-none transition-colors focus:border-[#E0A800] focus:bg-white"
+                    />
                   </label>
                   <label className="block">
                     <span className="mb-1.5 block text-[12.5px] font-medium text-[#0A2240]/75">Charge (GHS)</span>

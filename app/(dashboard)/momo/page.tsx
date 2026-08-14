@@ -43,11 +43,17 @@ export default async function MomoOverviewPage() {
       />
 
       {/* Today's headline figures */}
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <MomoStatCard
           label="Transactions today"
           value={String(todaySummary.transactionCount)}
           icon={<ArrowLeftRight size={16} />}
+        />
+        <MomoStatCard
+          label="Amount moved today"
+          value={formatGHS(todaySummary.totalAmount)}
+          hint="What passed through customers' MoMo wallets"
+          icon={<Receipt size={16} />}
         />
         <MomoStatCard
           label="Charges collected today"
@@ -69,15 +75,17 @@ export default async function MomoOverviewPage() {
         <div className="border-b border-[#1A1A1A]/8 px-5 py-4">
           <h2 className="text-[15px] font-semibold text-[#1A1A1A]">Today, by type</h2>
           <p className="mt-0.5 text-[12.5px] text-[#0A2240]/45">
-            How many of each transaction type were recorded today, and what was charged for them.
+            How many of each transaction type were recorded today, how much moved through them, and what was
+            charged for them.
           </p>
         </div>
         <div className="admin-table-wrap">
-          <table className="w-full min-w-[480px] text-left text-[14px]">
+          <table className="w-full min-w-[600px] text-left text-[14px]">
             <thead>
               <tr className="border-b border-[#1A1A1A]/8 bg-[#1A1A1A]/[0.02] text-[11px] uppercase tracking-[0.1em] text-[#0A2240]/45">
                 <th className="px-5 py-3 font-semibold">Type</th>
                 <th className="px-5 py-3 text-right font-semibold">Count</th>
+                <th className="px-5 py-3 text-right font-semibold">Amount moved</th>
                 <th className="px-5 py-3 text-right font-semibold">Charges collected</th>
               </tr>
             </thead>
@@ -88,6 +96,9 @@ export default async function MomoOverviewPage() {
                     <MomoTypeBadge type={row.type} />
                   </td>
                   <td className="px-5 py-3.5 text-right text-[14px] tabular-nums text-[#0A2240]/75">{row.count}</td>
+                  <td className="px-5 py-3.5 text-right text-[14px] tabular-nums text-[#0A2240]/75">
+                    {formatGHS(row.amount)}
+                  </td>
                   <td className="px-5 py-3.5 text-right text-[14px] font-semibold tabular-nums text-[#1A1A1A]">
                     {formatGHS(row.charge)}
                   </td>

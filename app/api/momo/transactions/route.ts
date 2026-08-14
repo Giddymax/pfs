@@ -29,6 +29,7 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const phoneNumber = typeof body?.phone_number === "string" ? body.phone_number.trim() : "";
   const type = typeof body?.type === "string" ? body.type : "";
+  const amount = Number(body?.amount);
   const charge = Number(body?.charge);
   const note = typeof body?.note === "string" ? body.note.trim() || null : null;
 
@@ -37,6 +38,9 @@ export async function POST(request: Request) {
   }
   if (!VALID_TYPES.has(type as never)) {
     return NextResponse.json({ error: "Invalid transaction type" }, { status: 400 });
+  }
+  if (!Number.isFinite(amount) || amount < 0) {
+    return NextResponse.json({ error: "Amount must be 0 or more" }, { status: 400 });
   }
   if (!Number.isFinite(charge) || charge < 0) {
     return NextResponse.json({ error: "Charge must be 0 or more" }, { status: 400 });
@@ -47,6 +51,7 @@ export async function POST(request: Request) {
     .insert({
       phone_number: phoneNumber,
       type,
+      amount,
       charge,
       note,
       recorded_by: user.id,

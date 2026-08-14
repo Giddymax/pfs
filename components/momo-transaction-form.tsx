@@ -5,26 +5,32 @@ import { useRouter } from "next/navigation";
 import { Loader2, Plus, X } from "lucide-react";
 import { MOMO_TYPES, type MomoTransactionType } from "@/lib/momo/types";
 
-// Records a MoMo transaction — exactly the four fields from
-// momo-mini-app-brief.md §3 (phone number, type, charge, note). Nothing is
-// looked up first: there's no wallet or client to find, so submitting this
-// just appends one row to momo_transactions.
+// Records a MoMo transaction — phone number, type, amount, charge, note
+// (see momo-mini-app-brief.md §3, and 0063_momo_transactions_amount.sql for
+// why amount and charge are two separate fields: amount is the principal
+// that moved through the customer's MoMo wallet, charge is what PFS billed
+// for facilitating it). Nothing is looked up first: there's no wallet or
+// client to find, so submitting this just appends one row to
+// momo_transactions.
 export function MomoTransactionForm() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [phone, setPhone] = useState("");
   const [type, setType] = useState<MomoTransactionType>("cash_in");
+  const [amount, setAmount] = useState("");
   const [charge, setCharge] = useState("");
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const amountNum = Number(amount) || 0;
   const chargeNum = Number(charge) || 0;
 
   function handleClose() {
     setOpen(false);
     setPhone("");
     setType("cash_in");
+    setAmount("");
     setCharge("");
     setNote("");
     setError(null);
@@ -36,6 +42,10 @@ export function MomoTransactionForm() {
 
     if (!phone.trim()) {
       setError("Enter the phone number.");
+      return;
+    }
+    if (!amount || amountNum < 0) {
+      setError("Enter an amount of 0 or more.");
       return;
     }
     if (!charge || chargeNum < 0) {
@@ -51,6 +61,7 @@ export function MomoTransactionForm() {
         body: JSON.stringify({
           phone_number: phone.trim(),
           type,
+          amount: amountNum,
           charge: chargeNum,
           note: note.trim() || null,
         }),
@@ -121,6 +132,19 @@ export function MomoTransactionForm() {
               </label>
 
               <label className="block">
+                <span className="mb-1.5 block text-[12.5px] font-medium text-[#0A2240]/75">Amount (GHS)</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="What moved through their MoMo wallet"
+                  className="w-full rounded-md border border-[#0A2240]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] outline-none transition-colors focus:border-[#E0A800] focus:bg-white"
+                />
+              </label>
+
+              <label className="block">
                 <span className="mb-1.5 block text-[12.5px] font-medium text-[#0A2240]/75">Charge (GHS)</span>
                 <input
                   type="number"
@@ -128,6 +152,7 @@ export function MomoTransactionForm() {
                   step="0.01"
                   value={charge}
                   onChange={(e) => setCharge(e.target.value)}
+                  placeholder="What you billed them for it"
                   className="w-full rounded-md border border-[#0A2240]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] outline-none transition-colors focus:border-[#E0A800] focus:bg-white"
                 />
               </label>

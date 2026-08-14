@@ -43,6 +43,7 @@ export async function GET(request: Request) {
     "Time": new Date(t.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
     "Phone number": t.phone_number,
     "Type": momoTypeLabel(t.type),
+    "Amount (GHS)": t.amount,
     "Charge (GHS)": t.charge,
     "Note": t.note ?? "",
     "Recorded by": t.recorder?.full_name ?? "",
@@ -53,6 +54,6 @@ export async function GET(request: Request) {
     filename: from && to
       ? `momo-transactions-${from}-to-${to}.xlsx`
       : `momo-transactions-${new Date().toISOString().slice(0, 10)}.xlsx`,
-    colWidths: [12, 10, 16, 14, 14, 30, 20],
+    colWidths: [12, 10, 16, 14, 14, 14, 30, 20],
   });
 }

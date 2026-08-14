@@ -275,7 +275,8 @@ export interface MomoTransaction {
   id: string;
   phone_number: string;
   type: "cash_in" | "cash_out" | "deposit" | "airtime" | "data_bundle" | "mashup";
-  charge: number;
+  amount: number; // the principal that moved through the customer's MoMo wallet
+  charge: number; // what PFS billed for facilitating it — see 0063_momo_transactions_amount.sql
   note: string | null;
   recorded_by: string;
   reversed_at: string | null;

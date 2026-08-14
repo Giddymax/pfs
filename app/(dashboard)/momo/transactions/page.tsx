@@ -96,14 +96,20 @@ export default async function MomoTransactionsPage({
       </div>
 
       {/* Stat cards for the selected period */}
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <MomoStatCard
           label="Transactions in period"
           value={String(summary.transactionCount)}
         />
         <MomoStatCard
+          label="Amount moved in period"
+          value={formatGHS(summary.totalAmount)}
+          hint="What passed through customers' MoMo wallets"
+        />
+        <MomoStatCard
           label="Charges collected in period"
           value={formatGHS(summary.totalCharge)}
+          hint="What PFS billed for it — MoMo's revenue"
           emphasis
         />
       </div>
@@ -151,9 +157,12 @@ export default async function MomoTransactionsPage({
             <ul className="divide-y divide-[#1A1A1A]/6 lg:hidden">
               {transactions.map((t) => (
                 <li key={t.id} className={`px-5 py-4 ${t.reversed_at ? "opacity-50" : ""}`}>
-                  <div className="mb-2 flex items-center justify-between gap-2">
+                  <div className="mb-2 flex items-start justify-between gap-2">
                     <MomoTypeBadge type={t.type} />
-                    <span className="text-[13px] font-semibold tabular-nums text-[#1A1A1A]">{formatGHS(t.charge)}</span>
+                    <div className="text-right">
+                      <p className="text-[13px] font-semibold tabular-nums text-[#1A1A1A]">{formatGHS(t.amount)}</p>
+                      <p className="text-[11px] tabular-nums text-[#0A2240]/45">charge {formatGHS(t.charge)}</p>
+                    </div>
                   </div>
                   <p className="flex items-center gap-1.5 text-[13.5px] font-medium text-[#0A2240]">
                     <UserRound size={13} className="text-[#0A2240]/35" />
@@ -174,12 +183,13 @@ export default async function MomoTransactionsPage({
 
             {/* Desktop table */}
             <div className="admin-table-wrap hidden lg:block">
-              <table className="w-full min-w-[860px] text-left text-[14px]">
+              <table className="w-full min-w-[960px] text-left text-[14px]">
                 <thead>
                   <tr className="border-b border-[#1A1A1A]/8 bg-[#1A1A1A]/[0.02] text-[11px] uppercase tracking-[0.1em] text-[#0A2240]/45">
                     <th className="px-5 py-3 font-semibold">Date</th>
                     <th className="px-5 py-3 font-semibold">Phone number</th>
                     <th className="px-5 py-3 font-semibold">Type</th>
+                    <th className="px-5 py-3 text-right font-semibold">Amount</th>
                     <th className="px-5 py-3 text-right font-semibold">Charge</th>
                     <th className="px-5 py-3 font-semibold">Note</th>
                     <th className="px-5 py-3 font-semibold">Recorded by</th>
@@ -198,6 +208,7 @@ export default async function MomoTransactionsPage({
                       </td>
                       <td className="px-5 py-3.5 font-medium text-[#0A2240]">{t.phone_number}</td>
                       <td className="px-5 py-3.5"><MomoTypeBadge type={t.type} /></td>
+                      <td className="px-5 py-3.5 text-right tabular-nums text-[#0A2240]/75">{formatGHS(t.amount)}</td>
                       <td className="px-5 py-3.5 text-right font-semibold tabular-nums text-[#1A1A1A]">{formatGHS(t.charge)}</td>
                       <td className="px-5 py-3.5 max-w-[220px] truncate text-[#0A2240]/55">{t.note ?? "—"}</td>
                       <td className="px-5 py-3.5 text-[#0A2240]/55">{t.recorder?.full_name ?? "—"}</td>
