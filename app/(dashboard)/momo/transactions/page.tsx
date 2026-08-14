@@ -11,7 +11,7 @@ import { TableFilter, type FilterOption } from "@/components/table-filter";
 import { ExportCsvButton } from "@/components/export-csv-button";
 import { PageHeader, Card, EmptyState } from "@/components/ui";
 import { formatGHS } from "@/lib/loan";
-import type { MomoTransaction } from "@/lib/types";
+import type { MomoTransaction, Profile } from "@/lib/types";
 
 const TYPE_OPTIONS: FilterOption[] = MOMO_TYPES.map((t) => ({ value: t.value, label: t.label }));
 
@@ -54,10 +54,20 @@ export default async function MomoTransactionsPage({
   if (type) query = query.eq("type", type);
   if (q) query = query.or(`phone_number.ilike.%${q}%,note.ilike.%${q}%`);
 
-  const [{ data: rows, error }, summary] = await Promise.all([
+  const [{ data: rows, error }, summary, { data: { user } }] = await Promise.all([
     query.returns<(MomoTransaction & { recorder: { full_name: string } | null })[]>(),
     computeMomoSummary(supabase, { from, to }),
+    supabase.auth.getUser(),
   ]);
+
+  // Editing/reversing/deleting a transaction stays admin-only even though
+  // every staff member can now record one (0065_momo_staff_access.sql) —
+  // hide the row actions from staff so there's no button that just 403s.
+  let isAdmin = false;
+  if (user) {
+    const { data: viewerProfile } = await supabase.from("profiles").select("role").eq("id", user.id).single<Pick<Profile, "role">>();
+    isAdmin = viewerProfile?.role === "admin";
+  }
 
   const transactions = rows ?? [];
   const qs = new URLSearchParams({
@@ -175,7 +185,7 @@ export default async function MomoTransactionsPage({
                       {new Date(t.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
                       {t.reversed_at && " · Reversed"}
                     </p>
-                    <MomoTransactionRowActions transaction={t} />
+                    {isAdmin && <MomoTransactionRowActions transaction={t} />}
                   </div>
                 </li>
               ))}
@@ -213,7 +223,7 @@ export default async function MomoTransactionsPage({
                       <td className="px-5 py-3.5 max-w-[220px] truncate text-[#0A2240]/55">{t.note ?? "—"}</td>
                       <td className="px-5 py-3.5 text-[#0A2240]/55">{t.recorder?.full_name ?? "—"}</td>
                       <td className="px-5 py-3.5">
-                        <MomoTransactionRowActions transaction={t} />
+                        {isAdmin && <MomoTransactionRowActions transaction={t} />}
                       </td>
                     </tr>
                   ))}

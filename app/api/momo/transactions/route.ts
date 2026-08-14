@@ -5,11 +5,12 @@ import type { Profile } from "@/lib/types";
 
 const VALID_TYPES = new Set(MOMO_TYPES.map((t) => t.value));
 
-// Admin-only, for now (momo-mini-app-brief.md §3) — checked here
-// independently of the page-level redirect in
-// app/(dashboard)/momo/layout.tsx and the RLS policy on momo_transactions
-// itself (0062_momo_transactions.sql), so this route refuses a staff
-// session even if someone calls it directly.
+// Open to any active staff or admin — recording a transaction is everyday
+// work, not an admin-only action (0065_momo_staff_access.sql). Editing,
+// reversing, and deleting an existing transaction is still admin-only; see
+// the PATCH/DELETE routes under [id]. Checked here independently of the
+// RLS policy on momo_transactions itself, so the error message is
+// meaningful instead of a generic RLS rejection.
 export async function POST(request: Request) {
   const supabase = await createClient();
 
@@ -18,12 +19,12 @@ export async function POST(request: Request) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("is_active")
     .eq("id", user.id)
-    .single<Pick<Profile, "role">>();
+    .single<Pick<Profile, "is_active">>();
 
-  if (profile?.role !== "admin") {
-    return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+  if (!profile?.is_active) {
+    return NextResponse.json({ error: "Your account is deactivated" }, { status: 403 });
   }
 
   const body = await request.json().catch(() => null);

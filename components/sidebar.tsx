@@ -220,6 +220,7 @@ const MOMO_NAV = [
     activeIcon: "text-white",
     idle: "group text-white hover:bg-white hover:text-[#1A1A1A]",
     idleIcon: "text-white transition-colors group-hover:text-[#1A1A1A]",
+    adminOnly: false,
   },
   {
     href: "/momo/transactions",
@@ -229,6 +230,21 @@ const MOMO_NAV = [
     activeIcon: "text-white",
     idle: "group text-white hover:bg-white hover:text-[#1A1A1A]",
     idleIcon: "text-white transition-colors group-hover:text-[#1A1A1A]",
+    adminOnly: false,
+  },
+  // Admin-only within MoMo — seeing every staff member's collected charges
+  // is a management view, not everyday work, same split PFS's own
+  // Staff Performance page already draws (that page is entirely
+  // admin-gated even though staff can access the rest of PFS).
+  {
+    href: "/momo/performance",
+    label: "Performance",
+    icon: TrendingUp,
+    active: "bg-white/20 text-white",
+    activeIcon: "text-white",
+    idle: "group text-white hover:bg-white hover:text-[#1A1A1A]",
+    idleIcon: "text-white transition-colors group-hover:text-[#1A1A1A]",
+    adminOnly: true,
   },
 ];
 
@@ -243,10 +259,9 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
   const isAdmin = profile.role === "admin";
-  // Admin-only, for now (momo-mini-app-brief.md §3) — staff never navigate
-  // here (the switcher below is hidden from them, and the /momo layout
-  // redirects direct URL access), so inMomo is effectively always false for
-  // a staff session.
+  // Every active staff/admin gets MoMo now — the admin-only phase-1 default
+  // (momo-mini-app-brief.md §3) has been lifted. "Performance" inside
+  // MOMO_NAV stays admin-gated below (see that array's comment).
   const inMomo = pathname.startsWith("/momo");
 
   return (
@@ -295,39 +310,37 @@ export function Sidebar({
         </div>
       )}
 
-      {/* App switcher — admin-only, route-driven (see momo-mini-app-brief.md §3) */}
-      {isAdmin && (
-        <div className="flex gap-1.5 px-4 pb-4">
-          <Link
-            href="/"
-            className={clsx(
-              "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-[11.5px] font-semibold transition-colors",
-              !inMomo
-                ? "bg-[#FFFFFF]/18 text-[#FFFFFF]"
-                : "text-white/85 hover:bg-white hover:text-[#1A1A1A]"
-            )}
-          >
-            <Landmark size={13} />
-            Financial Service
-          </Link>
-          <Link
-            href="/momo"
-            className={clsx(
-              "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-[11.5px] font-semibold transition-colors",
-              inMomo
-                ? "bg-white/20 text-white"
-                : "text-[#FFFFFF]/70 hover:bg-[#FFFFFF]/10 hover:text-[#FFFFFF]"
-            )}
-          >
-            <Smartphone size={13} />
-            MoMo
-          </Link>
-        </div>
-      )}
+      {/* App switcher — every staff/admin, route-driven (see momo-mini-app-brief.md §3) */}
+      <div className="flex gap-1.5 px-4 pb-4">
+        <Link
+          href="/"
+          className={clsx(
+            "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-[11.5px] font-semibold transition-colors",
+            !inMomo
+              ? "bg-[#FFFFFF]/18 text-[#FFFFFF]"
+              : "text-white/85 hover:bg-white hover:text-[#1A1A1A]"
+          )}
+        >
+          <Landmark size={13} />
+          Financial Service
+        </Link>
+        <Link
+          href="/momo"
+          className={clsx(
+            "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-[11.5px] font-semibold transition-colors",
+            inMomo
+              ? "bg-white/20 text-white"
+              : "text-[#FFFFFF]/70 hover:bg-[#FFFFFF]/10 hover:text-[#FFFFFF]"
+          )}
+        >
+          <Smartphone size={13} />
+          MoMo
+        </Link>
+      </div>
 
       <nav className="sidebar-nav flex-1 space-y-1 overflow-y-auto px-3 py-2">
         {inMomo ? (
-          MOMO_NAV.map(({ href, label, icon: Icon, active: activeCls, activeIcon, idle, idleIcon }) => {
+          MOMO_NAV.filter(({ adminOnly }) => !adminOnly || isAdmin).map(({ href, label, icon: Icon, active: activeCls, activeIcon, idle, idleIcon }) => {
             const active = href === "/momo" ? pathname === "/momo" : pathname.startsWith(href);
             return (
               <Link

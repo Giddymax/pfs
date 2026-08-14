@@ -7,7 +7,8 @@ import type { MomoTransaction, Profile } from "@/lib/types";
 // MoMo's own Excel export — entirely separate from every PFS export route
 // (see momo-mini-app-brief.md §7). Reversed rows are excluded, matching the
 // "deleted transactions never appear in exports" rule already established
-// for PFS's own transaction exports.
+// for PFS's own transaction exports. Open to any active staff or admin —
+// same as every other PFS report export, which isn't admin-gated either.
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const from = searchParams.get("from");
@@ -19,10 +20,10 @@ export async function GET(request: Request) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("is_active")
     .eq("id", user.id)
-    .single<Pick<Profile, "role">>();
-  if (profile?.role !== "admin") return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+    .single<Pick<Profile, "is_active">>();
+  if (!profile?.is_active) return NextResponse.json({ error: "Your account is deactivated" }, { status: 403 });
 
   let query = supabase
     .from("momo_transactions")
