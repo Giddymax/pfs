@@ -207,24 +207,28 @@ const ADMIN_NAV = [
 // ADMIN_NAV entirely while active, never sits underneath them. Dark-ink
 // active/idle classes here, not PFS's white-on-dark scheme, because the
 // MoMo sidebar background (.sidebar-momo, app/globals.css) is bright yellow.
+// Idle text/icons stay near-full opacity (not the ~70% PFS uses on its dark
+// green ground) — yellow is a light, high-luminance surface, so a
+// translucent dark ink washes out fast; full weight and near-full opacity
+// keep it readable.
 const MOMO_NAV = [
   {
     href: "/momo",
     label: "Overview",
     icon: LayoutDashboard,
-    active: "bg-[#1A1A1A]/10 text-[#1A1A1A]",
+    active: "bg-[#1A1A1A]/12 text-[#1A1A1A]",
     activeIcon: "text-[#1A1A1A]",
-    idle: "group text-[#1A1A1A]/70 hover:bg-[#1A1A1A]/8 hover:text-[#1A1A1A]",
-    idleIcon: "text-[#1A1A1A]/70 transition-colors group-hover:text-[#1A1A1A]",
+    idle: "group text-[#1A1A1A]/90 hover:bg-[#1A1A1A]/10 hover:text-[#1A1A1A]",
+    idleIcon: "text-[#1A1A1A]/90 transition-colors group-hover:text-[#1A1A1A]",
   },
   {
     href: "/momo/transactions",
     label: "Transactions",
     icon: ArrowLeftRight,
-    active: "bg-[#1A1A1A]/10 text-[#1A1A1A]",
+    active: "bg-[#1A1A1A]/12 text-[#1A1A1A]",
     activeIcon: "text-[#1A1A1A]",
-    idle: "group text-[#1A1A1A]/70 hover:bg-[#1A1A1A]/8 hover:text-[#1A1A1A]",
-    idleIcon: "text-[#1A1A1A]/70 transition-colors group-hover:text-[#1A1A1A]",
+    idle: "group text-[#1A1A1A]/90 hover:bg-[#1A1A1A]/10 hover:text-[#1A1A1A]",
+    idleIcon: "text-[#1A1A1A]/90 transition-colors group-hover:text-[#1A1A1A]",
   },
 ];
 
@@ -283,7 +287,7 @@ export function Sidebar({
               "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-[11.5px] font-semibold transition-colors",
               !inMomo
                 ? "bg-[#FFFFFF]/18 text-[#FFFFFF]"
-                : "text-[#1A1A1A]/55 hover:bg-[#1A1A1A]/8 hover:text-[#1A1A1A]"
+                : "text-[#1A1A1A]/80 hover:bg-[#1A1A1A]/10 hover:text-[#1A1A1A]"
             )}
           >
             <Landmark size={13} />
@@ -314,7 +318,7 @@ export function Sidebar({
                 href={href}
                 style={{ fontFamily: "var(--font-sidebar-nav)" }}
                 className={clsx(
-                  "flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-[14px] font-medium transition-colors",
+                  "flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-[14px] font-semibold transition-colors",
                   active ? activeCls : idle
                 )}
               >
@@ -416,7 +420,7 @@ export function Sidebar({
           </span>
           <div className="min-w-0 leading-tight">
             <p className={clsx("truncate text-[13px] font-semibold", inMomo ? "text-[#1A1A1A]" : "text-[#FFFFFF]")}>{profile.full_name}</p>
-            <p className={clsx("flex items-center gap-1 text-[11px]", inMomo ? "text-[#1A1A1A]/70" : "text-[#FFFFFF]")}>
+            <p className={clsx("flex items-center gap-1 text-[11px]", inMomo ? "font-medium text-[#1A1A1A]/90" : "text-[#FFFFFF]")}>
               {profile.role === "admin" && <ShieldCheck size={11} className="text-[#0033AA]" />}
               {profile.role === "admin" ? "Administrator" : "Staff"}
             </p>
@@ -426,8 +430,8 @@ export function Sidebar({
           <button
             type="submit"
             className={clsx(
-              "flex w-full items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-[13px] font-medium transition-colors",
-              inMomo ? "text-[#1A1A1A] hover:bg-[#1A1A1A]/5" : "text-[#FFFFFF] hover:bg-[#163013]/5"
+              "flex w-full items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-[13px] transition-colors",
+              inMomo ? "font-semibold text-[#1A1A1A] hover:bg-[#1A1A1A]/8" : "font-medium text-[#FFFFFF] hover:bg-[#163013]/5"
             )}
           >
             <LogOut size={16} />
