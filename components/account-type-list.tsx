@@ -9,6 +9,7 @@ import { formatGHS, round2 } from "@/lib/loan";
 import { getSettings } from "@/lib/settings/cache";
 import { computeAccountSummary } from "@/lib/finance/account-summary";
 import { PrintAccountListButton } from "@/components/print-account-list-button";
+import { ClientPhotoViewer } from "@/components/client-photo-viewer";
 import type { Account, ProductType } from "@/lib/types";
 
 const DEFAULT_REVENUE_COMPONENTS = {
@@ -82,13 +83,20 @@ export async function AccountTypeList({
     }
   }
 
-  const [{ data: accounts }, { count: totalCount }, { data: statsRows }, settings] = await Promise.all([
+  const [{ data: accounts }, { count: totalCount }, { data: statsRows }, settings, { data: { user } }] = await Promise.all([
     query.returns<Account[]>(),
     supabase.from("accounts").select("*", { count: "exact", head: true }).eq("product_type", product.product_type),
     supabase.from("accounts").select("balance, dep, wdr, comm").eq("product_type", product.product_type)
       .returns<{ balance: number; dep: number; wdr: number; comm: number }[]>(),
     getSettings(),
+    supabase.auth.getUser(),
   ]);
+
+  let isAdmin = false;
+  if (user) {
+    const { data: viewerProfile } = await supabase.from("profiles").select("role").eq("id", user.id).single<{ role: string }>();
+    isAdmin = viewerProfile?.role === "admin";
+  }
 
   const companyPhone = settings.sms.company_tel ?? null;
 
@@ -199,20 +207,21 @@ export async function AccountTypeList({
                 <div className="px-4 py-3.5">
                   <div className="flex items-center justify-between gap-2">
                     {account.client ? (
-                      <Link
-                        href={`/clients/${account.client.id}`}
-                        className="flex min-w-0 items-center gap-2.5"
-                      >
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#1D3461]/10 bg-[#1D3461]/5 text-[12px] font-semibold text-[#1D3461]">
-                          {account.client.photo_url ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={account.client.photo_url} alt={account.client.full_name} className="h-full w-full object-cover" />
-                          ) : (
-                            initials(account.client.full_name)
-                          )}
-                        </span>
-                        <span className="truncate text-[14px] font-semibold text-[#0A2240]">{account.client.full_name}</span>
-                      </Link>
+                      <span className="flex min-w-0 items-center gap-2.5">
+                        <ClientPhotoViewer photoUrl={account.client.photo_url} alt={account.client.full_name} isAdmin={isAdmin}>
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#1D3461]/10 bg-[#1D3461]/5 text-[12px] font-semibold text-[#1D3461]">
+                            {account.client.photo_url ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={account.client.photo_url} alt={account.client.full_name} className="h-full w-full object-cover" />
+                            ) : (
+                              initials(account.client.full_name)
+                            )}
+                          </span>
+                        </ClientPhotoViewer>
+                        <Link href={`/clients/${account.client.id}`} className="truncate text-[14px] font-semibold text-[#0A2240] hover:underline">
+                          {account.client.full_name}
+                        </Link>
+                      </span>
                     ) : (
                       <span className="text-[#0A2240]/45">—</span>
                     )}
@@ -249,17 +258,21 @@ export async function AccountTypeList({
                   <tr key={account.id} className="transition-colors hover:bg-[#1D3461]/[0.025]">
                     <td className="px-5 py-3.5">
                       {account.client ? (
-                        <Link href={`/clients/${account.client.id}`} className="flex items-center gap-3">
-                          <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#1D3461]/10 bg-[#1D3461]/5 text-[12px] font-semibold text-[#1D3461]">
-                            {account.client.photo_url ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img src={account.client.photo_url} alt={account.client.full_name} className="h-full w-full object-cover" />
-                            ) : (
-                              initials(account.client.full_name)
-                            )}
-                          </span>
-                          <span className="font-medium text-[#0A2240] hover:text-[#1D3461]">{account.client.full_name}</span>
-                        </Link>
+                        <span className="flex items-center gap-3">
+                          <ClientPhotoViewer photoUrl={account.client.photo_url} alt={account.client.full_name} isAdmin={isAdmin}>
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#1D3461]/10 bg-[#1D3461]/5 text-[12px] font-semibold text-[#1D3461]">
+                              {account.client.photo_url ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={account.client.photo_url} alt={account.client.full_name} className="h-full w-full object-cover" />
+                              ) : (
+                                initials(account.client.full_name)
+                              )}
+                            </span>
+                          </ClientPhotoViewer>
+                          <Link href={`/clients/${account.client.id}`} className="font-medium text-[#0A2240] hover:text-[#1D3461]">
+                            {account.client.full_name}
+                          </Link>
+                        </span>
                       ) : (
                         "—"
                       )}

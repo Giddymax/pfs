@@ -5,6 +5,7 @@ import { DeleteClientButton } from "@/components/delete-client-button";
 import { PrintRegistrationCardButton } from "@/components/print-registration-card";
 import { ClientPrintHistoryButton } from "@/components/client-print-history-button";
 import { ClientExcelButtons } from "@/components/client-excel-buttons";
+import { ClientPhotoViewer } from "@/components/client-photo-viewer";
 import { TableFilter, type FilterOption } from "@/components/table-filter";
 import { ExportCsvButton } from "@/components/export-csv-button";
 import { PageHeader, ClientStatusBadge, EmptyState, StatCard } from "@/components/ui";
@@ -398,16 +399,18 @@ export default async function ClientsPage({
               const displayBalance = acc ? formatGHC(acc.balance) : null;
               return (
                 <li key={client.id} className="rounded-xl border border-[#1D3461]/8 bg-white shadow-sm">
-                  <Link href={`/clients/${client.id}`} className="flex items-center gap-3 px-4 py-3.5">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#1D3461]/10 bg-[#1D3461]/5 text-[12px] font-semibold text-[#1D3461]">
-                      {client.photo_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={client.photo_url} alt={client.full_name} className="h-full w-full object-cover" />
-                      ) : (
-                        initials(client.full_name)
-                      )}
-                    </span>
-                    <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-3 px-4 py-3.5">
+                    <ClientPhotoViewer photoUrl={client.photo_url} alt={client.full_name} isAdmin={isAdmin}>
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#1D3461]/10 bg-[#1D3461]/5 text-[12px] font-semibold text-[#1D3461]">
+                        {client.photo_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={client.photo_url} alt={client.full_name} className="h-full w-full object-cover" />
+                        ) : (
+                          initials(client.full_name)
+                        )}
+                      </span>
+                    </ClientPhotoViewer>
+                    <Link href={`/clients/${client.id}`} className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <p className="truncate text-[14px] font-semibold text-[#0A2240]">{client.full_name}</p>
                         <ClientStatusBadge status={client.status} />
@@ -424,8 +427,8 @@ export default async function ClientsPage({
                         {displayBalance && <span className="font-medium text-[#0A2240]">{displayBalance}</span>}
                         {client.town && <span>{client.town}</span>}
                       </div>
-                    </div>
-                  </Link>
+                    </Link>
+                  </div>
                   <div className="flex flex-wrap items-center gap-2 border-t border-[#1D3461]/6 px-4 py-2.5">
                     <ClientPrintHistoryButton
                       client={client}
@@ -497,20 +500,22 @@ export default async function ClientsPage({
                   return (
                     <tr key={client.id} className="transition-colors hover:bg-[#1D3461]/[0.025]">
                       <td className="px-5 py-3.5">
-                        <Link href={`/clients/${client.id}`} className="flex items-center gap-3">
-                          <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#1D3461]/10 bg-[#1D3461]/5 text-[12px] font-semibold text-[#1D3461]">
-                            {client.photo_url ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img src={client.photo_url} alt={client.full_name} className="h-full w-full object-cover" />
-                            ) : (
-                              initials(client.full_name)
-                            )}
-                          </span>
-                          <span className="leading-tight">
+                        <div className="flex items-center gap-3">
+                          <ClientPhotoViewer photoUrl={client.photo_url} alt={client.full_name} isAdmin={isAdmin}>
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#1D3461]/10 bg-[#1D3461]/5 text-[12px] font-semibold text-[#1D3461]">
+                              {client.photo_url ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={client.photo_url} alt={client.full_name} className="h-full w-full object-cover" />
+                              ) : (
+                                initials(client.full_name)
+                              )}
+                            </span>
+                          </ClientPhotoViewer>
+                          <Link href={`/clients/${client.id}`} className="leading-tight">
                             <span className="block font-medium text-[#0A2240] hover:text-[#1D3461]">{client.full_name}</span>
                             <span className="block text-[12px] text-[#0A2240]/45">{client.client_code}</span>
-                          </span>
-                        </Link>
+                          </Link>
+                        </div>
                       </td>
                       <td className="px-5 py-3.5 text-[#0A2240]/55"><a href={`tel:${client.phone}`} className="hover:text-[#0033AA] hover:underline">{client.phone}</a></td>
                       <td className="px-5 py-3.5">

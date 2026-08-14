@@ -17,6 +17,7 @@ import { SusuClaimRequestButton } from "@/components/susu-claim-request-button";
 import { SusuClaimActions } from "@/components/susu-claim-actions";
 import { ResetSusuButton } from "@/components/reset-susu-button";
 import { ClearTransactionsButton } from "@/components/clear-transactions-button";
+import { ClientPhotoViewer } from "@/components/client-photo-viewer";
 import { getSettings } from "@/lib/settings/cache";
 import { computeSusuQualification, type SusuQualification } from "@/lib/susu/qualification";
 import { formatGHS } from "@/lib/loan";
@@ -256,26 +257,27 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
             <AccountStatusBadge status={account.status} />
           </div>
 
-          <Link
-            href={`/clients/${account.client.id}`}
-            className="mb-5 flex items-center gap-3 rounded-lg border border-[#0033AA]/8 bg-[#0033AA]/[0.025] px-3.5 py-3 transition-colors hover:bg-[#0033AA]/[0.05]"
-          >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#0033AA]/10 bg-white text-[12px] font-semibold text-[#0033AA]">
-              {account.client.photo_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={account.client.photo_url} alt={account.client.full_name} className="h-full w-full object-cover" />
-              ) : (
-                <UserRound size={18} className="text-[#0033AA]/30" />
-              )}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-[14px] font-medium text-[#0A2240]">{account.client.full_name}</span>
-              <span className="block text-[12px] text-[#0A2240]/45">
-                {account.client.client_code} · <a href={`tel:${account.client.phone}`} className="hover:text-[#0033AA] hover:underline">{account.client.phone}</a>
+          <div className="mb-5 flex items-center gap-3 rounded-lg border border-[#0033AA]/8 bg-[#0033AA]/[0.025] px-3.5 py-3 transition-colors hover:bg-[#0033AA]/[0.05]">
+            <ClientPhotoViewer photoUrl={account.client.photo_url} alt={account.client.full_name} isAdmin={isAdmin}>
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#0033AA]/10 bg-white text-[12px] font-semibold text-[#0033AA]">
+                {account.client.photo_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={account.client.photo_url} alt={account.client.full_name} className="h-full w-full object-cover" />
+                ) : (
+                  <UserRound size={18} className="text-[#0033AA]/30" />
+                )}
               </span>
-            </span>
-            <ArrowUpRight size={15} className="shrink-0 text-[#0033AA]/30" />
-          </Link>
+            </ClientPhotoViewer>
+            <Link href={`/clients/${account.client.id}`} className="flex min-w-0 flex-1 items-center gap-3">
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[14px] font-medium text-[#0A2240]">{account.client.full_name}</span>
+                <span className="block text-[12px] text-[#0A2240]/45">
+                  {account.client.client_code} · <a href={`tel:${account.client.phone}`} className="hover:text-[#0033AA] hover:underline">{account.client.phone}</a>
+                </span>
+              </span>
+              <ArrowUpRight size={15} className="shrink-0 text-[#0033AA]/30" />
+            </Link>
+          </div>
 
           <div className="space-y-4 text-[13.5px]">
             <div>

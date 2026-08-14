@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSettings } from "@/lib/settings/cache";
 import { computeAccountSummary } from "@/lib/finance/account-summary";
 import { PageHeader, Card, LoanStatusBadge, EmptyState } from "@/components/ui";
+import { ClientPhotoViewer } from "@/components/client-photo-viewer";
 import { formatGHS } from "@/lib/loan";
 import {
   ArrowUpRight,
@@ -249,12 +250,14 @@ export default async function OverviewPage() {
                       ? <ArrowDownToLine size={14} className="text-[#1F6E4A]" />
                       : <ArrowUpFromLine size={14} className="text-[#B3432B]" />}
                   </span>
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#0033AA]/10 bg-[#0033AA]/5 text-[11px] font-semibold text-[#0033AA]">
-                    {txn.client?.photo_url
-                      // eslint-disable-next-line @next/next/no-img-element
-                      ? <img src={txn.client.photo_url} alt={txn.client.full_name} className="h-full w-full object-cover" />
-                      : (txn.client?.full_name ?? "?").charAt(0).toUpperCase()}
-                  </span>
+                  <ClientPhotoViewer photoUrl={txn.client?.photo_url ?? null} alt={txn.client?.full_name ?? "Client"} isAdmin>
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#0033AA]/10 bg-[#0033AA]/5 text-[11px] font-semibold text-[#0033AA]">
+                      {txn.client?.photo_url
+                        // eslint-disable-next-line @next/next/no-img-element
+                        ? <img src={txn.client.photo_url} alt={txn.client.full_name} className="h-full w-full object-cover" />
+                        : (txn.client?.full_name ?? "?").charAt(0).toUpperCase()}
+                    </span>
+                  </ClientPhotoViewer>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[13.5px] font-medium text-[#0A2240]">
                       {txn.client?.full_name ?? "—"}
@@ -327,11 +330,8 @@ export default async function OverviewPage() {
           ) : (
             <ul className="divide-y divide-[#0033AA]/6">
               {recentClients.map((client) => (
-                <li key={client.id}>
-                  <Link
-                    href={`/clients/${client.id}`}
-                    className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-[#0033AA]/[0.03]"
-                  >
+                <li key={client.id} className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-[#0033AA]/[0.03]">
+                  <ClientPhotoViewer photoUrl={client.photo_url} alt={client.full_name} isAdmin>
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#0033AA]/10 bg-[#0033AA]/5 text-[12px] font-semibold text-[#0033AA]">
                       {client.photo_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -340,10 +340,10 @@ export default async function OverviewPage() {
                         initials(client.full_name)
                       )}
                     </span>
-                    <div className="min-w-0">
-                      <p className="truncate text-[14px] font-medium text-[#0A2240]">{client.full_name}</p>
-                      <p className="text-[12px] text-[#0A2240]/45">{client.client_code} · <a href={`tel:${client.phone}`} className="hover:text-[#0033AA] hover:underline">{client.phone}</a></p>
-                    </div>
+                  </ClientPhotoViewer>
+                  <Link href={`/clients/${client.id}`} className="min-w-0 flex-1">
+                    <p className="truncate text-[14px] font-medium text-[#0A2240]">{client.full_name}</p>
+                    <p className="text-[12px] text-[#0A2240]/45">{client.client_code} · <a href={`tel:${client.phone}`} className="hover:text-[#0033AA] hover:underline">{client.phone}</a></p>
                   </Link>
                 </li>
               ))}
