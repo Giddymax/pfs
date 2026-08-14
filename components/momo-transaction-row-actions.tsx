@@ -221,7 +221,7 @@ export function MomoTransactionRowActions({ transaction }: { transaction: MomoTr
                     <button
                       type="submit"
                       disabled={submitting}
-                      className="inline-flex items-center gap-2 rounded-md bg-[#1A1A1A] px-5 py-2 text-[13px] font-semibold text-[#FFC72C] transition-colors hover:bg-[#000000] disabled:opacity-60"
+                      className="inline-flex items-center gap-2 rounded-md bg-[#1E3A8A] px-5 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[#172554] disabled:opacity-60"
                     >
                       {submitting && <Loader2 size={14} className="animate-spin" />}
                       {submitting ? "Saving…" : "Save changes"}

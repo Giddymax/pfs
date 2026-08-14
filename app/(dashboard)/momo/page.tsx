@@ -34,7 +34,7 @@ export default async function MomoOverviewPage() {
         action={
           <Link
             href="/momo/transactions"
-            className="inline-flex items-center gap-1.5 rounded-md bg-[#1A1A1A] px-3.5 py-2 text-[12.5px] font-semibold text-[#FFC72C] transition-colors hover:bg-[#000000]"
+            className="inline-flex items-center gap-1.5 rounded-md bg-[#1E3A8A] px-3.5 py-2 text-[12.5px] font-semibold text-white transition-colors hover:bg-[#172554]"
           >
             <ArrowLeftRight size={13} />
             View transactions
