@@ -47,7 +47,7 @@ export default async function MomoPerformancePage({
   const rows = await computeMomoStaffPerformance(supabase, { from, to });
 
   const staffWithActivity = rows.filter((r) => r.transactionCount > 0).length;
-  const totalTransactions = rows.reduce((s, r) => s + r.transactionCount, 0);
+  const totalAmount = rows.reduce((s, r) => s + r.totalAmount, 0);
   const totalCharge = rows.reduce((s, r) => s + r.totalCharge, 0);
 
   return (
@@ -55,7 +55,7 @@ export default async function MomoPerformancePage({
       <PageHeader
         eyebrow="MoMo"
         title="Performance"
-        description="How many MoMo transactions each staff member and admin recorded, by type, and how much they collected in charges."
+        description="How much each staff member and admin moved through MoMo, by transaction type, and how much they collected in charges."
         action={
           <ExportCsvButton
             endpoint="/api/momo/performance/export"
@@ -78,9 +78,9 @@ export default async function MomoPerformancePage({
       </div>
 
       {/* Stat cards */}
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <MomoStatCard label="Staff with activity" value={String(staffWithActivity)} icon={<Users size={16} />} tone="blue" />
-        <MomoStatCard label="Total transactions" value={String(totalTransactions)} tone="green" />
+        <MomoStatCard label="Total amount moved" value={formatGHS(totalAmount)} tone="green" />
         <MomoStatCard label="Total charges collected" value={formatGHS(totalCharge)} tone="yellow" />
       </div>
 
@@ -88,7 +88,8 @@ export default async function MomoPerformancePage({
         <div className="border-b border-[#1A1A1A]/8 px-5 py-4">
           <h2 className="text-[15px] font-semibold text-[#1A1A1A]">Individual performance</h2>
           <p className="mt-0.5 text-[12.5px] text-[#0A2240]/45">
-            Every staff/admin account, sorted by most transactions recorded in this period.
+            Every staff/admin account, sorted by the most GHS moved through MoMo in this period — real amounts,
+            not a transaction count.
           </p>
         </div>
 
@@ -118,15 +119,15 @@ export default async function MomoPerformancePage({
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[14px] font-semibold tabular-nums text-[#1A1A1A]">{r.transactionCount}</p>
-                      <p className="text-[11px] tabular-nums text-[#0A2240]/45">{formatGHS(r.totalCharge)}</p>
+                      <p className="text-[14px] font-semibold tabular-nums text-[#1A1A1A]">{formatGHS(r.totalAmount)}</p>
+                      <p className="text-[11px] tabular-nums text-[#0A2240]/45">charge {formatGHS(r.totalCharge)}</p>
                     </div>
                   </div>
                   <div className="mt-3 grid grid-cols-3 gap-2 text-center">
                     {MOMO_TYPES.map((t) => (
                       <div key={t.value} className="rounded-lg bg-[#1A1A1A]/[0.025] px-2 py-2">
                         <p className="text-[9.5px] font-semibold uppercase tracking-[0.08em] text-[#0A2240]/40">{t.label}</p>
-                        <p className="mt-0.5 text-[13px] font-bold tabular-nums text-[#0A2240]">{r.byType[t.value]}</p>
+                        <p className="mt-0.5 text-[13px] font-bold tabular-nums text-[#0A2240]">{formatGHS(r.byType[t.value])}</p>
                       </div>
                     ))}
                   </div>
@@ -143,7 +144,7 @@ export default async function MomoPerformancePage({
                     {MOMO_TYPES.map((t) => (
                       <th key={t.value} className="px-3 py-3 text-right font-semibold">{t.label}</th>
                     ))}
-                    <th className="px-5 py-3 text-right font-semibold">Total</th>
+                    <th className="px-5 py-3 text-right font-semibold">Total amount</th>
                     <th className="px-5 py-3 text-right font-semibold">Charges collected</th>
                   </tr>
                 </thead>
@@ -171,11 +172,11 @@ export default async function MomoPerformancePage({
                       </td>
                       {MOMO_TYPES.map((t) => (
                         <td key={t.value} className="px-3 py-3.5 text-right tabular-nums text-[#0A2240]/70">
-                          {r.byType[t.value]}
+                          {formatGHS(r.byType[t.value])}
                         </td>
                       ))}
                       <td className="px-5 py-3.5 text-right text-[14px] font-semibold tabular-nums text-[#1A1A1A]">
-                        {r.transactionCount}
+                        {formatGHS(r.totalAmount)}
                       </td>
                       <td className="px-5 py-3.5 text-right text-[14px] font-semibold tabular-nums text-[#1A1A1A]">
                         {formatGHS(r.totalCharge)}

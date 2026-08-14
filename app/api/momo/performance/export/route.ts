@@ -32,9 +32,10 @@ export async function GET(request: Request) {
     "Staff member": r.fullName,
     "Role": r.role === "admin" ? "Administrator" : r.role === "staff" ? "Staff" : "—",
     "Status": r.staffId ? (r.isActive ? "Active" : "Deactivated") : "—",
-    ...Object.fromEntries(MOMO_TYPES.map((t) => [t.label, r.byType[t.value]])),
-    "Total transactions": r.transactionCount,
+    ...Object.fromEntries(MOMO_TYPES.map((t) => [`${t.label} (GHS)`, r.byType[t.value]])),
+    "Total amount (GHS)": r.totalAmount,
     "Charges collected (GHS)": r.totalCharge,
+    "Total transactions": r.transactionCount,
   }));
 
   return xlsxResponse(exportRows, {
@@ -42,6 +43,6 @@ export async function GET(request: Request) {
     filename: from && to
       ? `momo-performance-${from}-to-${to}.xlsx`
       : `momo-performance-${new Date().toISOString().slice(0, 10)}.xlsx`,
-    colWidths: [24, 16, 14, 10, 10, 10, 10, 12, 10, 16, 20],
+    colWidths: [24, 16, 14, 12, 12, 12, 12, 14, 12, 16, 18, 16],
   });
 }

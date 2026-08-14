@@ -70,6 +70,12 @@ export async function computeMomoSummary(
 // the PFS RPC's left-join-everyone approach; a transaction whose recorder
 // has since been deleted (recorded_by null, 0064_staff_delete_set_null.sql)
 // is folded into a separate "Unattributed" row rather than dropped.
+//
+// byType holds the sum of `amount` per type (the real GHS that moved
+// through customers' MoMo wallets), not a transaction count — a staff
+// member who did five GHS 20 airtime top-ups and one who did a single
+// GHS 500 cash-out both show as "1 transaction" if counted, which hides
+// which one actually moved more money.
 // ─────────────────────────────────────────────────────────────────────────
 
 export interface MomoStaffPerformanceRow {
@@ -79,6 +85,7 @@ export interface MomoStaffPerformanceRow {
   isActive: boolean;
   byType: Record<MomoTransactionType, number>;
   transactionCount: number;
+  totalAmount: number;
   totalCharge: number;
 }
 
@@ -90,7 +97,7 @@ export async function computeMomoStaffPerformance(
 ): Promise<MomoStaffPerformanceRow[]> {
   let txnQuery = supabase
     .from("momo_transactions")
-    .select("recorded_by, type, charge")
+    .select("recorded_by, type, amount, charge")
     .is("reversed_at", null);
 
   if (range?.from) txnQuery = txnQuery.gte("created_at", `${range.from}T00:00:00`);
@@ -103,20 +110,21 @@ export async function computeMomoStaffPerformance(
 
   const emptyByType = () => Object.fromEntries(MOMO_TYPES.map((t) => [t.value, 0])) as Record<MomoTransactionType, number>;
 
-  const buckets = new Map<string, { byType: Record<MomoTransactionType, number>; count: number; charge: number }>();
-  for (const t of (txnRows ?? []) as { recorded_by: string | null; type: MomoTransactionType; charge: number }[]) {
+  const buckets = new Map<string, { byType: Record<MomoTransactionType, number>; count: number; amount: number; charge: number }>();
+  for (const t of (txnRows ?? []) as { recorded_by: string | null; type: MomoTransactionType; amount: number; charge: number }[]) {
     const key = t.recorded_by ?? UNATTRIBUTED_ID;
-    if (!buckets.has(key)) buckets.set(key, { byType: emptyByType(), count: 0, charge: 0 });
+    if (!buckets.has(key)) buckets.set(key, { byType: emptyByType(), count: 0, amount: 0, charge: 0 });
     const bucket = buckets.get(key)!;
-    bucket.byType[t.type] += 1;
+    bucket.byType[t.type] += Number(t.amount ?? 0);
     bucket.count += 1;
+    bucket.amount += Number(t.amount ?? 0);
     bucket.charge += Number(t.charge ?? 0);
   }
 
   const profiles = (profileRows ?? []) as { id: string; full_name: string; role: "admin" | "staff"; is_active: boolean }[];
 
   const rows: MomoStaffPerformanceRow[] = profiles.map((p) => {
-    const bucket = buckets.get(p.id) ?? { byType: emptyByType(), count: 0, charge: 0 };
+    const bucket = buckets.get(p.id) ?? { byType: emptyByType(), count: 0, amount: 0, charge: 0 };
     return {
       staffId: p.id,
       fullName: p.full_name,
@@ -124,6 +132,7 @@ export async function computeMomoStaffPerformance(
       isActive: p.is_active,
       byType: bucket.byType,
       transactionCount: bucket.count,
+      totalAmount: round2(bucket.amount),
       totalCharge: round2(bucket.charge),
     };
   });
@@ -137,9 +146,10 @@ export async function computeMomoStaffPerformance(
       isActive: false,
       byType: unattributed.byType,
       transactionCount: unattributed.count,
+      totalAmount: round2(unattributed.amount),
       totalCharge: round2(unattributed.charge),
     });
   }
 
-  return rows.sort((a, b) => b.transactionCount - a.transactionCount || a.fullName.localeCompare(b.fullName));
+  return rows.sort((a, b) => b.totalAmount - a.totalAmount || a.fullName.localeCompare(b.fullName));
 }
