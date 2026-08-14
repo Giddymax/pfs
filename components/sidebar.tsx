@@ -219,7 +219,7 @@ const MOMO_NAV = [
     icon: LayoutDashboard,
     active: "bg-[#1A1A1A]/12 text-[#1A1A1A]",
     activeIcon: "text-[#1A1A1A]",
-    idle: "group text-[#1A1A1A]/90 hover:bg-[#1A1A1A]/10 hover:text-[#1A1A1A]",
+    idle: "group text-[#1A1A1A]/90 hover:bg-white hover:text-[#1A1A1A]",
     idleIcon: "text-[#1A1A1A]/90 transition-colors group-hover:text-[#1A1A1A]",
   },
   {
@@ -228,7 +228,7 @@ const MOMO_NAV = [
     icon: ArrowLeftRight,
     active: "bg-[#1A1A1A]/12 text-[#1A1A1A]",
     activeIcon: "text-[#1A1A1A]",
-    idle: "group text-[#1A1A1A]/90 hover:bg-[#1A1A1A]/10 hover:text-[#1A1A1A]",
+    idle: "group text-[#1A1A1A]/90 hover:bg-white hover:text-[#1A1A1A]",
     idleIcon: "text-[#1A1A1A]/90 transition-colors group-hover:text-[#1A1A1A]",
   },
 ];
@@ -305,7 +305,7 @@ export function Sidebar({
               "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-[11.5px] font-semibold transition-colors",
               !inMomo
                 ? "bg-[#FFFFFF]/18 text-[#FFFFFF]"
-                : "text-[#1A1A1A]/80 hover:bg-[#1A1A1A]/10 hover:text-[#1A1A1A]"
+                : "text-[#1A1A1A]/80 hover:bg-white hover:text-[#1A1A1A]"
             )}
           >
             <Landmark size={13} />
@@ -425,7 +425,7 @@ export function Sidebar({
           href="/profile"
           className={clsx(
             "mb-4 flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors",
-            inMomo ? "bg-[#1A1A1A]/5 hover:bg-[#1A1A1A]/10" : "bg-[#163013]/5 hover:bg-[#163013]/10"
+            inMomo ? "bg-[#1A1A1A]/5 hover:bg-white" : "bg-[#163013]/5 hover:bg-[#163013]/10"
           )}
         >
           <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#0033AA]/12 text-[12px] font-semibold text-[#0033AA]">
@@ -449,7 +449,7 @@ export function Sidebar({
             type="submit"
             className={clsx(
               "flex w-full items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-[13px] transition-colors",
-              inMomo ? "font-semibold text-[#1A1A1A] hover:bg-[#1A1A1A]/8" : "font-medium text-[#FFFFFF] hover:bg-[#163013]/5"
+              inMomo ? "font-semibold text-[#1A1A1A] hover:bg-white" : "font-medium text-[#FFFFFF] hover:bg-[#163013]/5"
             )}
           >
             <LogOut size={16} />
