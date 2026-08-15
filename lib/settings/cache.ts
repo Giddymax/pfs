@@ -29,6 +29,7 @@ const DEFAULTS: Settings = {
     account_balance: { visible: true },
     total_withdrawals: { visible: true },
     loans_disbursed: { visible: true },
+    loan_repayments: { visible: true },
     card_fees:           { visible: true },
     withdrawal_commission: { visible: true },
     susu_fees:           { visible: true },

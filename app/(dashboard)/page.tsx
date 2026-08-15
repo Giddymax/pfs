@@ -21,6 +21,12 @@ import {
   CreditCard,
   Lock,
   HandCoins,
+  Percent,
+  BadgePercent,
+  Coins,
+  MessageSquare,
+  FileText,
+  ArrowDownLeft,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Loan, Client, Profile, Transaction } from "@/lib/types";
@@ -47,6 +53,7 @@ export default async function OverviewPage() {
     account_balance: { visible: true },
     total_withdrawals: { visible: true },
     loans_disbursed: { visible: true },
+    loan_repayments: { visible: true },
     card_fees:           { visible: true },
     withdrawal_commission: { visible: true },
     susu_fees:           { visible: true },
@@ -98,7 +105,7 @@ export default async function OverviewPage() {
   const {
     totalSavings, totalSusu, consolidatedFundDeposits, loanInterest, commission, susuFees, cardFees,
     totalSmsFees, processingFees, totalRevenue, combinedTotal, totalWithdrawals, loansDisbursed,
-    accountBalance, cashAtBank, cashAtHand,
+    loanRepayments, accountBalance, cashAtBank, cashAtHand,
   } = summary;
 
   const recentLoans = loans ?? [];
@@ -180,6 +187,51 @@ export default async function OverviewPage() {
             icon={<CreditCard size={17} />}
           />
         )}
+        {kpi.loan_interest.visible && (
+          <SummaryCard
+            label="Loan Interest"
+            value={formatGHS(loanInterest)}
+            hint="Interest actually collected on repayments — counted only once repaid, not at disbursement. Included in Total Revenue"
+            tone="sky"
+            icon={<Percent size={17} />}
+          />
+        )}
+        {kpi.withdrawal_commission.visible && (
+          <SummaryCard
+            label="Withdrawal Commission"
+            value={formatGHS(commission)}
+            hint="Charged on savings withdrawals only — susu is commission-exempt. Included in Total Revenue and Total Withdrawals"
+            tone="indigo"
+            icon={<BadgePercent size={17} />}
+          />
+        )}
+        {kpi.susu_fees.visible && (
+          <SummaryCard
+            label="Susu Fees"
+            value={formatGHS(susuFees)}
+            hint="Day-31 completion fee plus early-withdrawal and emergency-claim penalties. Included in Total Revenue and Total Withdrawals"
+            tone="lime"
+            icon={<Coins size={17} />}
+          />
+        )}
+        {kpi.sms_fees.visible && (
+          <SummaryCard
+            label="SMS Fees"
+            value={formatGHS(totalSmsFees)}
+            hint="Monthly SMS charges deducted from client balances. Included in Total Revenue and Total Withdrawals"
+            tone="fuchsia"
+            icon={<MessageSquare size={17} />}
+          />
+        )}
+        {kpi.processing_fees.visible && (
+          <SummaryCard
+            label="Processing Fees"
+            value={formatGHS(processingFees)}
+            hint="Charged when a loan is activated, deducted from the client's balance. Included in Total Revenue and Total Withdrawals"
+            tone="slate"
+            icon={<FileText size={17} />}
+          />
+        )}
         {kpi.combined_total.visible && (
           <SummaryCard
             label="Combined Account Total"
@@ -205,6 +257,15 @@ export default async function OverviewPage() {
             hint="Principal currently out on active/completed/defaulted loans — subtracted from Account Balance"
             tone="cyan"
             icon={<HandCoins size={17} />}
+          />
+        )}
+        {kpi.loan_repayments.visible && (
+          <SummaryCard
+            label="Loan Repayments"
+            value={formatGHS(loanRepayments)}
+            hint="Cash actually received back — principal plus interest combined. Added back into Account Balance against Loans Disbursed"
+            tone="lightgreen"
+            icon={<ArrowDownLeft size={17} />}
           />
         )}
         {kpi.account_balance.visible && (
@@ -380,6 +441,12 @@ const TONES = {
   pink:    { tint: "bg-[#DB2777]/8",  icon: "text-[#DB2777]",  bar: "bg-[#DB2777]" },
   violet:  { tint: "bg-[#7C3AED]/8",  icon: "text-[#7C3AED]",  bar: "bg-[#7C3AED]" },
   cyan:    { tint: "bg-[#0891B2]/8",  icon: "text-[#0891B2]",  bar: "bg-[#0891B2]" },
+  sky:     { tint: "bg-[#0284C7]/8",  icon: "text-[#0284C7]",  bar: "bg-[#0284C7]" },
+  indigo:  { tint: "bg-[#4F46E5]/8",  icon: "text-[#4F46E5]",  bar: "bg-[#4F46E5]" },
+  lime:    { tint: "bg-[#65A30D]/8",  icon: "text-[#65A30D]",  bar: "bg-[#65A30D]" },
+  fuchsia: { tint: "bg-[#C026D3]/8",  icon: "text-[#C026D3]",  bar: "bg-[#C026D3]" },
+  slate:   { tint: "bg-[#475569]/8",  icon: "text-[#475569]",  bar: "bg-[#475569]" },
+  lightgreen: { tint: "bg-[#22C55E]/8", icon: "text-[#22C55E]", bar: "bg-[#22C55E]" },
 } as const;
 
 function SummaryCard({
