@@ -55,8 +55,7 @@ export default async function MomoTransactionsPage({
     .order("created_at", { ascending: false });
 
   if (type) query = query.eq("type", type);
-  if (staff === "unattributed") query = query.is("recorded_by", null);
-  else if (staff) query = query.eq("recorded_by", staff);
+  if (staff) query = query.eq("recorded_by", staff);
   if (q) query = query.or(`phone_number.ilike.%${q}%,note.ilike.%${q}%`);
 
   const [{ data: rows, error }, summary, { data: { user } }, { data: staffRows }, settings] = await Promise.all([
@@ -79,10 +78,11 @@ export default async function MomoTransactionsPage({
   }
 
   const transactions = rows ?? [];
-  const STAFF_OPTIONS: FilterOption[] = [
-    ...(staffRows ?? []).map((p) => ({ value: p.id, label: p.full_name })),
-    { value: "unattributed", label: "Unattributed (deleted account)" },
-  ];
+  // No "Unattributed" entry — deleting a staff account now deletes their
+  // momo_transactions entirely (0068_staff_delete_cascade_transactions.sql)
+  // rather than leaving them with recorded_by null, so that state is no
+  // longer reachable through normal use.
+  const STAFF_OPTIONS: FilterOption[] = (staffRows ?? []).map((p) => ({ value: p.id, label: p.full_name }));
   const qs = new URLSearchParams({
     from, to, preset: params.preset ?? "this_month",
     ...(type ? { type } : {}),
