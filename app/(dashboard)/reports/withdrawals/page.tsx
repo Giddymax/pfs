@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { Search, Wallet, ArrowUpFromLine, Percent, Scale } from "lucide-react";
+import { Search, Wallet, ArrowUpFromLine, Percent, Scale, Coins, MessageSquare } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { SummaryControls } from "@/components/summary-controls";
 import { TransactionLogTable } from "@/components/transaction-log-table";
@@ -88,11 +88,32 @@ export default async function WithdrawalsPage({
   const settings = await getSettings();
   const rc = { ...DEFAULT_REVENUE_COMPONENTS, ...(settings.overview_kpi?.total_revenue?.components ?? {}) };
 
-  const [{ data: periodTxnRows, error: txnError }, accountSummary] = await Promise.all([
+  const [
+    { data: periodTxnRows, error: txnError },
+    accountSummary,
+    { data: susuDay31Rows },
+    { data: paidEmergencyPenaltyRows },
+    { data: smsFeeRows },
+  ] = await Promise.all([
     supabase.rpc("list_period_transactions", { p_from: from, p_to: to }),
     // Same shared calculation the Overview dashboard, Bank page, and Finance
     // page use, so "Account Balance" here always matches those screens.
     computeAccountSummary(supabase, rc),
+    // Susu Fees below mirrors lib/finance/account-summary.ts's susuFees
+    // formula exactly, just scoped to this period instead of all-time —
+    // day-31 cycle fees...
+    supabase.from("susu_payments").select("amount").eq("day_in_cycle", 31)
+      .gte("payment_date", from).lte("payment_date", to),
+    // ...plus paid emergency-claim penalties (the early-withdrawal penalty
+    // itself is already inside periodTxnRows as a susu withdrawal's fee, see
+    // susuEarlyWithdrawalFee below).
+    supabase.from("susu_claims").select("penalty_amount")
+      .eq("claim_type", "emergency").eq("status", "paid")
+      .gte("paid_at", `${from}T00:00:00`).lte("paid_at", `${to}T23:59:59.999`),
+    // SMS Charge — same source as account-summary.ts's totalSmsFees, scoped
+    // to when each charge was actually recorded.
+    supabase.from("sms_fee_charges").select("amount")
+      .gte("created_at", `${from}T00:00:00`).lte("created_at", `${to}T23:59:59.999`),
   ]);
 
   const allWithdrawals = ((periodTxnRows ?? []) as PeriodTransaction[]).filter((t) => t.type === "withdrawal");
@@ -105,10 +126,22 @@ export default async function WithdrawalsPage({
   // susu withdrawals are commission-exempt by construction (record_withdrawal
   // hard-codes fee=0 for susu); any fee on a susu row is an early-withdrawal
   // penalty, not a commission, so only savings-account fees count here.
-  const totalCommissions = round2(
+  const withdrawalCommission = round2(
     activeWithdrawals.filter((t) => t.product_type === "savings").reduce((s, t) => s + t.fee, 0)
   );
-  const netBalance = round2(totalWithdrawals - totalCommissions);
+  // The fee on a susu withdrawal (excluded from commission above) IS the
+  // early-withdrawal penalty — the third source in susuFees, alongside the
+  // two queries fetched above.
+  const susuEarlyWithdrawalFee = round2(
+    activeWithdrawals.filter((t) => t.product_type === "susu").reduce((s, t) => s + t.fee, 0)
+  );
+  const susuFees = round2(
+    susuEarlyWithdrawalFee
+    + round2((susuDay31Rows ?? []).reduce((s, r) => s + Number(r.amount ?? 0), 0))
+    + round2((paidEmergencyPenaltyRows ?? []).reduce((s, r) => s + Number(r.penalty_amount ?? 0), 0))
+  );
+  const smsCharge = round2((smsFeeRows ?? []).reduce((s, r) => s + Number(r.amount ?? 0), 0));
+  const netBalance = round2(totalWithdrawals - withdrawalCommission);
 
   const searchedWithdrawals = q
     ? allWithdrawals.filter((t) => {
@@ -164,7 +197,7 @@ export default async function WithdrawalsPage({
       </div>
 
       {/* Stat cards */}
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard
           label="Account Balance"
           value={formatGHS(accountSummary.accountBalance)}
@@ -178,10 +211,22 @@ export default async function WithdrawalsPage({
           icon={<ArrowUpFromLine size={16} />}
         />
         <StatCard
-          label="Total commissions"
-          value={formatGHS(totalCommissions)}
+          label="Withdrawal Commission"
+          value={formatGHS(withdrawalCommission)}
           hint="Savings withdrawals only — susu is commission-exempt"
           icon={<Percent size={16} />}
+        />
+        <StatCard
+          label="Susu Fees"
+          value={formatGHS(susuFees)}
+          hint="Day-31 cycle fee + early-withdrawal + paid emergency penalties"
+          icon={<Coins size={16} />}
+        />
+        <StatCard
+          label="SMS Charge"
+          value={formatGHS(smsCharge)}
+          hint="SMS fees charged to clients in this period"
+          icon={<MessageSquare size={16} />}
         />
         <StatCard
           label="Net balance"
