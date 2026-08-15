@@ -19,28 +19,33 @@ const DEFAULTS: Settings = {
   card_fee_amount: 20,
   emergency_claim_penalty_basis: "daily_contribution_amount",
   sms_monthly_fee: 2,
+  // Overview trimmed to five cards on request: Total Clients, Combined
+  // Account Total, Total Withdrawals, Account Balance, Total Revenue. Every
+  // other KPI stays fully computed for other pages — only its Overview
+  // visibility is off, so it can be turned back on here without touching
+  // any calculation.
   overview_kpi: {
     total_clients:   { visible: true },
-    total_savings:   { visible: true, calc: "dep" },
-    total_susu:      { visible: true, calc: "dep" },
+    total_savings:   { visible: false, calc: "dep" },
+    total_susu:      { visible: false, calc: "dep" },
     combined_total:  { visible: true },
     // Company Income components only — Card Fees and SMS Fees are real
     // receipts but not income, see RevenueComponents in lib/types/index.ts.
     total_revenue:   { visible: true, components: { interest: true, commission: true, susu_fees: true, processing_fees: true } },
-    consolidated_fund: { visible: true },
+    consolidated_fund: { visible: false },
     account_balance: { visible: true },
     total_withdrawals: { visible: true },
-    loans_disbursed: { visible: true },
-    loan_repayments: { visible: true },
-    other_receipts:      { visible: true },
-    card_fees:           { visible: true },
-    withdrawal_commission: { visible: true },
-    susu_fees:           { visible: true },
-    sms_fees:            { visible: true },
-    processing_fees:     { visible: true },
-    loan_interest:       { visible: true },
-    cash_at_hand:    { visible: true },
-    cash_at_bank:    { visible: true },
+    loans_disbursed: { visible: false },
+    loan_repayments: { visible: false },
+    other_receipts:      { visible: false },
+    card_fees:           { visible: false },
+    withdrawal_commission: { visible: false },
+    susu_fees:           { visible: false },
+    sms_fees:            { visible: false },
+    processing_fees:     { visible: false },
+    loan_interest:       { visible: false },
+    cash_at_hand:    { visible: false },
+    cash_at_bank:    { visible: false },
   },
 };
 
