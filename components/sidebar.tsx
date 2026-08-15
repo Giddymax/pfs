@@ -263,6 +263,10 @@ export function Sidebar({
   // (momo-mini-app-brief.md §3) has been lifted. "Performance" inside
   // MOMO_NAV stays admin-gated below (see that array's comment).
   const inMomo = pathname.startsWith("/momo");
+  // Per-account exceptions (0066_profile_page_restrictions.sql) — hiding
+  // the nav link is UX only, the real enforcement is each restricted
+  // page's own redirect guard; this just keeps a dead-end link off the rail.
+  const restricted = new Set(profile.restricted_pages ?? []);
 
   return (
     <>
@@ -340,7 +344,7 @@ export function Sidebar({
 
       <nav className="sidebar-nav flex-1 space-y-1 overflow-y-auto px-3 py-2">
         {inMomo ? (
-          MOMO_NAV.filter(({ adminOnly }) => !adminOnly || isAdmin).map(({ href, label, icon: Icon, active: activeCls, activeIcon, idle, idleIcon }) => {
+          MOMO_NAV.filter(({ adminOnly, href }) => (!adminOnly || isAdmin) && !(href === "/momo/performance" && restricted.has("momo_performance"))).map(({ href, label, icon: Icon, active: activeCls, activeIcon, idle, idleIcon }) => {
             const active = href === "/momo" ? pathname === "/momo" : pathname.startsWith(href);
             return (
               <Link
@@ -359,7 +363,7 @@ export function Sidebar({
           })
         ) : (
           <>
-            {NAV.filter(({ href }) => href !== "/" || profile.role === "admin").map(({ href, label, icon: Icon, active: activeCls, activeIcon, idle, idleIcon }) => {
+            {NAV.filter(({ href }) => (href !== "/" || profile.role === "admin") && !(href === "/" && restricted.has("overview"))).map(({ href, label, icon: Icon, active: activeCls, activeIcon, idle, idleIcon }) => {
               const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
               return (
                 <Link
@@ -409,7 +413,10 @@ export function Sidebar({
                 >
                   Admin
                 </p>
-                {ADMIN_NAV.map(({ href, label, icon: Icon, active: activeCls, activeIcon, idle, idleIcon }) => {
+                {ADMIN_NAV.filter(({ href }) =>
+                  !(href === "/settings" && restricted.has("settings")) &&
+                  !(href === "/staff/performance" && restricted.has("staff_performance"))
+                ).map(({ href, label, icon: Icon, active: activeCls, activeIcon, idle, idleIcon }) => {
                   const active = pathname.startsWith(href);
                   return (
                     <Link

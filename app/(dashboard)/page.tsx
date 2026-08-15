@@ -31,8 +31,9 @@ export default async function OverviewPage() {
   if (!user) redirect("/login");
 
   const { data: profile } = await supabase
-    .from("profiles").select("role").eq("id", user.id).single<Pick<Profile, "role">>();
+    .from("profiles").select("role, restricted_pages").eq("id", user.id).single<Pick<Profile, "role" | "restricted_pages">>();
   if (profile?.role !== "admin") redirect("/clients");
+  if (profile.restricted_pages?.includes("overview")) redirect("/clients");
 
   const settings = await getSettings();
   const defaultKpi = {

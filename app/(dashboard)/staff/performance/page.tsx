@@ -48,6 +48,7 @@ export default async function StaffPerformancePage({
   const { data: profile } = await supabase
     .from("profiles").select("*").eq("id", user.id).single<Profile>();
   if (!profile || profile.role !== "admin") redirect("/");
+  if (profile.restricted_pages?.includes("staff_performance")) redirect("/");
 
   const params = await searchParams;
   const from = params.from ?? monthStartISO();

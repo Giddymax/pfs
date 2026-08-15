@@ -28,6 +28,7 @@ export default async function SettingsPage() {
 
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single<Profile>();
   if (!profile || profile.role !== "admin") redirect("/");
+  if (profile.restricted_pages?.includes("settings")) redirect("/");
 
   const { data: rows } = await supabase.from("settings").select("*").returns<SettingsRow[]>();
   const byKey = new Map((rows ?? []).map((row) => [row.key, row.value]));

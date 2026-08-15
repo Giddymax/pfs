@@ -39,6 +39,7 @@ export default async function MomoPerformancePage({
 
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single<Profile>();
   if (!profile || profile.role !== "admin") redirect("/momo");
+  if (profile.restricted_pages?.includes("momo_performance")) redirect("/momo");
 
   const params = await searchParams;
   const from = params.from ?? monthStartISO();

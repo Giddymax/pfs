@@ -1,5 +1,10 @@
 export type Role = "admin" | "staff";
 
+// Per-account exceptions carving specific admin-only pages out for an
+// otherwise-full admin — see 0066_profile_page_restrictions.sql for why
+// this exists instead of just demoting the account to staff.
+export type RestrictablePage = "overview" | "settings" | "staff_performance" | "momo_performance";
+
 export interface Profile {
   id: string;
   full_name: string;
@@ -7,6 +12,7 @@ export interface Profile {
   role: Role;
   is_active: boolean;
   photo_url: string | null;
+  restricted_pages: RestrictablePage[];
   created_at: string;
 }
 
