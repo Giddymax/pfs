@@ -163,14 +163,16 @@ export interface KpiCardCalcConfig extends KpiCardConfig {
   calc: "balance" | "dep";
 }
 
+// Company Income (P&L revenue) — per the owner's explicit classification:
+// only these four are recognized as income. Card Fees and Monthly SMS Fees
+// are real cash the company receives, but are deliberately NOT income — see
+// AccountSummary.totalOtherReceipts in lib/finance/account-summary.ts for
+// where they're accounted for instead.
 export interface RevenueComponents {
-  interest: boolean;
-  commission: boolean;
-  susu_fees: boolean;
-  card_fees: boolean;
-  sms_fees: boolean;
-  sms_charges?: boolean;
-  processing_fees: boolean;
+  interest: boolean;        // loan interest
+  commission: boolean;      // savings withdrawal commission
+  susu_fees: boolean;       // susu fee (day-31 + early-withdrawal/emergency penalties)
+  processing_fees: boolean; // loan processing fees
 }
 
 export interface KpiRevenueConfig extends KpiCardConfig {
@@ -188,6 +190,7 @@ export interface OverviewKpiSettings {
   total_withdrawals: KpiCardConfig;
   loans_disbursed: KpiCardConfig;
   loan_repayments: KpiCardConfig;
+  other_receipts: KpiCardConfig;
   card_fees: KpiCardConfig;
   withdrawal_commission: KpiCardConfig;
   susu_fees: KpiCardConfig;

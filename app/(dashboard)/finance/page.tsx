@@ -35,8 +35,6 @@ const DEFAULT_REVENUE_COMPONENTS = {
   interest: true,
   commission: true,
   susu_fees: true,
-  card_fees: true,
-  sms_fees: true,
   processing_fees: true,
 };
 
@@ -69,19 +67,27 @@ export default async function FinancePage() {
     computeAccountSummary(supabase, rc),
   ]);
 
-  const { loanInterest, commission, susuFees, cardFees, totalSmsFees, processingFees, totalRevenue } = summary;
+  const { loanInterest, commission, susuFees, cardFees, totalSmsFees, processingFees, totalOtherReceipts, totalRevenue } = summary;
 
   const totalExpenditure = round2((expenditures ?? []).reduce((s, e) => s + Number(e.amount), 0));
   const netBalance = round2(totalRevenue - totalExpenditure);
 
+  // Company Income only — Card Fees and SMS Fees are real cash the company
+  // receives, but per the owner's classification are NOT income (see
+  // otherReceiptItems below, and RevenueComponents in lib/types/index.ts).
   const revenueItems = [
     { label: "Loan interest",   value: loanInterest,   visible: rc.interest },
     { label: "Commission",      value: commission,     visible: rc.commission },
     { label: "Susu fees",       value: susuFees,       visible: rc.susu_fees },
-    { label: "Card fees",       value: cardFees,       visible: rc.card_fees },
-    { label: "SMS fees",        value: totalSmsFees,   visible: rc.sms_fees },
     { label: "Processing fees", value: processingFees, visible: rc.processing_fees },
   ].filter((r) => r.visible);
+
+  // Real receipts that are NOT Company Income — tracked and reported
+  // distinctly so they're never silently folded into Total Revenue.
+  const otherReceiptItems = [
+    { label: "Card fees", value: cardFees },
+    { label: "SMS fees",  value: totalSmsFees },
+  ];
 
   return (
     <div>
@@ -89,7 +95,7 @@ export default async function FinancePage() {
         back="/"
         eyebrow="Admin - Finance"
         title="Company Finance"
-        description="Revenue earned, expenditures recorded, and net balance."
+        description="Company Income earned, expenditures recorded, and net balance — plus Other Receipts, which are real cash but not income."
         action={
           <div className="flex flex-wrap items-center gap-2">
             <ExportCsvButton endpoint="/api/finance/export" filename="finance.xlsx" label="Export Excel" />
@@ -98,6 +104,8 @@ export default async function FinancePage() {
               totalExpenditure={totalExpenditure}
               netBalance={netBalance}
               revenueItems={revenueItems}
+              otherReceiptItems={otherReceiptItems}
+              totalOtherReceipts={totalOtherReceipts}
               expenditures={expenditures ?? []}
               printedBy={profile?.full_name}
               companyPhone={settings.sms.company_tel ?? null}
@@ -106,12 +114,18 @@ export default async function FinancePage() {
         }
       />
 
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <SummaryCard
           label="Total Revenue"
           value={formatGHS(totalRevenue)}
           color="bg-[#15803D]"
-          sub="Interest + commission + fees"
+          sub="Company Income only: interest + commission + susu/processing fees"
+        />
+        <SummaryCard
+          label="Other Receipts"
+          value={formatGHS(totalOtherReceipts)}
+          color="bg-[#B45309]"
+          sub="Card fees + SMS fees — real cash, not income"
         />
         <SummaryCard
           label="Total Expenditure"
@@ -128,10 +142,10 @@ export default async function FinancePage() {
         />
       </div>
 
-      {/* Revenue by product */}
+      {/* Revenue by product — Company Income only */}
       <div className="mb-6">
-        <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#0A2240]/40">Revenue by product</p>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#0A2240]/40">Revenue by product (Company Income)</p>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           <ProductRevenueCard
             label="Savings"
             sublabel="Withdrawal commission"
@@ -153,6 +167,13 @@ export default async function FinancePage() {
             accent="border-l-[#0891B2]"
             valueColor="text-[#0891B2]"
           />
+        </div>
+      </div>
+
+      {/* Other receipts — real cash received, but NOT Company Income */}
+      <div className="mb-6">
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#0A2240]/40">Other receipts (not Company Income)</p>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           <ProductRevenueCard
             label="Card Fees"
             sublabel="Registration card fees"
@@ -172,7 +193,7 @@ export default async function FinancePage() {
 
       <Card className="mb-6">
         <div className="border-b border-[#0033AA]/8 px-5 py-4">
-          <h2 className="text-[15px] font-semibold text-[#0033AA]">Revenue breakdown</h2>
+          <h2 className="text-[15px] font-semibold text-[#0033AA]">Revenue breakdown (Company Income)</h2>
         </div>
         <div className="divide-y divide-[#0033AA]/6">
           {revenueItems.map((item) => (
@@ -187,6 +208,32 @@ export default async function FinancePage() {
             <span className="text-[13.5px] font-semibold text-[#0033AA]">Total</span>
             <span className="text-[15px] font-bold tabular-nums text-[#0033AA]">
               {formatGHS(totalRevenue)}
+            </span>
+          </div>
+        </div>
+      </Card>
+
+      <Card className="mb-6">
+        <div className="border-b border-[#B45309]/15 px-5 py-4">
+          <h2 className="text-[15px] font-semibold text-[#B45309]">Other receipts breakdown (not Company Income)</h2>
+          <p className="mt-0.5 text-[12px] text-[#0A2240]/45">
+            Real cash received, but not classified as income — already accounted for elsewhere (still included in
+            Account Balance and Total Withdrawals).
+          </p>
+        </div>
+        <div className="divide-y divide-[#B45309]/10">
+          {otherReceiptItems.map((item) => (
+            <div key={item.label} className="flex items-center justify-between px-5 py-3.5">
+              <span className="text-[13.5px] text-[#0A2240]/70">{item.label}</span>
+              <span className="text-[14px] font-semibold tabular-nums text-[#0A2240]">
+                {formatGHS(item.value)}
+              </span>
+            </div>
+          ))}
+          <div className="flex items-center justify-between bg-[#B45309]/[0.05] px-5 py-3.5">
+            <span className="text-[13.5px] font-semibold text-[#B45309]">Total</span>
+            <span className="text-[15px] font-bold tabular-nums text-[#B45309]">
+              {formatGHS(totalOtherReceipts)}
             </span>
           </div>
         </div>
