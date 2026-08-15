@@ -27,7 +27,6 @@ import {
   MessageSquare,
   FileText,
   ArrowDownLeft,
-  Receipt,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Loan, Client, Profile, Transaction } from "@/lib/types";
@@ -55,15 +54,12 @@ export default async function OverviewPage() {
     total_savings:   { visible: false, calc: "dep" as const },
     total_susu:      { visible: false, calc: "dep" as const },
     combined_total:  { visible: true },
-    // Company Income components only — Card Fees and SMS Fees are real
-    // receipts, not income (RevenueComponents in lib/types/index.ts).
-    total_revenue:   { visible: false, components: { interest: true, commission: true, susu_fees: true, processing_fees: true } },
+    total_revenue:   { visible: false, components: { interest: true, commission: true, susu_fees: true, card_fees: true, sms_fees: true, processing_fees: true } },
     consolidated_fund: { visible: false },
     account_balance: { visible: true },
     total_withdrawals: { visible: true },
     loans_disbursed: { visible: false },
     loan_repayments: { visible: false },
-    other_receipts:      { visible: false },
     card_fees:           { visible: false },
     withdrawal_commission: { visible: false },
     susu_fees:           { visible: false },
@@ -114,7 +110,7 @@ export default async function OverviewPage() {
 
   const {
     totalSavings, totalSusu, consolidatedFundDeposits, loanInterest, commission, susuFees, cardFees,
-    totalSmsFees, processingFees, totalOtherReceipts, totalRevenue, combinedTotal, totalWithdrawals, loansDisbursed,
+    totalSmsFees, processingFees, totalRevenue, combinedTotal, totalWithdrawals, loansDisbursed,
     loanRepayments, accountBalance, cashAtBank, cashAtHand,
   } = summary;
 
@@ -170,6 +166,8 @@ export default async function OverviewPage() {
               rc.interest        && `Interest ${formatGHS(loanInterest)}`,
               rc.commission      && `Commission ${formatGHS(commission)}`,
               rc.susu_fees       && `Susu Fees ${formatGHS(susuFees)}`,
+              rc.card_fees       && `Card Fees ${formatGHS(cardFees)}`,
+              rc.sms_fees        && `SMS Fees ${formatGHS(totalSmsFees)}`,
               rc.processing_fees && `Processing Fees ${formatGHS(processingFees)}`,
               consolidatedFundDeposits > 0 && `Less Consolidated Fund ${formatGHS(consolidatedFundDeposits)}`,
             ].filter(Boolean).join(" + ")}
@@ -186,20 +184,11 @@ export default async function OverviewPage() {
             icon={<Lock size={17} />}
           />
         )}
-        {kpi.other_receipts.visible && (
-          <SummaryCard
-            label="Other Receipts"
-            value={formatGHS(totalOtherReceipts)}
-            hint="Card Fees + SMS Fees — real cash received, but not Company Income (not part of Total Revenue)"
-            tone="gold"
-            icon={<Receipt size={17} />}
-          />
-        )}
         {kpi.card_fees.visible && (
           <SummaryCard
             label="Card Fees"
             value={formatGHS(cardFees)}
-            hint="Registration fees charged to new clients — an Other Receipt, not Company Income"
+            hint="Registration fees charged to new clients — included in Total Revenue"
             tone="pink"
             icon={<CreditCard size={17} />}
           />
@@ -208,7 +197,7 @@ export default async function OverviewPage() {
           <SummaryCard
             label="Loan Interest"
             value={formatGHS(loanInterest)}
-            hint="Interest actually collected on repayments — counted only once repaid, not at disbursement. Company Income, included in Total Revenue"
+            hint="Interest actually collected on repayments — counted only once repaid, not at disbursement. Included in Total Revenue"
             tone="sky"
             icon={<Percent size={17} />}
           />
@@ -217,7 +206,7 @@ export default async function OverviewPage() {
           <SummaryCard
             label="Withdrawal Commission"
             value={formatGHS(commission)}
-            hint="Charged on savings withdrawals only — susu is commission-exempt. Company Income, included in Total Revenue and Total Withdrawals"
+            hint="Charged on savings withdrawals only — susu is commission-exempt. Included in Total Revenue and Total Withdrawals"
             tone="indigo"
             icon={<BadgePercent size={17} />}
           />
@@ -226,7 +215,7 @@ export default async function OverviewPage() {
           <SummaryCard
             label="Susu Fees"
             value={formatGHS(susuFees)}
-            hint="Day-31 completion fee plus early-withdrawal and emergency-claim penalties. Company Income, included in Total Revenue and Total Withdrawals"
+            hint="Day-31 completion fee plus early-withdrawal and emergency-claim penalties. Included in Total Revenue and Total Withdrawals"
             tone="lime"
             icon={<Coins size={17} />}
           />
@@ -235,7 +224,7 @@ export default async function OverviewPage() {
           <SummaryCard
             label="SMS Fees"
             value={formatGHS(totalSmsFees)}
-            hint="Monthly SMS charges deducted from client balances — an Other Receipt, not Company Income. Still included in Total Withdrawals"
+            hint="Monthly SMS charges deducted from client balances. Included in Total Revenue and Total Withdrawals"
             tone="fuchsia"
             icon={<MessageSquare size={17} />}
           />
@@ -244,7 +233,7 @@ export default async function OverviewPage() {
           <SummaryCard
             label="Processing Fees"
             value={formatGHS(processingFees)}
-            hint="Charged when a loan is activated, deducted from the client's balance. Company Income, included in Total Revenue and Total Withdrawals"
+            hint="Charged when a loan is activated, deducted from the client's balance. Included in Total Revenue and Total Withdrawals"
             tone="slate"
             icon={<FileText size={17} />}
           />
@@ -464,7 +453,6 @@ const TONES = {
   fuchsia: { tint: "bg-[#C026D3]/8",  icon: "text-[#C026D3]",  bar: "bg-[#C026D3]" },
   slate:   { tint: "bg-[#475569]/8",  icon: "text-[#475569]",  bar: "bg-[#475569]" },
   lightgreen: { tint: "bg-[#22C55E]/8", icon: "text-[#22C55E]", bar: "bg-[#22C55E]" },
-  gold:    { tint: "bg-[#B45309]/8",  icon: "text-[#B45309]",  bar: "bg-[#B45309]" },
 } as const;
 
 function SummaryCard({

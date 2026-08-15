@@ -23,21 +23,17 @@ interface Expenditure {
 
 export function PrintFinanceSummaryButton({
   totalRevenue,
-  totalOtherReceipts,
   totalExpenditure,
   netBalance,
   revenueItems,
-  otherReceiptItems,
   expenditures,
   printedBy,
   companyPhone,
 }: {
   totalRevenue: number;
-  totalOtherReceipts: number;
   totalExpenditure: number;
   netBalance: number;
   revenueItems: RevenueItem[];
-  otherReceiptItems: RevenueItem[];
   expenditures: Expenditure[];
   printedBy?: string | null;
   companyPhone?: string | null;
@@ -118,9 +114,8 @@ export function PrintFinanceSummaryButton({
               COMPANY FINANCE SUMMARY
             </p>
 
-            <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <SummaryBox label="Total Revenue" value={formatGHS(totalRevenue)} color="#15803D" sub="Company Income" />
-              <SummaryBox label="Other Receipts" value={formatGHS(totalOtherReceipts)} color="#B45309" sub="Not income" />
+            <div className="mb-6 grid grid-cols-3 gap-3">
+              <SummaryBox label="Total Revenue" value={formatGHS(totalRevenue)} color="#15803D" />
               <SummaryBox label="Total Expenditure" value={formatGHS(totalExpenditure)} color="#B3432B" />
               <SummaryBox
                 label="Net Balance"
@@ -130,7 +125,7 @@ export function PrintFinanceSummaryButton({
               />
             </div>
 
-            <Section title="Revenue Breakdown (Company Income)">
+            <Section title="Revenue Breakdown">
               <table className="w-full text-left text-[12px]">
                 <thead>
                   <tr className="border-b border-[#0A2240]/10 bg-[#0A2240]/[0.04]">
@@ -159,35 +154,6 @@ export function PrintFinanceSummaryButton({
                       {formatGHS(totalRevenue)}
                     </td>
                     <td className="px-4 py-2.5 text-right text-[12px] font-semibold tabular-nums text-[#0A2240]/60">100%</td>
-                  </tr>
-                </tfoot>
-              </table>
-            </Section>
-
-            <Section title="Other Receipts (Not Company Income)">
-              <table className="w-full text-left text-[12px]">
-                <thead>
-                  <tr className="border-b border-[#0A2240]/10 bg-[#0A2240]/[0.04]">
-                    <th className="px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#0A2240]/50">Source</th>
-                    <th className="px-4 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.1em] text-[#0A2240]/50">Amount</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#0A2240]/6">
-                  {otherReceiptItems.map((item) => (
-                    <tr key={item.label}>
-                      <td className="px-4 py-2.5 text-[#0A2240]/70">{item.label}</td>
-                      <td className="px-4 py-2.5 text-right tabular-nums font-medium text-[#0A2240]">
-                        {formatGHS(item.value)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t-2 border-[#0A2240]/15 bg-[#0A2240]/[0.03]">
-                    <td className="px-4 py-2.5 text-[12px] font-bold text-[#0A2240]">Total Other Receipts</td>
-                    <td className="px-4 py-2.5 text-right text-[13px] font-bold tabular-nums text-[#B45309]">
-                      {formatGHS(totalOtherReceipts)}
-                    </td>
                   </tr>
                 </tfoot>
               </table>

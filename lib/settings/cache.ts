@@ -29,15 +29,12 @@ const DEFAULTS: Settings = {
     total_savings:   { visible: false, calc: "dep" },
     total_susu:      { visible: false, calc: "dep" },
     combined_total:  { visible: true },
-    // Company Income components only — Card Fees and SMS Fees are real
-    // receipts but not income, see RevenueComponents in lib/types/index.ts.
-    total_revenue:   { visible: false, components: { interest: true, commission: true, susu_fees: true, processing_fees: true } },
+    total_revenue:   { visible: false, components: { interest: true, commission: true, susu_fees: true, card_fees: true, sms_fees: true, processing_fees: true } },
     consolidated_fund: { visible: false },
     account_balance: { visible: true },
     total_withdrawals: { visible: true },
     loans_disbursed: { visible: false },
     loan_repayments: { visible: false },
-    other_receipts:      { visible: false },
     card_fees:           { visible: false },
     withdrawal_commission: { visible: false },
     susu_fees:           { visible: false },

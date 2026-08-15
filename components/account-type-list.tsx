@@ -16,6 +16,8 @@ const DEFAULT_REVENUE_COMPONENTS = {
   interest: true,
   commission: true,
   susu_fees: true,
+  card_fees: true,
+  sms_fees: true,
   processing_fees: true,
 };
 

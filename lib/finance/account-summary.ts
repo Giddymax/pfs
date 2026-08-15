@@ -39,29 +39,12 @@ export interface AccountSummary {
                         // early-withdrawal penalties + paid emergency-claim
                         // penalties. See susuFeesSwept below for why this
                         // figure specifically is NOT what accountBalance uses.
-  // Card Fees and SMS Fees are real cash the company receives, but — per the
-  // owner's explicit classification — are NOT Company Income. Only loan
-  // interest, withdrawal commission, susu fees, and loan processing fees are
-  // revenue (see RevenueComponents in lib/types/index.ts). Card Fees and SMS
-  // Fees are still tracked here (and still added back into accountBalance
-  // below, since that's a cash-position fact, independent of P&L
-  // classification) — they just don't feed totalRevenue. See
-  // totalOtherReceipts for where they DO belong.
   cardFees: number;
   totalSmsFees: number;
   processingFees: number;
-  // Cash received that is NOT company income — Card Fees + SMS Fees. A
-  // legitimate receipt (it shows up in Account Balance same as revenue
-  // does), just not profit/revenue on the P&L. Kept as its own figure so it
-  // can be reported distinctly from totalRevenue rather than silently
-  // folded into it.
-  totalOtherReceipts: number;
-  // Company Income only: loan interest + withdrawal commission + susu fees
-  // + loan processing fees (each gated by revenueComponents), net of PFS
-  // CONSOLIDATED FUND's lifetime deposits (see consolidatedFundDeposits and
-  // CONSOLIDATED_FUND_ACCOUNT_NUMBER above) — income already committed to
-  // the fund is no longer counted as available revenue. Card Fees and SMS
-  // Fees are deliberately excluded — see totalOtherReceipts above.
+  // Net of PFS CONSOLIDATED FUND's lifetime deposits (see
+  // consolidatedFundDeposits and CONSOLIDATED_FUND_ACCOUNT_NUMBER above) —
+  // revenue committed to the fund is no longer counted as available revenue.
   totalRevenue: number;
   // Combined Account Total = Total Savings + Total Daily Susu ONLY — a pure
   // client-liability figure (what's owed to depositors), deliberately not
@@ -287,17 +270,15 @@ export async function computeAccountSummary(
   // isn't added twice; cardFees is deliberately excluded.
   const totalWithdrawals = round2(withdrawalPrincipal + commission + susuFees + totalSmsFees + processingFees);
 
-  // Company Income only — Card Fees and SMS Fees are real receipts but not
-  // revenue (see totalOtherReceipts below and the owner's classification
-  // noted on RevenueComponents in lib/types/index.ts).
   const totalRevenue = round2(
     (revenueComponents.interest ? loanInterest : 0) +
     (revenueComponents.commission ? commission : 0) +
     (revenueComponents.susu_fees ? susuFees : 0) +
+    (revenueComponents.card_fees ? cardFees : 0) +
+    (revenueComponents.sms_fees ? totalSmsFees : 0) +
     (revenueComponents.processing_fees ? processingFees : 0) -
     consolidatedFundDeposits
   );
-  const totalOtherReceipts = round2(cardFees + totalSmsFees);
 
   const combinedTotal = round2(totalSavings + totalSusu);
 
@@ -346,7 +327,6 @@ export async function computeAccountSummary(
     cardFees,
     totalSmsFees,
     processingFees,
-    totalOtherReceipts,
     totalRevenue,
     combinedTotal,
     totalWithdrawals,
