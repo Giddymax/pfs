@@ -19,11 +19,11 @@ const DEFAULTS: Settings = {
   card_fee_amount: 20,
   emergency_claim_penalty_basis: "daily_contribution_amount",
   sms_monthly_fee: 2,
-  // Overview trimmed to five cards on request: Total Clients, Combined
-  // Account Total, Total Withdrawals, Account Balance, Total Revenue. Every
-  // other KPI stays fully computed for other pages — only its Overview
-  // visibility is off, so it can be turned back on here without touching
-  // any calculation.
+  // Overview trimmed to four cards on request: Total Clients, Combined
+  // Account Total, Total Withdrawals, Account Balance. Every other KPI
+  // (including Total Revenue) stays fully computed for other pages — only
+  // its Overview visibility is off, so it can be turned back on here
+  // without touching any calculation.
   overview_kpi: {
     total_clients:   { visible: true },
     total_savings:   { visible: false, calc: "dep" },
@@ -31,7 +31,7 @@ const DEFAULTS: Settings = {
     combined_total:  { visible: true },
     // Company Income components only — Card Fees and SMS Fees are real
     // receipts but not income, see RevenueComponents in lib/types/index.ts.
-    total_revenue:   { visible: true, components: { interest: true, commission: true, susu_fees: true, processing_fees: true } },
+    total_revenue:   { visible: false, components: { interest: true, commission: true, susu_fees: true, processing_fees: true } },
     consolidated_fund: { visible: false },
     account_balance: { visible: true },
     total_withdrawals: { visible: true },

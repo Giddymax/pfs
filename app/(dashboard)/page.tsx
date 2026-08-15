@@ -44,11 +44,12 @@ export default async function OverviewPage() {
   if (profile.restricted_pages?.includes("overview")) redirect("/clients");
 
   const settings = await getSettings();
-  // Overview trimmed to five cards on request: Total Clients, Combined
-  // Account Total, Total Withdrawals, Account Balance, Total Revenue. Every
-  // other KPI stays fully computed (other pages still depend on the same
-  // shared summary) — only its Overview visibility is switched off, so it
-  // can be turned back on here later without touching any calculation.
+  // Overview trimmed to four cards on request: Total Clients, Combined
+  // Account Total, Total Withdrawals, Account Balance. Every other KPI
+  // (including Total Revenue) stays fully computed — other pages still
+  // depend on the same shared summary — only its Overview visibility is
+  // switched off, so it can be turned back on here later without touching
+  // any calculation.
   const defaultKpi = {
     total_clients:   { visible: true },
     total_savings:   { visible: false, calc: "dep" as const },
@@ -56,7 +57,7 @@ export default async function OverviewPage() {
     combined_total:  { visible: true },
     // Company Income components only — Card Fees and SMS Fees are real
     // receipts, not income (RevenueComponents in lib/types/index.ts).
-    total_revenue:   { visible: true, components: { interest: true, commission: true, susu_fees: true, processing_fees: true } },
+    total_revenue:   { visible: false, components: { interest: true, commission: true, susu_fees: true, processing_fees: true } },
     consolidated_fund: { visible: false },
     account_balance: { visible: true },
     total_withdrawals: { visible: true },
