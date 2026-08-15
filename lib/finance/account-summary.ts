@@ -52,8 +52,29 @@ export interface AccountSummary {
   // different pool of money; see Total Revenue above and Account Balance's
   // own comment for where revenue actually belongs).
   combinedTotal: number;
-  // Total withdrawn across all accounts, all time, excluding reversed txns.
+  // Every amount deducted from a client's account balance, all time,
+  // excluding reversed txns — not just what the client withdrew themselves.
+  // recalculate_account()'s own balance formula treats withdrawal principal,
+  // commission, and every type='fee' charge as three independently-
+  // subtracted amounts (balance = dep − wdr − comm − fees), so all of them
+  // are real, separate deductions from the same pool, and belong in this
+  // total together:
+  //   + withdrawal principal (what the client actually walked away with)
+  //   + commission (savings withdrawals) + susuFees (day-31 fee,
+  //     early-withdrawal penalty, paid emergency-claim penalties — susu's
+  //     equivalent of commission)
+  //   + totalSmsFees + processingFees (company charges deducted straight
+  //     out of a client's balance, same as commission)
+  // Card Fees are the one deliberate exception — they're a fresh cash
+  // inflow at registration, never netted against any client account
+  // balance (see cardFees' own comment below), so they're not a
+  // "withdrawal" in any sense and stay out of this total.
   totalWithdrawals: number;
+  // The subset of totalWithdrawals that's just the raw withdrawal
+  // principal — what a client actually walked away with in hand, before
+  // any commission/fee is netted out. Exposed separately since
+  // totalWithdrawals itself no longer means "cash paid to clients" alone.
+  withdrawalPrincipal: number;
   // Total loan principal actually disbursed (cash out) and total repayments
   // actually received (cash in, principal + interest combined — see
   // accountBalance's comment for why interest isn't added a second time).
@@ -209,7 +230,11 @@ export async function computeAccountSummary(
       .reduce((s: number, r: { dep: number }) => s + Number(r.dep ?? 0), 0)
   );
   const totalSusu = sum(susuRows, "dep");
-  const totalWithdrawals = sum(withdrawalRows, "amount");
+  // Raw withdrawal principal — what clients actually walked away with in
+  // hand. Kept as its own value below (not the totalWithdrawals field
+  // anymore, see that field's comment) since commission/susuFees/etc. need
+  // it as a building block.
+  const withdrawalPrincipal = sum(withdrawalRows, "amount");
 
   // Split withdrawal fees by product. Susu withdrawals are commission-exempt
   // under record_withdrawal (the shared RPC every normal susu withdrawal
@@ -234,6 +259,11 @@ export async function computeAccountSummary(
   const totalSmsFees = sum(smsFeeRows, "amount");
   const processingFees = sum(processingFeeRows, "processing_fee");
   const loanInterest = round2(Number(collectedInterest ?? 0));
+
+  // Total Withdrawals — see the AccountSummary field's own comment for the
+  // full reasoning. susuFees already contains susuEarlyWithdrawalFee, so it
+  // isn't added twice; cardFees is deliberately excluded.
+  const totalWithdrawals = round2(withdrawalPrincipal + commission + susuFees + totalSmsFees + processingFees);
 
   const totalRevenue = round2(
     (revenueComponents.interest ? loanInterest : 0) +
@@ -295,6 +325,7 @@ export async function computeAccountSummary(
     totalRevenue,
     combinedTotal,
     totalWithdrawals,
+    withdrawalPrincipal,
     loansDisbursed,
     loanRepayments,
     totalExpenditures,

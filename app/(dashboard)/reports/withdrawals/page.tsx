@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { Search, Wallet, ArrowUpFromLine, Percent, Scale, Coins, MessageSquare } from "lucide-react";
+import { Search, Wallet, ArrowUpFromLine, Percent, Scale, Coins, MessageSquare, FileText, Layers } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { SummaryControls } from "@/components/summary-controls";
 import { TransactionLogTable } from "@/components/transaction-log-table";
@@ -94,6 +94,7 @@ export default async function WithdrawalsPage({
     { data: susuDay31Rows },
     { data: paidEmergencyPenaltyRows },
     { data: smsFeeRows },
+    { data: processingFeeRows },
   ] = await Promise.all([
     supabase.rpc("list_period_transactions", { p_from: from, p_to: to }),
     // Same shared calculation the Overview dashboard, Bank page, and Finance
@@ -114,6 +115,12 @@ export default async function WithdrawalsPage({
     // to when each charge was actually recorded.
     supabase.from("sms_fee_charges").select("amount")
       .gte("created_at", `${from}T00:00:00`).lte("created_at", `${to}T23:59:59.999`),
+    // Processing Fee — activate_loan() deducts this straight out of the
+    // client's savings/susu balance at disbursement, via a type='fee'
+    // transaction, same as susu/SMS fees above. Scoped by disbursement_date
+    // since that's the moment activate_loan() actually charges it.
+    supabase.from("loans").select("processing_fee")
+      .gte("disbursement_date", from).lte("disbursement_date", to),
   ]);
 
   const allWithdrawals = ((periodTxnRows ?? []) as PeriodTransaction[]).filter((t) => t.type === "withdrawal");
@@ -121,7 +128,12 @@ export default async function WithdrawalsPage({
   // Stat cards reflect the whole selected period regardless of the search box
   // below — search only narrows which rows are visible in the log table.
   const activeWithdrawals = allWithdrawals.filter((t) => !t.reversed_at);
-  const totalWithdrawals = round2(activeWithdrawals.reduce((s, t) => s + t.amount, 0));
+  // Cash Paid to Clients — what a client actually walked away with in hand.
+  // No longer what "Total Withdrawals" means (see below) — kept as its own
+  // figure since it's still the most direct answer to "how much did we pay
+  // out", same distinction lib/finance/account-summary.ts now draws between
+  // withdrawalPrincipal and the broader totalWithdrawals.
+  const cashPaidToClients = round2(activeWithdrawals.reduce((s, t) => s + t.amount, 0));
   // Commission mirrors the app-wide definition (lib/finance/account-summary.ts):
   // susu withdrawals are commission-exempt by construction (record_withdrawal
   // hard-codes fee=0 for susu); any fee on a susu row is an early-withdrawal
@@ -141,7 +153,19 @@ export default async function WithdrawalsPage({
     + round2((paidEmergencyPenaltyRows ?? []).reduce((s, r) => s + Number(r.penalty_amount ?? 0), 0))
   );
   const smsCharge = round2((smsFeeRows ?? []).reduce((s, r) => s + Number(r.amount ?? 0), 0));
-  const netBalance = round2(totalWithdrawals - withdrawalCommission);
+  const processingFee = round2((processingFeeRows ?? []).reduce((s, r) => s + Number(r.processing_fee ?? 0), 0));
+  // Total Withdrawals — same broadened definition as
+  // lib/finance/account-summary.ts's totalWithdrawals, scoped to this
+  // period: every amount deducted from a client's balance, whether the
+  // client withdrew it themselves or PFS charged it as a fee. Card Fees are
+  // excluded (never deducted from any client balance — see that field's own
+  // comment in account-summary.ts).
+  const totalWithdrawals = round2(
+    cashPaidToClients + withdrawalCommission + susuFees + smsCharge + processingFee
+  );
+  // The complement of Cash Paid to Clients within Total Withdrawals — what
+  // PFS kept, rather than handed over.
+  const totalFeesRetained = round2(totalWithdrawals - cashPaidToClients);
 
   const searchedWithdrawals = q
     ? allWithdrawals.filter((t) => {
@@ -163,8 +187,8 @@ export default async function WithdrawalsPage({
         title="Withdrawals"
         description={
           isAdmin
-            ? "Search for an account to withdraw from directly, or review every withdrawal recorded across all accounts for any date range you choose."
-            : "Review every withdrawal recorded across all accounts for any date range you choose. Recording a withdrawal is restricted to admins."
+            ? "Search for an account to withdraw from directly, or review every amount deducted from a client's balance — cash withdrawn or company charges — for any date range you choose."
+            : "Review every amount deducted from a client's balance — cash withdrawn or company charges — for any date range you choose. Recording a withdrawal is restricted to admins."
         }
         action={
           <ExportCsvButton
@@ -197,7 +221,7 @@ export default async function WithdrawalsPage({
       </div>
 
       {/* Stat cards */}
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Account Balance"
           value={formatGHS(accountSummary.accountBalance)}
@@ -205,10 +229,23 @@ export default async function WithdrawalsPage({
           icon={<Wallet size={16} />}
         />
         <StatCard
-          label="Total withdrawals"
+          label="Total Withdrawals"
           value={formatGHS(totalWithdrawals)}
+          hint="Every deduction from a client balance — cash withdrawn plus every fee charged"
+          icon={<Layers size={16} />}
+          highlight
+        />
+        <StatCard
+          label="Cash Paid to Clients"
+          value={formatGHS(cashPaidToClients)}
           hint={`${activeWithdrawals.length} withdrawal${activeWithdrawals.length !== 1 ? "s" : ""} in this period`}
           icon={<ArrowUpFromLine size={16} />}
+        />
+        <StatCard
+          label="Total Fees & Charges Retained"
+          value={formatGHS(totalFeesRetained)}
+          hint="Commission + susu fees + SMS charge + processing fee"
+          icon={<Scale size={16} />}
         />
         <StatCard
           label="Withdrawal Commission"
@@ -229,11 +266,10 @@ export default async function WithdrawalsPage({
           icon={<MessageSquare size={16} />}
         />
         <StatCard
-          label="Net balance"
-          value={formatGHS(netBalance)}
-          hint="Withdrawals paid out minus commission retained"
-          icon={<Scale size={16} />}
-          highlight
+          label="Processing Fee"
+          value={formatGHS(processingFee)}
+          hint="Loan processing fees deducted at disbursement"
+          icon={<FileText size={16} />}
         />
       </div>
 

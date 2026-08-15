@@ -191,7 +191,7 @@ export default async function OverviewPage() {
           <SummaryCard
             label="Total Withdrawals"
             value={formatGHS(totalWithdrawals)}
-            hint="Total withdrawn across all accounts, all time"
+            hint="Every deduction from a client balance, all time — cash withdrawn plus every fee charged"
             tone="rust"
             icon={<ArrowUpFromLine size={17} />}
           />
