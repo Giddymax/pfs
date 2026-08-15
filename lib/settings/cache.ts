@@ -28,6 +28,7 @@ const DEFAULTS: Settings = {
     consolidated_fund: { visible: true },
     account_balance: { visible: true },
     total_withdrawals: { visible: true },
+    loans_disbursed: { visible: true },
     card_fees:           { visible: true },
     withdrawal_commission: { visible: true },
     susu_fees:           { visible: true },

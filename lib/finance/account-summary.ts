@@ -195,7 +195,12 @@ export async function computeAccountSummary(
     supabase.from("susu_payments").select("amount").eq("day_in_cycle", 31),
     supabase.from("card_fees").select("amount"),
     supabase.from("sms_fee_charges").select("amount"),
-    supabase.from("loans").select("processing_fee"),
+    // Only loans actually activated — processing_fee is charged inside
+    // activate_loan() and nowhere else, so a pending/rejected loan's
+    // processing_fee was never really deducted from anyone's balance.
+    // Matches the exact same status filter loanPrincipalRows uses below,
+    // since both are tied to the same activation event.
+    supabase.from("loans").select("processing_fee").in("status", ["active", "completed", "defaulted"]),
     supabase.rpc("compute_collected_loan_interest"),
     supabase.from("bank_transactions").select("type, amount"),
     supabase.from("accounts").select("id, balance").eq("product_type", "savings"),

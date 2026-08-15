@@ -20,6 +20,7 @@ import {
   Landmark,
   CreditCard,
   Lock,
+  HandCoins,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Loan, Client, Profile, Transaction } from "@/lib/types";
@@ -45,6 +46,7 @@ export default async function OverviewPage() {
     consolidated_fund: { visible: true },
     account_balance: { visible: true },
     total_withdrawals: { visible: true },
+    loans_disbursed: { visible: true },
     card_fees:           { visible: true },
     withdrawal_commission: { visible: true },
     susu_fees:           { visible: true },
@@ -95,7 +97,7 @@ export default async function OverviewPage() {
 
   const {
     totalSavings, totalSusu, consolidatedFundDeposits, loanInterest, commission, susuFees, cardFees,
-    totalSmsFees, processingFees, totalRevenue, combinedTotal, totalWithdrawals,
+    totalSmsFees, processingFees, totalRevenue, combinedTotal, totalWithdrawals, loansDisbursed,
     accountBalance, cashAtBank, cashAtHand,
   } = summary;
 
@@ -194,6 +196,15 @@ export default async function OverviewPage() {
             hint="Every deduction from a client balance, all time — cash withdrawn plus every fee charged"
             tone="rust"
             icon={<ArrowUpFromLine size={17} />}
+          />
+        )}
+        {kpi.loans_disbursed.visible && (
+          <SummaryCard
+            label="Loans Disbursed"
+            value={formatGHS(loansDisbursed)}
+            hint="Principal currently out on active/completed/defaulted loans — subtracted from Account Balance"
+            tone="cyan"
+            icon={<HandCoins size={17} />}
           />
         )}
         {kpi.account_balance.visible && (
@@ -368,6 +379,7 @@ const TONES = {
   blue:    { tint: "bg-[#1D4ED8]/8",  icon: "text-[#1D4ED8]",  bar: "bg-[#1D4ED8]" },
   pink:    { tint: "bg-[#DB2777]/8",  icon: "text-[#DB2777]",  bar: "bg-[#DB2777]" },
   violet:  { tint: "bg-[#7C3AED]/8",  icon: "text-[#7C3AED]",  bar: "bg-[#7C3AED]" },
+  cyan:    { tint: "bg-[#0891B2]/8",  icon: "text-[#0891B2]",  bar: "bg-[#0891B2]" },
 } as const;
 
 function SummaryCard({

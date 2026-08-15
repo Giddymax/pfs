@@ -186,6 +186,7 @@ export interface OverviewKpiSettings {
   consolidated_fund: KpiCardConfig;
   account_balance: KpiCardConfig;
   total_withdrawals: KpiCardConfig;
+  loans_disbursed: KpiCardConfig;
   card_fees: KpiCardConfig;
   withdrawal_commission: KpiCardConfig;
   susu_fees: KpiCardConfig;
