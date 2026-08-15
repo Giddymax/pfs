@@ -24,6 +24,7 @@ import {
   Percent,
   BadgePercent,
   Coins,
+  Scale,
   MessageSquare,
   FileText,
   ArrowDownLeft,
@@ -55,6 +56,8 @@ export default async function OverviewPage() {
     total_susu:      { visible: false, calc: "dep" as const },
     combined_total:  { visible: true },
     total_revenue:   { visible: false, components: { interest: true, commission: true, susu_fees: true, card_fees: true, sms_fees: true, processing_fees: true } },
+    gross_revenue:   { visible: true },
+    net_revenue:     { visible: true },
     consolidated_fund: { visible: false },
     account_balance: { visible: true },
     total_withdrawals: { visible: true },
@@ -110,7 +113,7 @@ export default async function OverviewPage() {
 
   const {
     totalSavings, totalSusu, consolidatedFundDeposits, loanInterest, commission, susuFees, cardFees,
-    totalSmsFees, processingFees, totalRevenue, combinedTotal, totalWithdrawals, loansDisbursed,
+    totalSmsFees, processingFees, grossRevenue, totalRevenue, combinedTotal, totalWithdrawals, loansDisbursed,
     loanRepayments, accountBalance, cashAtBank, cashAtHand,
   } = summary;
 
@@ -173,6 +176,31 @@ export default async function OverviewPage() {
             ].filter(Boolean).join(" + ")}
             tone="emerald"
             icon={<TrendingUp size={17} />}
+          />
+        )}
+        {kpi.gross_revenue.visible && (
+          <SummaryCard
+            label="Gross Revenue"
+            value={formatGHS(grossRevenue)}
+            hint={[
+              rc.interest        && `Interest ${formatGHS(loanInterest)}`,
+              rc.commission      && `Commission ${formatGHS(commission)}`,
+              rc.susu_fees       && `Susu Fees ${formatGHS(susuFees)}`,
+              rc.card_fees       && `Card Fees ${formatGHS(cardFees)}`,
+              rc.sms_fees        && `SMS Fees ${formatGHS(totalSmsFees)}`,
+              rc.processing_fees && `Processing Fees ${formatGHS(processingFees)}`,
+            ].filter(Boolean).join(" + ") || "Every revenue component, before the Consolidated Fund deduction"}
+            tone="gold"
+            icon={<TrendingUp size={17} />}
+          />
+        )}
+        {kpi.net_revenue.visible && (
+          <SummaryCard
+            label="Net Revenue"
+            value={formatGHS(totalRevenue)}
+            hint={`Gross Revenue ${formatGHS(grossRevenue)} − Consolidated Fund ${formatGHS(consolidatedFundDeposits)} = ${formatGHS(totalRevenue)}`}
+            tone="jade"
+            icon={<Scale size={17} />}
           />
         )}
         {kpi.consolidated_fund.visible && (
@@ -453,6 +481,8 @@ const TONES = {
   fuchsia: { tint: "bg-[#C026D3]/8",  icon: "text-[#C026D3]",  bar: "bg-[#C026D3]" },
   slate:   { tint: "bg-[#475569]/8",  icon: "text-[#475569]",  bar: "bg-[#475569]" },
   lightgreen: { tint: "bg-[#22C55E]/8", icon: "text-[#22C55E]", bar: "bg-[#22C55E]" },
+  gold:    { tint: "bg-[#B45309]/8",  icon: "text-[#B45309]",  bar: "bg-[#B45309]" },
+  jade:    { tint: "bg-[#059669]/8",  icon: "text-[#059669]",  bar: "bg-[#059669]" },
 } as const;
 
 function SummaryCard({

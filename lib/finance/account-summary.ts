@@ -42,9 +42,17 @@ export interface AccountSummary {
   cardFees: number;
   totalSmsFees: number;
   processingFees: number;
+  // Sum of every enabled revenue component (interest + commission + susu
+  // fees + card fees + SMS fees + processing fees), BEFORE the PFS
+  // CONSOLIDATED FUND deduction — what the company earned this period,
+  // full stop. Exposed as its own figure (Gross Revenue) so the
+  // Consolidated Fund's effect on Net Revenue is visible, not folded away.
+  grossRevenue: number;
   // Net of PFS CONSOLIDATED FUND's lifetime deposits (see
   // consolidatedFundDeposits and CONSOLIDATED_FUND_ACCOUNT_NUMBER above) —
   // revenue committed to the fund is no longer counted as available revenue.
+  // totalRevenue = grossRevenue − consolidatedFundDeposits. This is the
+  // figure shown as "Net Revenue".
   totalRevenue: number;
   // Combined Account Total = Total Savings + Total Daily Susu ONLY — a pure
   // client-liability figure (what's owed to depositors), deliberately not
@@ -270,15 +278,20 @@ export async function computeAccountSummary(
   // isn't added twice; cardFees is deliberately excluded.
   const totalWithdrawals = round2(withdrawalPrincipal + commission + susuFees + totalSmsFees + processingFees);
 
-  const totalRevenue = round2(
+  // Gross Revenue — every enabled component, before the Consolidated Fund
+  // deduction. Net Revenue (totalRevenue) subtracts consolidatedFundDeposits
+  // from this same figure — kept as two explicit, separately-reported
+  // numbers rather than only showing the already-netted total, so the
+  // deduction itself is visible rather than silently folded away.
+  const grossRevenue = round2(
     (revenueComponents.interest ? loanInterest : 0) +
     (revenueComponents.commission ? commission : 0) +
     (revenueComponents.susu_fees ? susuFees : 0) +
     (revenueComponents.card_fees ? cardFees : 0) +
     (revenueComponents.sms_fees ? totalSmsFees : 0) +
-    (revenueComponents.processing_fees ? processingFees : 0) -
-    consolidatedFundDeposits
+    (revenueComponents.processing_fees ? processingFees : 0)
   );
+  const totalRevenue = round2(grossRevenue - consolidatedFundDeposits);
 
   const combinedTotal = round2(totalSavings + totalSusu);
 
@@ -327,6 +340,7 @@ export async function computeAccountSummary(
     cardFees,
     totalSmsFees,
     processingFees,
+    grossRevenue,
     totalRevenue,
     combinedTotal,
     totalWithdrawals,
