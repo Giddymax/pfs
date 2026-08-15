@@ -6,7 +6,9 @@ import { MOMO_TYPES } from "@/lib/momo/types";
 import { MomoStatCard } from "@/components/momo-stat-card";
 import { SummaryControls } from "@/components/summary-controls";
 import { ExportCsvButton } from "@/components/export-csv-button";
+import { PrintMomoPerformanceButton } from "@/components/print-momo-performance-button";
 import { PageHeader, Card, EmptyState } from "@/components/ui";
+import { getSettings } from "@/lib/settings/cache";
 import { formatGHS } from "@/lib/loan";
 import type { Profile } from "@/lib/types";
 
@@ -45,7 +47,10 @@ export default async function MomoPerformancePage({
   const from = params.from ?? monthStartISO();
   const to = params.to ?? todayISO();
 
-  const rows = await computeMomoStaffPerformance(supabase, { from, to });
+  const [rows, settings] = await Promise.all([
+    computeMomoStaffPerformance(supabase, { from, to }),
+    getSettings(),
+  ]);
 
   const staffWithActivity = rows.filter((r) => r.transactionCount > 0).length;
   const totalAmount = rows.reduce((s, r) => s + r.totalAmount, 0);
@@ -58,12 +63,24 @@ export default async function MomoPerformancePage({
         title="Performance"
         description="How much each staff member and admin moved through MoMo, by transaction type, and how much they collected in charges."
         action={
-          <ExportCsvButton
-            endpoint="/api/momo/performance/export"
-            filename={`momo-performance-${from}-to-${to}.xlsx`}
-            label="Export Excel"
-            params={{ from, to }}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <PrintMomoPerformanceButton
+              rows={rows}
+              from={from}
+              to={to}
+              staffWithActivity={staffWithActivity}
+              totalAmount={totalAmount}
+              totalCharge={totalCharge}
+              printedBy={profile.full_name}
+              companyPhone={settings.sms.company_tel ?? null}
+            />
+            <ExportCsvButton
+              endpoint="/api/momo/performance/export"
+              filename={`momo-performance-${from}-to-${to}.xlsx`}
+              label="Export Excel"
+              params={{ from, to }}
+            />
+          </div>
         }
       />
 

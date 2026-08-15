@@ -4,8 +4,11 @@ import { createClient } from "@/lib/supabase/server";
 import { computeMomoSummary } from "@/lib/finance/momo-summary";
 import { MomoStatCard } from "@/components/momo-stat-card";
 import { MomoTypeBadge } from "@/components/momo-type-badge";
+import { PrintMomoOverviewButton } from "@/components/print-momo-overview-button";
 import { PageHeader, Card } from "@/components/ui";
+import { getSettings } from "@/lib/settings/cache";
 import { formatGHS } from "@/lib/loan";
+import type { Profile } from "@/lib/types";
 
 // MoMo's own Overview — entirely self-contained. Every figure here comes
 // from computeMomoSummary() (lib/finance/momo-summary.ts) and only from
@@ -20,10 +23,18 @@ export default async function MomoOverviewPage() {
   const supabase = await createClient();
   const today = todayISO();
 
-  const [todaySummary, allTimeSummary] = await Promise.all([
+  const [todaySummary, allTimeSummary, { data: { user } }, settings] = await Promise.all([
     computeMomoSummary(supabase, { from: today, to: today }),
     computeMomoSummary(supabase),
+    supabase.auth.getUser(),
+    getSettings(),
   ]);
+
+  let viewerName: string | null = null;
+  if (user) {
+    const { data: viewerProfile } = await supabase.from("profiles").select("full_name").eq("id", user.id).single<Pick<Profile, "full_name">>();
+    viewerName = viewerProfile?.full_name ?? null;
+  }
 
   return (
     <div>
@@ -32,13 +43,25 @@ export default async function MomoOverviewPage() {
         title="Overview"
         description="Today's walk-in mobile-money transactions — cash in, cash out, deposits, airtime, data bundles, and mashups."
         action={
-          <Link
-            href="/momo/transactions"
-            className="inline-flex items-center gap-1.5 rounded-md bg-[#1E3A8A] px-3.5 py-2 text-[12.5px] font-semibold text-white transition-colors hover:bg-[#172554]"
-          >
-            <ArrowLeftRight size={13} />
-            View transactions
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <PrintMomoOverviewButton
+              todayCount={todaySummary.transactionCount}
+              todayAmount={todaySummary.totalAmount}
+              todayCharge={todaySummary.totalCharge}
+              allTimeCharge={allTimeSummary.totalCharge}
+              allTimeCount={allTimeSummary.transactionCount}
+              byType={todaySummary.byType}
+              printedBy={viewerName}
+              companyPhone={settings.sms.company_tel ?? null}
+            />
+            <Link
+              href="/momo/transactions"
+              className="inline-flex items-center gap-1.5 rounded-md bg-[#1E3A8A] px-3.5 py-2 text-[12.5px] font-semibold text-white transition-colors hover:bg-[#172554]"
+            >
+              <ArrowLeftRight size={13} />
+              View transactions
+            </Link>
+          </div>
         }
       />
 

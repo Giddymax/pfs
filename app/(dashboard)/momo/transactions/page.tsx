@@ -9,7 +9,9 @@ import { MomoTransactionRowActions } from "@/components/momo-transaction-row-act
 import { SummaryControls } from "@/components/summary-controls";
 import { TableFilter, type FilterOption } from "@/components/table-filter";
 import { ExportCsvButton } from "@/components/export-csv-button";
+import { PrintMomoTransactionsButton } from "@/components/print-momo-transactions-button";
 import { PageHeader, Card, EmptyState } from "@/components/ui";
+import { getSettings } from "@/lib/settings/cache";
 import { formatGHS } from "@/lib/loan";
 import type { MomoTransaction, Profile } from "@/lib/types";
 
@@ -35,13 +37,14 @@ function fmtDate(iso: string) {
 export default async function MomoTransactionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string; preset?: string; type?: string; q?: string }>;
+  searchParams: Promise<{ from?: string; to?: string; preset?: string; type?: string; staff?: string; q?: string }>;
 }) {
   const supabase = await createClient();
   const params = await searchParams;
   const from = params.from ?? monthStartISO();
   const to = params.to ?? todayISO();
   const type = params.type;
+  const staff = params.staff;
   const q = params.q?.trim() ?? "";
 
   let query = supabase
@@ -52,26 +55,38 @@ export default async function MomoTransactionsPage({
     .order("created_at", { ascending: false });
 
   if (type) query = query.eq("type", type);
+  if (staff === "unattributed") query = query.is("recorded_by", null);
+  else if (staff) query = query.eq("recorded_by", staff);
   if (q) query = query.or(`phone_number.ilike.%${q}%,note.ilike.%${q}%`);
 
-  const [{ data: rows, error }, summary, { data: { user } }] = await Promise.all([
+  const [{ data: rows, error }, summary, { data: { user } }, { data: staffRows }, settings] = await Promise.all([
     query.returns<(MomoTransaction & { recorder: { full_name: string } | null })[]>(),
     computeMomoSummary(supabase, { from, to }),
     supabase.auth.getUser(),
+    supabase.from("profiles").select("id, full_name").order("full_name").returns<{ id: string; full_name: string }[]>(),
+    getSettings(),
   ]);
 
   // Editing/reversing/deleting a transaction stays admin-only even though
   // every staff member can now record one (0065_momo_staff_access.sql) —
   // hide the row actions from staff so there's no button that just 403s.
   let isAdmin = false;
+  let viewerName: string | null = null;
   if (user) {
-    const { data: viewerProfile } = await supabase.from("profiles").select("role").eq("id", user.id).single<Pick<Profile, "role">>();
+    const { data: viewerProfile } = await supabase.from("profiles").select("full_name, role").eq("id", user.id).single<Pick<Profile, "full_name" | "role">>();
     isAdmin = viewerProfile?.role === "admin";
+    viewerName = viewerProfile?.full_name ?? null;
   }
 
   const transactions = rows ?? [];
+  const STAFF_OPTIONS: FilterOption[] = [
+    ...(staffRows ?? []).map((p) => ({ value: p.id, label: p.full_name })),
+    { value: "unattributed", label: "Unattributed (deleted account)" },
+  ];
   const qs = new URLSearchParams({
     from, to, preset: params.preset ?? "this_month",
+    ...(type ? { type } : {}),
+    ...(staff ? { staff } : {}),
     ...(q ? { q } : {}),
   }).toString();
 
@@ -83,6 +98,16 @@ export default async function MomoTransactionsPage({
         description="Every walk-in MoMo transaction, newest first. Search by phone number, filter by type, or pick a date range."
         action={
           <div className="flex flex-wrap items-center gap-2">
+            <PrintMomoTransactionsButton
+              transactions={transactions}
+              from={from}
+              to={to}
+              transactionCount={summary.transactionCount}
+              totalAmount={summary.totalAmount}
+              totalCharge={summary.totalCharge}
+              printedBy={viewerName}
+              companyPhone={settings.sms.company_tel ?? null}
+            />
             <ExportCsvButton
               endpoint="/api/momo/transactions/export"
               filename={`momo-transactions-${from}-to-${to}.xlsx`}
@@ -124,13 +149,14 @@ export default async function MomoTransactionsPage({
         />
       </div>
 
-      {/* Search + type filter */}
+      {/* Search + type/staff filters */}
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <form className="flex-1 min-w-[220px] max-w-sm">
           <input type="hidden" name="from" value={from} />
           <input type="hidden" name="to" value={to} />
           <input type="hidden" name="preset" value={params.preset ?? "this_month"} />
           {type && <input type="hidden" name="type" value={type} />}
+          {staff && <input type="hidden" name="staff" value={staff} />}
           <div className="relative">
             <Search size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#1A1A1A]/35" />
             <input
@@ -144,6 +170,8 @@ export default async function MomoTransactionsPage({
         </form>
         <span className="text-[11.5px] font-medium text-[#0A2240]/40">Type:</span>
         <TableFilter param="type" label="All types" options={TYPE_OPTIONS} current={type} qs={qs} />
+        <span className="text-[11.5px] font-medium text-[#0A2240]/40">Staff:</span>
+        <TableFilter param="staff" label="All staff" options={STAFF_OPTIONS} current={staff} qs={qs} />
       </div>
 
       {/* Transaction log */}

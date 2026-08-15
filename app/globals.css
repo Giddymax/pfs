@@ -121,7 +121,8 @@ body {
   #pfs-print-card,
   #pfs-print-sheet,
   #pfs-summary-sheet,
-  #pfs-print-finance {
+  #pfs-print-finance,
+  #pfs-momo-print {
     position: static !important;
     width: 100% !important;
     max-width: none !important;
@@ -139,7 +140,8 @@ body {
   /* Scale tables to fit paper width */
   #pfs-print-sheet table,
   #pfs-summary-sheet table,
-  #pfs-print-finance table {
+  #pfs-print-finance table,
+  #pfs-momo-print table {
     width: 100% !important;
     min-width: 0 !important;
     table-layout: fixed;
@@ -152,7 +154,9 @@ body {
   #pfs-summary-sheet th,
   #pfs-summary-sheet td,
   #pfs-print-finance th,
-  #pfs-print-finance td {
+  #pfs-print-finance td,
+  #pfs-momo-print th,
+  #pfs-momo-print td {
     padding: 3px 4px !important;
     white-space: normal !important;
   }
@@ -161,7 +165,8 @@ body {
   #pfs-print-sheet .grid,
   #pfs-print-card .grid,
   #pfs-summary-sheet .grid,
-  #pfs-print-finance .grid {
+  #pfs-print-finance .grid,
+  #pfs-momo-print .grid {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
   }
