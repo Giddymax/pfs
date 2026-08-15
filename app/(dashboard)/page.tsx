@@ -161,23 +161,12 @@ export default async function OverviewPage() {
             icon={<Repeat size={17} />}
           />
         )}
-        {kpi.total_revenue.visible && (
-          <SummaryCard
-            label="Total Revenue"
-            value={formatGHS(totalRevenue)}
-            hint={[
-              rc.interest        && `Interest ${formatGHS(loanInterest)}`,
-              rc.commission      && `Commission ${formatGHS(commission)}`,
-              rc.susu_fees       && `Susu Fees ${formatGHS(susuFees)}`,
-              rc.card_fees       && `Card Fees ${formatGHS(cardFees)}`,
-              rc.sms_fees        && `SMS Fees ${formatGHS(totalSmsFees)}`,
-              rc.processing_fees && `Processing Fees ${formatGHS(processingFees)}`,
-              consolidatedFundDeposits > 0 && `Less Consolidated Fund ${formatGHS(consolidatedFundDeposits)}`,
-            ].filter(Boolean).join(" + ")}
-            tone="emerald"
-            icon={<TrendingUp size={17} />}
-          />
-        )}
+        {/* Total Revenue card removed — Net Revenue below shows the exact
+            same figure, with the Consolidated Fund deduction spelled out
+            in its hint instead of just a bare number. kpi.total_revenue
+            is kept (just never rendered) purely for its .components
+            sub-object, which still gates grossRevenue/totalRevenue's
+            calculation via `rc` below. */}
         {kpi.gross_revenue.visible && (
           <SummaryCard
             label="Gross Revenue"
