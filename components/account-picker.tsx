@@ -210,13 +210,6 @@ export function AccountPicker({ mode }: { mode: "withdrawal" | "deposit" }) {
             </div>
           )}
 
-          {mode === "deposit" && selected.account_number === "SAV-00079" && (
-            <div className="mb-3 rounded-md border border-[#7C3AED]/25 bg-[#7C3AED]/[0.05] px-3.5 py-2.5 text-[12.5px] text-[#5B21B6]">
-              <strong className="font-semibold">PFS Consolidated Fund.</strong> Deposits can only be recorded at or
-              after 20:30 each day — attempts before then are rejected.
-            </div>
-          )}
-
           {mode === "deposit" && selected.product_type === "savings" && (
             <RecordTransactionForm accountId={selected.id} kind="deposit" />
           )}

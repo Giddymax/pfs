@@ -14,12 +14,10 @@ import {
   PiggyBank,
   Repeat,
   Layers,
-  TrendingUp,
   Wallet,
   Banknote,
   Landmark,
   CreditCard,
-  Lock,
   HandCoins,
   Percent,
   BadgePercent,
@@ -56,9 +54,7 @@ export default async function OverviewPage() {
     total_susu:      { visible: false, calc: "dep" as const },
     combined_total:  { visible: true },
     total_revenue:   { visible: false, components: { interest: true, commission: true, susu_fees: true, card_fees: true, sms_fees: true, processing_fees: true } },
-    gross_revenue:   { visible: true },
     net_revenue:     { visible: true },
-    consolidated_fund: { visible: false },
     account_balance: { visible: true },
     total_withdrawals: { visible: true },
     loans_disbursed: { visible: false },
@@ -112,8 +108,8 @@ export default async function OverviewPage() {
   ]);
 
   const {
-    totalSavings, totalSusu, consolidatedFundDeposits, loanInterest, commission, susuFees, cardFees,
-    totalSmsFees, processingFees, grossRevenue, totalRevenue, combinedTotal, totalWithdrawals, loansDisbursed,
+    totalSavings, totalSusu, loanInterest, commission, susuFees, cardFees,
+    totalSmsFees, processingFees, totalRevenue, combinedTotal, totalWithdrawals, loansDisbursed,
     loanRepayments, accountBalance, cashAtBank, cashAtHand,
   } = summary;
 
@@ -161,16 +157,13 @@ export default async function OverviewPage() {
             icon={<Repeat size={17} />}
           />
         )}
-        {/* Total Revenue card removed — Net Revenue below shows the exact
-            same figure, with the Consolidated Fund deduction spelled out
-            in its hint instead of just a bare number. kpi.total_revenue
-            is kept (just never rendered) purely for its .components
-            sub-object, which still gates grossRevenue/totalRevenue's
-            calculation via `rc` below. */}
-        {kpi.gross_revenue.visible && (
+        {/* kpi.total_revenue is kept (just never rendered as its own card)
+            purely for its .components sub-object, which still gates
+            totalRevenue's calculation via `rc` below. */}
+        {kpi.net_revenue.visible && (
           <SummaryCard
-            label="Gross Revenue"
-            value={formatGHS(grossRevenue)}
+            label="Total Revenue"
+            value={formatGHS(totalRevenue)}
             hint={[
               rc.interest        && `Interest ${formatGHS(loanInterest)}`,
               rc.commission      && `Commission ${formatGHS(commission)}`,
@@ -178,27 +171,9 @@ export default async function OverviewPage() {
               rc.card_fees       && `Card Fees ${formatGHS(cardFees)}`,
               rc.sms_fees        && `SMS Fees ${formatGHS(totalSmsFees)}`,
               rc.processing_fees && `Processing Fees ${formatGHS(processingFees)}`,
-            ].filter(Boolean).join(" + ") || "Every revenue component, before the Consolidated Fund deduction"}
-            tone="gold"
-            icon={<TrendingUp size={17} />}
-          />
-        )}
-        {kpi.net_revenue.visible && (
-          <SummaryCard
-            label="Net Revenue"
-            value={formatGHS(totalRevenue)}
-            hint={`Gross Revenue ${formatGHS(grossRevenue)} − Consolidated Fund ${formatGHS(consolidatedFundDeposits)} = ${formatGHS(totalRevenue)}`}
+            ].filter(Boolean).join(" + ")}
             tone="jade"
             icon={<Scale size={17} />}
-          />
-        )}
-        {kpi.consolidated_fund.visible && (
-          <SummaryCard
-            label="PFS Consolidated Fund"
-            value={formatGHS(consolidatedFundDeposits)}
-            hint="SAV-00079 (PFS/26/0133) — company-owned, deducted from Total Revenue, excluded from Total Savings"
-            tone="violet"
-            icon={<Lock size={17} />}
           />
         )}
         {kpi.card_fees.visible && (
@@ -462,7 +437,6 @@ const TONES = {
   amber:   { tint: "bg-[#D97706]/8",  icon: "text-[#D97706]",  bar: "bg-[#D97706]" },
   blue:    { tint: "bg-[#1D4ED8]/8",  icon: "text-[#1D4ED8]",  bar: "bg-[#1D4ED8]" },
   pink:    { tint: "bg-[#DB2777]/8",  icon: "text-[#DB2777]",  bar: "bg-[#DB2777]" },
-  violet:  { tint: "bg-[#7C3AED]/8",  icon: "text-[#7C3AED]",  bar: "bg-[#7C3AED]" },
   cyan:    { tint: "bg-[#0891B2]/8",  icon: "text-[#0891B2]",  bar: "bg-[#0891B2]" },
   sky:     { tint: "bg-[#0284C7]/8",  icon: "text-[#0284C7]",  bar: "bg-[#0284C7]" },
   indigo:  { tint: "bg-[#4F46E5]/8",  icon: "text-[#4F46E5]",  bar: "bg-[#4F46E5]" },
@@ -470,7 +444,6 @@ const TONES = {
   fuchsia: { tint: "bg-[#C026D3]/8",  icon: "text-[#C026D3]",  bar: "bg-[#C026D3]" },
   slate:   { tint: "bg-[#475569]/8",  icon: "text-[#475569]",  bar: "bg-[#475569]" },
   lightgreen: { tint: "bg-[#22C55E]/8", icon: "text-[#22C55E]", bar: "bg-[#22C55E]" },
-  gold:    { tint: "bg-[#B45309]/8",  icon: "text-[#B45309]",  bar: "bg-[#B45309]" },
   jade:    { tint: "bg-[#059669]/8",  icon: "text-[#059669]",  bar: "bg-[#059669]" },
 } as const;
 
