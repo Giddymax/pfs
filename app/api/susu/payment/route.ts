@@ -4,7 +4,7 @@ import { getSettings } from "@/lib/settings/cache";
 import { shouldSendAdminSms, shouldSendClientSms } from "@/lib/sms/gating";
 import { sendSms } from "@/lib/sms/arkesel";
 import { smsTemplates } from "@/lib/sms/templates";
-import type { Client, SusuCycle, SusuPayment } from "@/lib/types";
+import type { Client, SusuCycle, SusuPaymentResult } from "@/lib/types";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
       p_payment_date: paymentDate ?? undefined,
       p_recorded_by: user.id,
     })
-    .single<SusuPayment>();
+    .single<SusuPaymentResult>();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
@@ -41,12 +41,12 @@ export async function POST(request: Request) {
   return NextResponse.json({ payment: data });
 }
 
-async function notifySusuPayment(supabase: Awaited<ReturnType<typeof createClient>>, payment: SusuPayment) {
-  const { data: account } = await supabase.from("accounts").select("client_id, balance").eq("id", payment.account_id).single<{ client_id: string; balance: number }>();
+async function notifySusuPayment(supabase: Awaited<ReturnType<typeof createClient>>, payment: SusuPaymentResult) {
+  const { data: account } = await supabase.from("accounts").select("balance").eq("id", payment.account_id).single<{ balance: number }>();
   if (!account) return;
 
   const [{ data: client }, { data: cycle }] = await Promise.all([
-    supabase.from("clients").select("*").eq("id", account.client_id).single<Client>(),
+    supabase.from("clients").select("*").eq("id", payment.client_id).single<Client>(),
     payment.cycle_id
       ? supabase.from("susu_cycles").select("*").eq("id", payment.cycle_id).maybeSingle<SusuCycle>()
       : Promise.resolve({ data: null }),
@@ -62,5 +62,19 @@ async function notifySusuPayment(supabase: Awaited<ReturnType<typeof createClien
 
   if (shouldSendAdminSms(settings)) {
     await sendSms({ to: settings.sms.company_tel!, message: msg, event: "susu_contribution_recorded_admin", recipientType: "admin", relatedClientId: client.id });
+  }
+
+  // Cycle just completed on this exact contribution — the day-31 company
+  // fee was already swept automatically (0071_susu_day31_auto_sweep.sql).
+  // Tell the client what was taken and what's left to claim.
+  if (payment.cycle_completed) {
+    const feeMsg = smsTemplates.susuDay31FeeTaken(client.full_name, payment.fee_amount, payment.remaining_claimable);
+
+    if (shouldSendClientSms("susu", client, settings)) {
+      await sendSms({ to: client.phone, message: feeMsg, event: "susu_day31_fee_taken", recipientType: "client", relatedClientId: client.id });
+    }
+    if (shouldSendAdminSms(settings, "withdrawal")) {
+      await sendSms({ to: settings.sms.company_tel!, message: feeMsg, event: "susu_day31_fee_taken_admin", recipientType: "admin", relatedClientId: client.id });
+    }
   }
 }

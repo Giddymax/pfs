@@ -132,8 +132,17 @@ export default async function WithdrawalsPage({
   // No longer what "Total Withdrawals" means (see below) — kept as its own
   // figure since it's still the most direct answer to "how much did we pay
   // out", same distinction lib/finance/account-summary.ts now draws between
-  // withdrawalPrincipal and the broader totalWithdrawals.
-  const cashPaidToClients = round2(activeWithdrawals.reduce((s, t) => s + t.amount, 0));
+  // withdrawalPrincipal and the broader totalWithdrawals. Excludes the
+  // automatic susu day-31 fee sweep (0071_susu_day31_auto_sweep.sql) — it
+  // posts as type='withdrawal' so it appears in the log below, but it's
+  // company revenue, not client cash-out; it's already counted via
+  // susuFees's susuDay31Rows source below, so excluding it here is what
+  // keeps totalWithdrawals from double-counting it.
+  const cashPaidToClients = round2(
+    activeWithdrawals
+      .filter((t) => !(t.notes ?? "").toLowerCase().includes("swept to company funds"))
+      .reduce((s, t) => s + t.amount, 0)
+  );
   // Commission mirrors the app-wide definition (lib/finance/account-summary.ts):
   // susu withdrawals are commission-exempt by construction (record_withdrawal
   // hard-codes fee=0 for susu); any fee on a susu row is an early-withdrawal

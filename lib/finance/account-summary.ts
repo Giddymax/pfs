@@ -185,7 +185,14 @@ export async function computeAccountSummary(
   ] = await Promise.all([
     supabase.from("accounts").select("id, dep").eq("product_type", "savings"),
     supabase.from("accounts").select("id, dep").eq("product_type", "susu"),
-    supabase.from("transactions").select("amount").eq("type", "withdrawal").is("reversed_at", null),
+    // Excludes the automatic susu day-31 fee sweep (0071_susu_day31_auto_
+    // sweep.sql) — it's recorded as type='withdrawal' so it shows up in the
+    // Withdrawals report and account history, but it's company revenue, not
+    // cash the client walked away with, so it doesn't belong in
+    // withdrawalPrincipal ("Cash Paid to Clients"). Tagged the same way
+    // pay_susu_claim's legacy fee sweep is (see sweptFeeRows below), which
+    // is what excludes both from this figure.
+    supabase.from("transactions").select("amount").eq("type", "withdrawal").is("reversed_at", null).not("notes", "ilike", "%swept to company funds%"),
     supabase.from("transactions").select("fee, account_id").eq("type", "withdrawal").is("reversed_at", null),
     supabase.from("susu_payments").select("amount").eq("day_in_cycle", 31),
     supabase.from("card_fees").select("amount"),
@@ -210,12 +217,15 @@ export async function computeAccountSummary(
     // already counted via commissionRows below — this is the one susu-fee
     // source that had no revenue tracking anywhere before the sweep fix.
     supabase.from("susu_claims").select("penalty_amount").eq("claim_type", "emergency").eq("status", "paid"),
-    // Cash actually swept out of a client's balance via pay_susu_claim's fee
-    // sweep (0059_susu_fee_sweep.sql tags every sweep transaction's notes
-    // this way, for both normal and emergency claims) — the cash-basis
-    // figure accountBalance needs. Excludes SMS-fee `type='fee'` rows, which
-    // use a different notes pattern and are already counted via smsFeeRows.
-    supabase.from("transactions").select("amount").eq("type", "fee").ilike("notes", "%swept to company funds%"),
+    // Cash actually swept out of a client's balance — the cash-basis figure
+    // accountBalance needs. Two sources share the same "swept to company
+    // funds" notes tag: pay_susu_claim's legacy fee sweep (type='fee',
+    // 0059_susu_fee_sweep.sql — still used for emergency claims and any
+    // cycle that completed before 0071) and the automatic susu day-31 sweep
+    // (type='withdrawal', 0071_susu_day31_auto_sweep.sql). Excludes SMS-fee
+    // `type='fee'` rows, which use a different notes pattern and are
+    // already counted via smsFeeRows.
+    supabase.from("transactions").select("amount").in("type", ["fee", "withdrawal"]).is("reversed_at", null).ilike("notes", "%swept to company funds%"),
     supabase.from("revenue_deposits").select("amount"),
   ]);
 

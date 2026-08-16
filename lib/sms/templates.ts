@@ -22,6 +22,9 @@ export const smsTemplates = {
   susuWithdrawalRecorded: (clientName: string, amount: number, balanceAfter: number, proxyName?: string | null) =>
     `WITHDRAWAL: ${clientName}, susu ${formatGHS(amount)} paid out. Bal: ${formatGHS(balanceAfter)}.${proxyName ? ` Withdrawn by: ${proxyName}.` : ""}`,
 
+  susuDay31FeeTaken: (clientName: string, feeAmount: number, remainingClaimable: number) =>
+    `SUSU: ${clientName}, your 31-day cycle is complete. Company fee of ${formatGHS(feeAmount)} has been taken. ${formatGHS(remainingClaimable)} is now eligible to claim.`,
+
   susuClaimApproved: (clientName: string, amount: number) =>
     `${clientName}, your susu claim of ${formatGHS(amount)} is approved. Visit your branch to collect.`,
 

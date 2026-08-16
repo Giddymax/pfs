@@ -245,6 +245,10 @@ export interface SusuCycle {
   status: SusuCycleStatus;
   total_collected: number;
   company_fee: number | null;
+  // Set once the cycle's company fee has actually been extracted from the
+  // account balance — by the automatic day-31 sweep (0071) or, for cycles
+  // that completed before that migration, by pay_susu_claim's legacy sweep.
+  fee_swept_at: string | null;
   created_at: string;
 }
 
@@ -258,6 +262,25 @@ export interface SusuPayment {
   payment_date: string;
   recorded_by: string | null;
   created_at: string;
+}
+
+// What record_susu_payment/record_susu_batch return as of 0071 — widened
+// from a plain SusuPayment row so the caller can send the "day-31 fee
+// taken" SMS without a second round-trip.
+export interface SusuPaymentResult {
+  payment_id: string;
+  cycle_id: string;
+  account_id: string;
+  transaction_id: string | null;
+  amount: number;
+  day_in_cycle: number;
+  payment_date: string;
+  cycle_completed: boolean;
+  fee_amount: number;
+  remaining_claimable: number;
+  client_id: string;
+  client_full_name: string;
+  client_phone: string;
 }
 
 export type SusuClaimType = "normal" | "emergency";
