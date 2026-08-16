@@ -4,12 +4,10 @@ import type { RevenueComponents } from "@/lib/types";
 
 export interface AccountSummary {
   // Gross lifetime deposits — no withdrawals or deductions netted in. Total
-  // Savings/Total Daily Susu are deliberately gross figures (see Combined
-  // Account Total below). Also deliberately NOT the same value as
-  // clientDepositLiability used inside accountBalance (see that field's
-  // comment) — this is dep (lifetime contributions), not balance (net of
-  // withdrawals/fees); Account Balance is where the netted, "what we
-  // actually have" figure lives.
+  // Savings/Total Daily Susu are deliberately gross figures, NOT the net
+  // per-account `balance` column (dep, not dep − wdr − comm − fees) — see
+  // Combined Account Total and Account Balance below for why staying gross
+  // here matters.
   totalSavings: number;
   totalSusu: number;
   // Revenue components (each already gated by revenueComponents before it's
@@ -41,11 +39,12 @@ export interface AccountSummary {
   // shown on the Overview dashboard, so what's already been swept out never
   // gets double-presented as still-available revenue.
   netRevenue: number;
-  // Combined Account Total = Total Savings + Total Daily Susu ONLY — a pure
-  // client-liability figure (what's owed to depositors), deliberately not
-  // mixed with Total Revenue (what the company has earned — a fundamentally
-  // different pool of money; see Total Revenue above and Account Balance's
-  // own comment for where revenue actually belongs).
+  // Combined Account Total = Total Savings + Total Daily Susu + Total
+  // Revenue — every pool of money the business is holding or has earned,
+  // client-owed and company-owned combined. (Earlier versions of this figure
+  // deliberately excluded Total Revenue; that changed on request — see
+  // Account Balance below for how this combines with Total Withdrawals to
+  // stay arithmetically consistent despite the mix.)
   combinedTotal: number;
   // Every amount deducted from a client's account balance, all time,
   // excluding reversed txns — not just what the client withdrew themselves.
@@ -69,7 +68,16 @@ export interface AccountSummary {
   // principal — what a client actually walked away with in hand, before
   // any commission/fee is netted out. Exposed separately since
   // totalWithdrawals itself no longer means "cash paid to clients" alone.
+  // This is "Transactional Withdrawals" on the Overview dashboard — the two
+  // names refer to the exact same figure.
   withdrawalPrincipal: number;
+  // The other subset of totalWithdrawals — every fee-type deduction bundled
+  // into it (commission + susuFees + totalSmsFees + processingFees), i.e.
+  // totalWithdrawals minus withdrawalPrincipal. This is "Revenue
+  // Withdrawals" on the Overview dashboard: money taken out of a client's
+  // balance as company revenue rather than handed to the client in cash.
+  // totalWithdrawals = withdrawalPrincipal + revenueWithdrawals, always.
+  revenueWithdrawals: number;
   // Total loan principal actually disbursed (cash out) and total repayments
   // actually received (cash in, principal + interest combined — see
   // accountBalance's comment for why interest isn't added a second time).
@@ -83,50 +91,57 @@ export interface AccountSummary {
   // day-31 fee is recognized as revenue (in susuFees) the moment it's
   // contributed, but the cash doesn't actually leave the client's balance
   // until their claim is paid — which can be immediate, delayed, or never.
-  // accountBalance can only add back money that's verifiably gone from the
-  // liability figure, so it uses this, not susuFees.
+  // Exposed for reporting; not currently an input to accountBalance below
+  // (that formula works off Total Withdrawals/Total Revenue, both of which
+  // use the accrual-basis susuFees, not this cash-basis figure).
   susuFeesSwept: number;
   // ─────────────────────────────────────────────────────────────────────
-  // Account Balance — actual cash position, not a deposits-plus-revenue
-  // figure. Built from a real balance-sheet identity:
+  // Account Balance — on request, now a direct arithmetic identity rather
+  // than the balance-sheet reconstruction this used to be:
   //
-  //   Cash = Client Deposit Liability + Company Equity − Loans Receivable
+  //   Account Balance = Combined Account Total − Total Withdrawals
+  //                      − Loans Disbursed + (Loan Repayments − Loan
+  //                      Interest already counted in Total Revenue)
+  //                      − Expenditures
   //
-  //   Client Deposit Liability = Σ(accounts.balance) for savings + susu —
-  //     already correctly net of that account's own withdrawals,
-  //     commission, and fee deductions (recalculate_account() is the single
-  //     writer for this column), so this is NOT the same as
-  //     totalSavings + totalSusu (which are gross).
+  //   Combined Account Total (= Total Savings + Total Daily Susu + Total
+  //     Revenue, all GROSS/lifetime figures — see that field's own comment)
+  //     is deliberately mixed: client-owed money and company-owned revenue
+  //     both count as cash the business is holding. Total Withdrawals is
+  //     symmetric with it: withdrawalPrincipal is cash that left the
+  //     business entirely, while the rest of Total Withdrawals
+  //     (commission/susuFees/SMS/processing fees — see revenueWithdrawals)
+  //     is money that moved from the client-owed pool into the
+  //     company-revenue pool WITHOUT leaving the business — since that same
+  //     amount was just added once via Total Revenue inside Combined
+  //     Account Total, subtracting it again here nets to exactly zero
+  //     effect on Account Balance, which is correct: an internal transfer
+  //     shouldn't change how much cash the business has. Card Fees are the
+  //     one Total Revenue component with no Total Withdrawals counterpart
+  //     (never deducted from any client balance — a genuine fresh inflow),
+  //     so they pass straight through as a net gain, correctly.
   //
-  //   Company Equity added back = Card Fees + Commission + Processing Fees
-  //     + SMS Fees. These aren't fresh income "on top of" the liability
-  //     figure — Commission/Processing Fees/SMS Fees are deducted straight
-  //     out of a client's account balance (verified in record_withdrawal
-  //     and activate_loan), so Σ(balance) above is already lower by exactly
-  //     these amounts. Adding them back here is what makes the identity
-  //     balance to real, unmoved cash — omitting them would understate cash
-  //     by the fee total even though no money actually left the business.
-  //     Card Fees are the one genuine fresh inflow (paid in cash at
-  //     registration, never netted against any account balance).
-  //
-  //   Loans Receivable (net) = Loans Disbursed − Loan Repayments (gross,
-  //     principal + interest together). Loan Interest is deliberately NOT
-  //     added a second time here — it's already part of "Loan Repayments"
-  //     (a repayment is principal + interest in one cash receipt), so
-  //     re-adding it would double-count the interest portion. It still
-  //     shows up correctly in Total Revenue above, which is a separate,
-  //     non-cash-additive P&L view.
-  //
-  //   Susu Fees Swept (NOT susuFees — see that field's own comment) IS added
-  //     back, same reasoning as the other revenue components above —
-  //     pay_susu_claim now sweeps the company's fee/penalty share out of the
-  //     client's balance into a real `type='fee'` transaction at payout time
-  //     (see 0059_susu_fee_sweep.sql), instead of silently leaving it
-  //     sitting in Σ(balance) forever. Using the accrual figure here instead
-  //     would double-count any completed-but-unclaimed cycle's fee, which is
-  //     still sitting, uncollected, inside Σ(balance) above.
+  //   Loan Interest needs the same treatment but can't rely on the same
+  //     cancellation: it's counted once via Total Revenue (inside Combined
+  //     Account Total) AND is also embedded inside Loan Repayments (a
+  //     repayment is principal + interest in one cash receipt), so adding
+  //     raw Loan Repayments here on top of Combined Account Total would
+  //     double-count the interest portion. Subtracting it back out of Loan
+  //     Repayments here (only when the interest revenue component is
+  //     actually enabled — otherwise it was never added via Total Revenue
+  //     in the first place) leaves exactly the principal-repaid portion,
+  //     netted against Loans Disbursed (principal-only) as a clean
+  //     loans-receivable movement, with the interest already accounted for
+  //     via Combined Account Total.
   //
   //   Expenditures are a real cash outflow, subtracted directly.
+  //
+  //   NOTE: unlike the previous formula, this one is only exactly correct
+  //   when Combined Account Total's Total Savings/Total Daily Susu inputs
+  //   stay GROSS (lifetime deposits, never reduced by a withdrawal) — using
+  //   the net per-account `balance` column here instead would double-
+  //   subtract withdrawal principal (once inside that net balance, again
+  //   via Total Withdrawals) and understate Account Balance by that amount.
   // ─────────────────────────────────────────────────────────────────────
   accountBalance: number;
   // Cash at Bank + Cash at Hand = Account Balance (split by the company's
@@ -148,15 +163,18 @@ function sum(rows: any[] | null, key: string) {
  * Balance", "Total Withdrawals", "Cash at Bank", or "Cash at Hand" calls
  * this same function, so those figures can never drift between screens.
  *
- *   Combined Account Total = Total Savings + Total Daily Susu (client
- *                            liability only — see the AccountSummary.combinedTotal
- *                            comment for why Total Revenue isn't mixed in)
- *   Account Balance        = see the AccountSummary.accountBalance comment —
- *                             a real cash-position reconciliation, not
- *                             "Combined Account Total minus Withdrawals"
- *                             (that formula had no way to account for money
- *                             out on loan, which understates nothing only
- *                             by coincidence once any loan is outstanding).
+ *   Combined Account Total = Total Savings + Total Daily Susu + Total
+ *                            Revenue — see the AccountSummary.combinedTotal
+ *                            comment.
+ *   Total Withdrawals      = Transactional Withdrawals (withdrawalPrincipal)
+ *                            + Revenue Withdrawals (revenueWithdrawals) —
+ *                            see those fields' own comments.
+ *   Account Balance        = Combined Account Total − Total Withdrawals,
+ *                            with Loans Disbursed/Repaid and Expenditures
+ *                            still netted in — see the
+ *                            AccountSummary.accountBalance comment for the
+ *                            full formula and the loan-interest
+ *                            double-count it deliberately guards against.
  *   Cash at Hand + Cash at Bank = Account Balance
  */
 export async function computeAccountSummary(
@@ -174,8 +192,6 @@ export async function computeAccountSummary(
     { data: processingFeeRows },
     { data: collectedInterest },
     { data: bankTxnRows },
-    { data: savingsBalanceRows },
-    { data: susuBalanceRows },
     { data: loanPrincipalRows },
     { data: repaymentRows },
     { data: expenditureRows },
@@ -205,8 +221,6 @@ export async function computeAccountSummary(
     supabase.from("loans").select("processing_fee").in("status", ["active", "completed", "defaulted"]),
     supabase.rpc("compute_collected_loan_interest"),
     supabase.from("bank_transactions").select("type, amount"),
-    supabase.from("accounts").select("id, balance").eq("product_type", "savings"),
-    supabase.from("accounts").select("balance").eq("product_type", "susu"),
     supabase.from("loans").select("principal").in("status", ["active", "completed", "defaulted"]),
     supabase.from("loan_repayments").select("amount"),
     supabase.from("expenditures").select("amount"),
@@ -264,7 +278,12 @@ export async function computeAccountSummary(
   // Total Withdrawals — see the AccountSummary field's own comment for the
   // full reasoning. susuFees already contains susuEarlyWithdrawalFee, so it
   // isn't added twice; cardFees is deliberately excluded.
-  const totalWithdrawals = round2(withdrawalPrincipal + commission + susuFees + totalSmsFees + processingFees);
+  // revenueWithdrawals is the fee-only half of this split out as its own
+  // figure ("Revenue Withdrawals" on the Overview dashboard);
+  // withdrawalPrincipal (computed above) is the other half ("Transactional
+  // Withdrawals") — the two always sum back to totalWithdrawals.
+  const revenueWithdrawals = round2(commission + susuFees + totalSmsFees + processingFees);
+  const totalWithdrawals = round2(withdrawalPrincipal + revenueWithdrawals);
 
   const totalRevenue = round2(
     (revenueComponents.interest ? loanInterest : 0) +
@@ -277,22 +296,25 @@ export async function computeAccountSummary(
   const depositsFromRevenue = sum(revenueDepositRows, "amount");
   const netRevenue = round2(totalRevenue - depositsFromRevenue);
 
-  const combinedTotal = round2(totalSavings + totalSusu);
+  // Combined Account Total — see the AccountSummary field's own comment.
+  // totalSavings/totalSusu are the GROSS lifetime-deposit figures (not the
+  // net accounts.balance) — required for Account Balance below to net out
+  // correctly against Total Withdrawals without double-subtracting.
+  const combinedTotal = round2(totalSavings + totalSusu + totalRevenue);
 
   const loansDisbursed = sum(loanPrincipalRows, "principal");
   const loanRepayments = sum(repaymentRows, "amount");
   const totalExpenditures = sum(expenditureRows, "amount");
 
-  const clientDepositLiability = round2(sum(savingsBalanceRows, "balance") + sum(susuBalanceRows, "balance"));
+  // Only subtract Loan Interest back out of Loan Repayments if it was
+  // actually folded into Total Revenue (and therefore into Combined Account
+  // Total) above — see the AccountSummary.accountBalance comment for why.
+  const loanInterestInRevenue = revenueComponents.interest ? loanInterest : 0;
   const accountBalance = round2(
-    clientDepositLiability
-    + cardFees
-    + commission
-    + processingFees
-    + totalSmsFees
-    + susuFeesSwept
+    combinedTotal
+    - totalWithdrawals
     - loansDisbursed
-    + loanRepayments
+    + (loanRepayments - loanInterestInRevenue)
     - totalExpenditures
   );
 
@@ -322,6 +344,7 @@ export async function computeAccountSummary(
     combinedTotal,
     totalWithdrawals,
     withdrawalPrincipal,
+    revenueWithdrawals,
     loansDisbursed,
     loanRepayments,
     totalExpenditures,

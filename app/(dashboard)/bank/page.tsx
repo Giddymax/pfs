@@ -110,7 +110,7 @@ export default async function BankPage() {
         <BalanceCard
           label="Account balance"
           value={accountBalance}
-          hint="Actual cash position: client deposits + retained fees − loans out + repayments − expenditures"
+          hint="Combined Account Total − Total Withdrawals, net of loans and expenditures — matches Overview"
           color="text-[#0A2240]"
           bg="bg-[#0A2240]/[0.04] border-[#0A2240]/10"
         />
