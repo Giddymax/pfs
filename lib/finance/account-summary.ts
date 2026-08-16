@@ -28,8 +28,19 @@ export interface AccountSummary {
   processingFees: number;
   // Sum of every enabled revenue component (interest + commission + susu
   // fees + card fees + SMS fees + processing fees) — what the company has
-  // earned, full stop.
+  // earned, full stop. This is the gross figure shown on the Finance page.
   totalRevenue: number;
+  // Lifetime total of admin-recorded "Deposits Taken From Revenue" — money
+  // appropriated out of Total Revenue (e.g. swept to an external bank
+  // account), recorded via the Finance page. Not a cash movement as far as
+  // this app is concerned (no accounts/transactions row is touched), so it
+  // deliberately does NOT feed into accountBalance below — see that field's
+  // comment. It only affects the P&L view.
+  depositsFromRevenue: number;
+  // Net Revenue = totalRevenue − depositsFromRevenue. This is the figure
+  // shown on the Overview dashboard, so what's already been swept out never
+  // gets double-presented as still-available revenue.
+  netRevenue: number;
   // Combined Account Total = Total Savings + Total Daily Susu ONLY — a pure
   // client-liability figure (what's owed to depositors), deliberately not
   // mixed with Total Revenue (what the company has earned — a fundamentally
@@ -170,6 +181,7 @@ export async function computeAccountSummary(
     { data: expenditureRows },
     { data: susuClaimPenaltyRows },
     { data: sweptFeeRows },
+    { data: revenueDepositRows },
   ] = await Promise.all([
     supabase.from("accounts").select("id, dep").eq("product_type", "savings"),
     supabase.from("accounts").select("id, dep").eq("product_type", "susu"),
@@ -204,6 +216,7 @@ export async function computeAccountSummary(
     // figure accountBalance needs. Excludes SMS-fee `type='fee'` rows, which
     // use a different notes pattern and are already counted via smsFeeRows.
     supabase.from("transactions").select("amount").eq("type", "fee").ilike("notes", "%swept to company funds%"),
+    supabase.from("revenue_deposits").select("amount"),
   ]);
 
   const totalSavings = sum(savingsRows, "dep");
@@ -251,6 +264,8 @@ export async function computeAccountSummary(
     (revenueComponents.sms_fees ? totalSmsFees : 0) +
     (revenueComponents.processing_fees ? processingFees : 0)
   );
+  const depositsFromRevenue = sum(revenueDepositRows, "amount");
+  const netRevenue = round2(totalRevenue - depositsFromRevenue);
 
   const combinedTotal = round2(totalSavings + totalSusu);
 
@@ -292,6 +307,8 @@ export async function computeAccountSummary(
     totalSmsFees,
     processingFees,
     totalRevenue,
+    depositsFromRevenue,
+    netRevenue,
     combinedTotal,
     totalWithdrawals,
     withdrawalPrincipal,

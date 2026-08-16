@@ -109,7 +109,7 @@ export default async function OverviewPage() {
 
   const {
     totalSavings, totalSusu, loanInterest, commission, susuFees, cardFees,
-    totalSmsFees, processingFees, totalRevenue, combinedTotal, totalWithdrawals, loansDisbursed,
+    totalSmsFees, processingFees, totalRevenue, depositsFromRevenue, netRevenue, combinedTotal, totalWithdrawals, loansDisbursed,
     loanRepayments, accountBalance, cashAtBank, cashAtHand,
   } = summary;
 
@@ -158,20 +158,14 @@ export default async function OverviewPage() {
           />
         )}
         {/* kpi.total_revenue is kept (just never rendered as its own card)
-            purely for its .components sub-object, which still gates
-            totalRevenue's calculation via `rc` below. */}
+            purely for its .components sub-object (`rc`, passed into
+            computeAccountSummary above), which still gates what feeds
+            totalRevenue/netRevenue. */}
         {kpi.net_revenue.visible && (
           <SummaryCard
-            label="Total Revenue"
-            value={formatGHS(totalRevenue)}
-            hint={[
-              rc.interest        && `Interest ${formatGHS(loanInterest)}`,
-              rc.commission      && `Commission ${formatGHS(commission)}`,
-              rc.susu_fees       && `Susu Fees ${formatGHS(susuFees)}`,
-              rc.card_fees       && `Card Fees ${formatGHS(cardFees)}`,
-              rc.sms_fees        && `SMS Fees ${formatGHS(totalSmsFees)}`,
-              rc.processing_fees && `Processing Fees ${formatGHS(processingFees)}`,
-            ].filter(Boolean).join(" + ")}
+            label="Net Revenue"
+            value={formatGHS(netRevenue)}
+            hint={`Total Revenue ${formatGHS(totalRevenue)} − Deposits Taken From Revenue ${formatGHS(depositsFromRevenue)} = ${formatGHS(netRevenue)}`}
             tone="jade"
             icon={<Scale size={17} />}
           />
