@@ -195,6 +195,7 @@ export interface OverviewKpiSettings {
   total_susu: KpiCardCalcConfig;
   combined_total: KpiCardConfig;
   total_revenue: KpiRevenueConfig;
+  revenue_available: KpiCardConfig;
   account_balance: KpiCardConfig;
   total_withdrawals: KpiCardConfig;
   transactional_withdrawals: KpiCardConfig;

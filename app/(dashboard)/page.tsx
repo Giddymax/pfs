@@ -57,6 +57,7 @@ export default async function OverviewPage() {
     total_susu:      { visible: false, calc: "dep" as const },
     combined_total:  { visible: true },
     total_revenue:   { visible: true, components: { interest: true, commission: true, susu_fees: true, card_fees: true, sms_fees: true, processing_fees: true } },
+    revenue_available: { visible: true },
     account_balance: { visible: true },
     total_withdrawals: { visible: true },
     transactional_withdrawals: { visible: true },
@@ -114,7 +115,7 @@ export default async function OverviewPage() {
 
   const {
     totalSavings, totalSusu, loanInterest, commission, susuFees, cardFees,
-    totalSmsFees, processingFees, totalRevenue, combinedTotal, totalWithdrawals,
+    totalSmsFees, processingFees, totalRevenue, revenueAvailable, combinedTotal, totalWithdrawals,
     withdrawalPrincipal, revenueWithdrawals, loansDisbursed,
     loanRepayments, repaymentRemaining, accountBalance, cashAtBank, cashAtHand,
   } = summary;
@@ -170,6 +171,15 @@ export default async function OverviewPage() {
             hint={`Revenue Withdrawals ${formatGHS(revenueWithdrawals)} + Card Fees ${formatGHS(cardFees)} + Loan Interest ${formatGHS(loanInterest)}`}
             tone="jade"
             icon={<Scale size={17} />}
+          />
+        )}
+        {kpi.revenue_available.visible && (
+          <SummaryCard
+            label="Revenue Available"
+            value={formatGHS(revenueAvailable)}
+            hint="Total Revenue not yet deposited into the PFS Consolidated Fund — the ceiling on the next Deposit Revenue"
+            tone="indigo"
+            icon={<Landmark size={17} />}
           />
         )}
         {kpi.card_fees.visible && (

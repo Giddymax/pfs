@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, X, Landmark } from "lucide-react";
 import { formatGHS } from "@/lib/loan";
 
-export function RecordRevenueDepositButton({ totalRevenue }: { totalRevenue: number }) {
+export function RecordRevenueDepositButton({ revenueAvailable }: { revenueAvailable: number }) {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
@@ -29,8 +29,8 @@ export function RecordRevenueDepositButton({ totalRevenue }: { totalRevenue: num
       setError("Enter an amount greater than zero.");
       return;
     }
-    if (amountNum > totalRevenue) {
-      setError(`Cannot deposit more than the available Total Revenue of ${formatGHS(totalRevenue)}.`);
+    if (amountNum > revenueAvailable) {
+      setError(`Cannot deposit more than the available Revenue of ${formatGHS(revenueAvailable)}.`);
       return;
     }
 
@@ -71,7 +71,7 @@ export function RecordRevenueDepositButton({ totalRevenue }: { totalRevenue: num
               <div>
                 <h3 className="text-[15px] font-semibold text-[#7C3AED]">Deposit revenue</h3>
                 <p className="mt-0.5 text-[12.5px] text-[#0A2240]/45">
-                  Sweeps an amount out of Total Revenue into the PFS Consolidated Fund — the only way money can enter that account. Can only be recorded between 19:00 and 23:30 each day.
+                  Sweeps an amount out of Revenue Available into the PFS Consolidated Fund — the only way money can enter that account. Can only be recorded between 19:00 and 23:30 each day.
                 </p>
               </div>
               <button
@@ -95,7 +95,7 @@ export function RecordRevenueDepositButton({ totalRevenue }: { totalRevenue: num
                 <label className="mb-1.5 block text-[12.5px] font-medium text-[#7C3AED]/85">
                   Amount (GHS)
                   <span className="ml-2 font-normal text-[#0A2240]/40">
-                    · Available: {formatGHS(totalRevenue)}
+                    · Available: {formatGHS(revenueAvailable)}
                   </span>
                 </label>
                 <input

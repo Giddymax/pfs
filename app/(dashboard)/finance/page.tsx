@@ -86,7 +86,7 @@ export default async function FinancePage() {
     computeAccountSummary(supabase, rc),
   ]);
 
-  const { loanInterest, commission, susuFees, cardFees, totalSmsFees, processingFees, totalRevenue } = summary;
+  const { loanInterest, commission, susuFees, cardFees, totalSmsFees, processingFees, totalRevenue, revenueAvailable } = summary;
 
   const totalExpenditure = round2(Number(fund?.wdr ?? 0));
   const netBalance = round2(Number(fund?.balance ?? 0));
@@ -132,7 +132,7 @@ export default async function FinancePage() {
         }
       />
 
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <SummaryCard
           label="Total Revenue"
           value={formatGHS(totalRevenue)}
@@ -144,6 +144,12 @@ export default async function FinancePage() {
           value={formatGHS(Number(fund?.balance ?? 0))}
           color="bg-[#7C3AED]"
           sub={fund ? `Account ${fund.account_number} — always matches its live balance` : "Not set up — mark an account is_consolidated_fund"}
+        />
+        <SummaryCard
+          label="Fund — Amount Available"
+          value={formatGHS(revenueAvailable)}
+          color="bg-[#6D28D9]"
+          sub={`Total Revenue ${formatGHS(totalRevenue)} − already deposited ${formatGHS(round2(totalRevenue - revenueAvailable))}`}
         />
         <SummaryCard
           label="Total Expenditure"

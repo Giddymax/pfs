@@ -39,6 +39,15 @@ export interface AccountSummary {
   // two revenue sources that never touch a client balance) — same total,
   // grouped by where the money came from instead of by fee type.
   totalRevenue: number;
+  // Total Revenue − what's already been deposited into the PFS
+  // Consolidated Fund (that account's own lifetime dep — deposits into it
+  // are blocked everywhere except record_revenue_deposit(), so its dep IS
+  // exactly the running total of revenue swept so far). This is the real
+  // ceiling on a further Deposit Revenue: depositing more than this would
+  // sweep in money that was never actually earned. Also the figure shown
+  // as "Revenue Available" next to Total Revenue on the Overview dashboard
+  // and on the Finance page.
+  revenueAvailable: number;
   // Combined Account Total = Total Savings + Total Daily Susu — gross
   // deposits across every savings/susu account, full stop. Deliberately
   // does NOT add Total Revenue anymore (it briefly did, on an earlier
@@ -211,6 +220,7 @@ export async function computeAccountSummary(
     { data: expenditureRows },
     { data: susuClaimPenaltyRows },
     { data: sweptFeeRows },
+    { data: fundAccountRow },
   ] = await Promise.all([
     supabase.from("accounts").select("id, dep").eq("product_type", "savings"),
     supabase.from("accounts").select("id, dep").eq("product_type", "susu"),
@@ -262,6 +272,11 @@ export async function computeAccountSummary(
     // `type='fee'` rows, which use a different notes pattern and are
     // already counted via smsFeeRows.
     supabase.from("transactions").select("amount").in("type", ["fee", "withdrawal"]).is("reversed_at", null).ilike("notes", "%swept to company funds%"),
+    // PFS Consolidated Fund's lifetime deposits — see revenueAvailable
+    // below. Deposits into this account are blocked everywhere except
+    // record_revenue_deposit() (0074_consolidated_fund_finance_link.sql),
+    // so its dep is, by construction, exactly what's been swept so far.
+    supabase.from("accounts").select("dep").eq("is_consolidated_fund", true).maybeSingle(),
   ]);
 
   const totalSavings = sum(savingsRows, "dep");
@@ -320,6 +335,12 @@ export async function computeAccountSummary(
     (revenueComponents.sms_fees ? totalSmsFees : 0) +
     (revenueComponents.processing_fees ? processingFees : 0)
   );
+  // Revenue Available (to deposit into the PFS Consolidated Fund) = Total
+  // Revenue − what's already been deposited into it. See
+  // revenueAvailable's own comment on the AccountSummary interface.
+  const fundDeposited = round2(Number(fundAccountRow?.dep ?? 0));
+  const revenueAvailable = round2(totalRevenue - fundDeposited);
+
   // Combined Account Total — see the AccountSummary field's own comment.
   // totalSavings/totalSusu are the GROSS lifetime-deposit figures (not the
   // net accounts.balance) — required for Account Balance below to net out
@@ -366,6 +387,7 @@ export async function computeAccountSummary(
     totalSmsFees,
     processingFees,
     totalRevenue,
+    revenueAvailable,
     combinedTotal,
     totalWithdrawals,
     withdrawalPrincipal,

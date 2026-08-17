@@ -36,20 +36,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Amount must be greater than zero" }, { status: 400 });
   }
 
-  // Don't let a deposit exceed Total Revenue — same defensive spirit as
-  // record_withdrawal's insufficient-balance check, just computed here
-  // instead of in SQL, since the "available revenue" figure already lives in
-  // lib/finance/account-summary.ts and duplicating that formula in SQL would
-  // risk the two drifting apart. (There's no more "Net Revenue" tracking
-  // what's already been deposited — that concept was removed on request —
-  // so this is a flat cap against everything ever earned, not a running
-  // balance.)
+  // Don't let a deposit exceed Revenue Available (Total Revenue minus
+  // what's already been deposited into the Fund) — same defensive spirit
+  // as record_withdrawal's insufficient-balance check, just computed here
+  // instead of in SQL, since the figure already lives in
+  // lib/finance/account-summary.ts and duplicating that formula in SQL
+  // would risk the two drifting apart. Capping against raw Total Revenue
+  // instead (as this briefly did) would let repeated deposits sweep in far
+  // more than was ever actually earned, since Total Revenue never
+  // decreases as deposits are made.
   const settings = await getSettings();
   const rc = { ...DEFAULT_REVENUE_COMPONENTS, ...(settings.overview_kpi?.total_revenue?.components ?? {}) };
-  const { totalRevenue } = await computeAccountSummary(supabase, rc);
-  if (amount > totalRevenue) {
+  const { revenueAvailable } = await computeAccountSummary(supabase, rc);
+  if (amount > revenueAvailable) {
     return NextResponse.json(
-      { error: `Cannot deposit more than the available Total Revenue of ${totalRevenue.toFixed(2)}` },
+      { error: `Cannot deposit more than the available Revenue of ${revenueAvailable.toFixed(2)}` },
       { status: 400 }
     );
   }

@@ -63,13 +63,13 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
   const isStaffOrAdmin = profile?.role === "admin" || profile?.role === "staff";
   const companyPhone = settings.sms.company_tel ?? null;
 
-  // Only the PFS Consolidated Fund needs Total Revenue (for the Deposit
-  // revenue form's available-balance cap below) — skip the extra
+  // Only the PFS Consolidated Fund needs Revenue Available (for the
+  // Deposit revenue form's available-balance cap below) — skip the extra
   // computeAccountSummary() call for every other account page.
-  let totalRevenue = 0;
+  let revenueAvailable = 0;
   if (account.is_consolidated_fund) {
     const rc = { ...DEFAULT_REVENUE_COMPONENTS, ...(settings.overview_kpi?.total_revenue?.components ?? {}) };
-    ({ totalRevenue } = await computeAccountSummary(supabase, rc));
+    ({ revenueAvailable } = await computeAccountSummary(supabase, rc));
   }
   const allTransactions = transactions ?? [];
   const txnsWithAccount = allTransactions.map(({ account: _acct, ...rest }) => ({
@@ -134,7 +134,7 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
               ) : (
                 <>
                   {account.is_consolidated_fund ? (
-                    isAdmin && <RecordRevenueDepositButton totalRevenue={totalRevenue} />
+                    isAdmin && <RecordRevenueDepositButton revenueAvailable={revenueAvailable} />
                   ) : (
                     <RecordTransactionForm accountId={account.id} kind="deposit" />
                   )}
