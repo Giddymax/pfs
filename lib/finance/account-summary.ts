@@ -13,6 +13,12 @@ export interface AccountSummary {
   // Revenue components (each already gated by revenueComponents before it's
   // folded into totalRevenue below). This is a P&L/income view — how much
   // the company has earned — not a cash-reconciliation view.
+  //
+  // loanInterest specifically: recognized only once a loan is FULLY repaid
+  // (status = 'completed'), not proportionally as each repayment comes in.
+  // compute_collected_loan_interest() (0072_loan_interest_on_completion.sql)
+  // sums total_interest across completed loans only — a loan still being
+  // paid off contributes nothing here yet, even if it's 99% repaid.
   loanInterest: number;
   commission: number; // savings withdrawals only — susu is commission-exempt
   susuFees: number;    // ACCRUAL basis, for the P&L view — day-31 fee the
