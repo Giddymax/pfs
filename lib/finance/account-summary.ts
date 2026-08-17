@@ -39,12 +39,17 @@ export interface AccountSummary {
   // two revenue sources that never touch a client balance) — same total,
   // grouped by where the money came from instead of by fee type.
   totalRevenue: number;
-  // Combined Account Total = Total Savings + Total Daily Susu + Total
-  // Revenue — every pool of money the business is holding or has earned,
-  // client-owed and company-owned combined. (Earlier versions of this figure
-  // deliberately excluded Total Revenue; that changed on request — see
-  // Account Balance below for how this combines with Total Withdrawals to
-  // stay arithmetically consistent despite the mix.)
+  // Combined Account Total = Total Savings + Total Daily Susu — gross
+  // deposits across every savings/susu account, full stop. Deliberately
+  // does NOT add Total Revenue anymore (it briefly did, on an earlier
+  // request) — the PFS Consolidated Fund is a real savings account now
+  // (0074_consolidated_fund_finance_link.sql), so revenue that's actually
+  // been swept into it already counts once, correctly, via ordinary
+  // savings-deposit accounting (its dep is part of Total Savings like any
+  // other account's). Adding Total Revenue on top of that would double-
+  // count whatever's already been swept. Revenue NOT yet swept simply
+  // isn't counted here at all — see Account Balance below for the same
+  // consequence carried through to that figure.
   combinedTotal: number;
   // Every amount deducted from a client's account balance, all time,
   // excluding reversed txns — not just what the client withdrew themselves.
@@ -91,6 +96,11 @@ export interface AccountSummary {
   // — nothing's been disbursed yet). Not an input to accountBalance — purely
   // a reporting figure ("Repayment Remaining" on the Overview dashboard).
   repaymentRemaining: number;
+  // Lifetime sum of the expenditures table. Every expenditure is now a
+  // real withdrawal from the PFS Consolidated Fund
+  // (0074_consolidated_fund_finance_link.sql), already counted via
+  // totalWithdrawals — NOT an input to accountBalance below (would double-
+  // count that same cash). Exposed purely for reporting.
   totalExpenditures: number;
   // CASH basis — only the susu fee/penalty money that has actually been
   // swept out of a client's balance via a real transaction (instant-route
@@ -104,52 +114,47 @@ export interface AccountSummary {
   // use the accrual-basis susuFees, not this cash-basis figure).
   susuFeesSwept: number;
   // ─────────────────────────────────────────────────────────────────────
-  // Account Balance — on request, now a direct arithmetic identity rather
-  // than the balance-sheet reconstruction this used to be:
+  // Account Balance = Combined Account Total − Total Withdrawals
+  //                    − Loans Disbursed + Loan Repayments
   //
-  //   Account Balance = Combined Account Total − Total Withdrawals
-  //                      − Loans Disbursed + (Loan Repayments − Loan
-  //                      Interest already counted in Total Revenue)
-  //                      − Expenditures
+  //   Combined Account Total is now purely gross Total Savings + Total
+  //   Daily Susu (see that field's own comment) — no revenue mixed in.
+  //   Total Withdrawals still nets out withdrawalPrincipal (cash that left
+  //   the business) plus revenueWithdrawals (commission/susuFees/SMS/
+  //   processing fees deducted from a client's balance). Because those fee
+  //   components are no longer added anywhere in Combined Account Total,
+  //   subtracting them here is a real, one-directional reduction — not a
+  //   cancelling one — for exactly as long as that fee sits un-swept. The
+  //   PFS Consolidated Fund is a real savings account
+  //   (0074_consolidated_fund_finance_link.sql): the moment any revenue
+  //   (those fees, Card Fees, or anything else) is actually deposited into
+  //   it via Deposit Revenue, that same amount flows straight back into
+  //   Account Balance through ordinary savings-deposit accounting (Total
+  //   Savings → Combined Account Total), self-correcting the dip. On
+  //   request: unswept revenue deliberately does NOT count as cash on hand
+  //   here — it forces revenue to actually be swept before it "counts."
   //
-  //   Combined Account Total (= Total Savings + Total Daily Susu + Total
-  //     Revenue, all GROSS/lifetime figures — see that field's own comment)
-  //     is deliberately mixed: client-owed money and company-owned revenue
-  //     both count as cash the business is holding. Total Withdrawals is
-  //     symmetric with it: withdrawalPrincipal is cash that left the
-  //     business entirely, while the rest of Total Withdrawals
-  //     (commission/susuFees/SMS/processing fees — see revenueWithdrawals)
-  //     is money that moved from the client-owed pool into the
-  //     company-revenue pool WITHOUT leaving the business — since that same
-  //     amount was just added once via Total Revenue inside Combined
-  //     Account Total, subtracting it again here nets to exactly zero
-  //     effect on Account Balance, which is correct: an internal transfer
-  //     shouldn't change how much cash the business has. Card Fees are the
-  //     one Total Revenue component with no Total Withdrawals counterpart
-  //     (never deducted from any client balance — a genuine fresh inflow),
-  //     so they pass straight through as a net gain, correctly.
+  //   Loan Repayments is added back in FULL now (principal + interest
+  //   together, no separate interest subtraction) — unlike Card Fees/
+  //   commission/etc., loan interest was never added anywhere in Combined
+  //   Account Total in the first place, so there's nothing to avoid
+  //   double-counting against. Loans Disbursed/Loan Repayments sit outside
+  //   the accounts ledger entirely (activate_loan()/record_loan_repayment()
+  //   never touch any account balance), so, same as before this change,
+  //   they're netted here directly regardless of what's been swept.
   //
-  //   Loan Interest needs the same treatment but can't rely on the same
-  //     cancellation: it's counted once via Total Revenue (inside Combined
-  //     Account Total) AND is also embedded inside Loan Repayments (a
-  //     repayment is principal + interest in one cash receipt), so adding
-  //     raw Loan Repayments here on top of Combined Account Total would
-  //     double-count the interest portion. Subtracting it back out of Loan
-  //     Repayments here (only when the interest revenue component is
-  //     actually enabled — otherwise it was never added via Total Revenue
-  //     in the first place) leaves exactly the principal-repaid portion,
-  //     netted against Loans Disbursed (principal-only) as a clean
-  //     loans-receivable movement, with the interest already accounted for
-  //     via Combined Account Total.
+  //   No separate Expenditures term anymore: every expenditure is now a
+  //   real withdrawal from the Consolidated Fund (see totalExpenditures'
+  //   own comment below), and withdrawalRows has no per-account scoping —
+  //   it's every withdrawal ever, fund included — so that cash is already
+  //   subtracted once via Total Withdrawals. Subtracting totalExpenditures
+  //   again here would double-count it.
   //
-  //   Expenditures are a real cash outflow, subtracted directly.
-  //
-  //   NOTE: unlike the previous formula, this one is only exactly correct
-  //   when Combined Account Total's Total Savings/Total Daily Susu inputs
-  //   stay GROSS (lifetime deposits, never reduced by a withdrawal) — using
-  //   the net per-account `balance` column here instead would double-
-  //   subtract withdrawal principal (once inside that net balance, again
-  //   via Total Withdrawals) and understate Account Balance by that amount.
+  //   NOTE: this is only exactly correct when Combined Account Total's
+  //   Total Savings/Total Daily Susu inputs stay GROSS (lifetime deposits,
+  //   never reduced by a withdrawal) — using the net per-account `balance`
+  //   column here instead would double-subtract withdrawal principal (once
+  //   inside that net balance, again via Total Withdrawals).
   // ─────────────────────────────────────────────────────────────────────
   accountBalance: number;
   // Cash at Bank + Cash at Hand = Account Balance (split by the company's
@@ -171,18 +176,18 @@ function sum(rows: any[] | null, key: string) {
  * Balance", "Total Withdrawals", "Cash at Bank", or "Cash at Hand" calls
  * this same function, so those figures can never drift between screens.
  *
- *   Combined Account Total = Total Savings + Total Daily Susu + Total
- *                            Revenue — see the AccountSummary.combinedTotal
- *                            comment.
+ *   Combined Account Total = Total Savings + Total Daily Susu — gross,
+ *                            no revenue mixed in — see the
+ *                            AccountSummary.combinedTotal comment.
  *   Total Withdrawals      = Transactional Withdrawals (withdrawalPrincipal)
  *                            + Revenue Withdrawals (revenueWithdrawals) —
  *                            see those fields' own comments.
- *   Account Balance        = Combined Account Total − Total Withdrawals,
- *                            with Loans Disbursed/Repaid and Expenditures
- *                            still netted in — see the
- *                            AccountSummary.accountBalance comment for the
- *                            full formula and the loan-interest
- *                            double-count it deliberately guards against.
+ *   Account Balance        = Combined Account Total − Total Withdrawals
+ *                            − Loans Disbursed + Loan Repayments — see the
+ *                            AccountSummary.accountBalance comment for why
+ *                            un-swept revenue deliberately doesn't count
+ *                            here until it's actually deposited into the
+ *                            PFS Consolidated Fund.
  *   Cash at Hand + Cash at Bank = Account Balance
  */
 export async function computeAccountSummary(
@@ -319,23 +324,25 @@ export async function computeAccountSummary(
   // totalSavings/totalSusu are the GROSS lifetime-deposit figures (not the
   // net accounts.balance) — required for Account Balance below to net out
   // correctly against Total Withdrawals without double-subtracting.
-  const combinedTotal = round2(totalSavings + totalSusu + totalRevenue);
+  // Deliberately excludes totalRevenue now — see that field's comment.
+  const combinedTotal = round2(totalSavings + totalSusu);
 
   const loansDisbursed = sum(loanPrincipalRows, "principal");
   const loanRepayments = sum(repaymentRows, "amount");
   const repaymentRemaining = sum(outstandingLoanRows, "current_balance");
+  // Exposed for reporting; NOT an input to accountBalance below — every
+  // expenditure is now a real withdrawal from the PFS Consolidated Fund
+  // (0074_consolidated_fund_finance_link.sql), already counted once via
+  // totalWithdrawals (withdrawalRows has no per-account scoping — it's
+  // every withdrawal, fund included). Subtracting this too would double-
+  // count the exact same cash leaving the fund.
   const totalExpenditures = sum(expenditureRows, "amount");
 
-  // Only subtract Loan Interest back out of Loan Repayments if it was
-  // actually folded into Total Revenue (and therefore into Combined Account
-  // Total) above — see the AccountSummary.accountBalance comment for why.
-  const loanInterestInRevenue = revenueComponents.interest ? loanInterest : 0;
   const accountBalance = round2(
     combinedTotal
     - totalWithdrawals
     - loansDisbursed
-    + (loanRepayments - loanInterestInRevenue)
-    - totalExpenditures
+    + loanRepayments
   );
 
   const rawCashAtBank = round2(

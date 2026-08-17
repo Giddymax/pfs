@@ -110,7 +110,7 @@ export default async function BankPage() {
         <BalanceCard
           label="Account balance"
           value={accountBalance}
-          hint="Combined Account Total − Total Withdrawals, net of loans and expenditures — matches Overview"
+          hint="Combined Account Total − Total Withdrawals, net of loans — matches Overview"
           color="text-[#0A2240]"
           bg="bg-[#0A2240]/[0.04] border-[#0A2240]/10"
         />

@@ -230,7 +230,7 @@ export default async function OverviewPage() {
           <SummaryCard
             label="Combined Account Total"
             value={formatGHS(combinedTotal)}
-            hint={`Savings ${formatGHS(totalSavings)} + Susu ${formatGHS(totalSusu)} + Revenue ${formatGHS(totalRevenue)}`}
+            hint={`Savings ${formatGHS(totalSavings)} + Susu ${formatGHS(totalSusu)} — revenue counts once it's swept into the PFS Consolidated Fund`}
             tone="orange"
             icon={<Layers size={17} />}
           />
@@ -293,7 +293,7 @@ export default async function OverviewPage() {
           <SummaryCard
             label="Account Balance"
             value={formatGHS(accountBalance)}
-            hint={`Combined Account Total ${formatGHS(combinedTotal)} − Total Withdrawals ${formatGHS(totalWithdrawals)} (net of loans and expenditures)`}
+            hint={`Combined Account Total ${formatGHS(combinedTotal)} − Total Withdrawals ${formatGHS(totalWithdrawals)} (net of loans; expenditures are Consolidated Fund withdrawals, already included)`}
             tone="purple"
             icon={<Wallet size={17} />}
           />

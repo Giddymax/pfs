@@ -31,6 +31,7 @@ export function AddExpenditureButton() {
   const [category, setCategory] = useState("Miscellaneous");
   const [date, setDate] = useState(todayLocal());
   const [notes, setNotes] = useState("");
+  const [commission, setCommission] = useState("");
 
   function handleClose() {
     setOpen(false);
@@ -40,6 +41,7 @@ export function AddExpenditureButton() {
     setCategory("Miscellaneous");
     setDate(todayLocal());
     setNotes("");
+    setCommission("");
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -51,7 +53,7 @@ export function AddExpenditureButton() {
       const res = await fetch("/api/expenditures", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, amount: Number(amount), category, date, notes }),
+        body: JSON.stringify({ title, amount: Number(amount), category, date, notes, commission: Number(commission) || 0 }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -128,6 +130,22 @@ export function AddExpenditureButton() {
                     className="w-full rounded-md border border-[#0033AA]/15 bg-white px-3.5 py-2.5 text-[14px] text-[#0A2240] outline-none transition-colors focus:border-[#0062E1]"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-[12.5px] font-medium text-[#0033AA]/75">Commission (GHS)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={commission}
+                  onChange={(e) => setCommission(e.target.value)}
+                  placeholder="0.00"
+                  className="w-full rounded-md border border-[#0033AA]/15 bg-white px-3.5 py-2.5 text-[14px] text-[#0A2240] outline-none transition-colors focus:border-[#0062E1]"
+                />
+                <p className="mt-1 text-[11.5px] text-[#0A2240]/45">
+                  Same withdrawal conventions as any savings account — leave at 0 if no commission applies.
+                </p>
               </div>
 
               <div>
