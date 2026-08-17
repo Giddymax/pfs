@@ -89,6 +89,36 @@ describe("computeAccountSummary — baseline (pre-fix)", () => {
     // the commission's +10/-10 cancels, leaving exactly the cash paid out.
     expect(round(after.accountBalance - before.accountBalance)).toBe(-200);
   });
+
+  it("a withdrawal recorded with no notes (the common case — admins usually leave notes blank) still counts toward withdrawalPrincipal/totalWithdrawals/accountBalance", async () => {
+    // Regression test for a real bug: withdrawalPrincipal used to be built
+    // from a `.not("notes", "ilike", "%swept to company funds%")` filter
+    // applied at the query level. In Postgres, `NULL NOT ILIKE 'pattern'`
+    // evaluates to NULL — not TRUE — so PostgREST silently dropped every
+    // withdrawal row with notes IS NULL from the result set entirely. In
+    // production this was undercounting withdrawalPrincipal by tens of
+    // thousands of cedis (33 of 39 real withdrawal rows had no notes) and,
+    // once Account Balance started deriving from Total Withdrawals, was
+    // overstating Account Balance by the same amount. The fix moved the
+    // "swept to company funds" exclusion into JS, after the fetch.
+    const before = await computeAccountSummary(admin, RC);
+
+    const { error } = await admin.rpc("record_withdrawal", {
+      p_account_id: savingsAccountId,
+      p_amount: 150,
+      p_recorded_by: TEST_ADMIN_ID,
+      p_notes: null,
+      p_created_at: null,
+      p_fee: 0,
+    });
+    expect(error).toBeNull();
+
+    const after = await computeAccountSummary(admin, RC);
+
+    expect(round(after.withdrawalPrincipal - before.withdrawalPrincipal)).toBe(150);
+    expect(round(after.totalWithdrawals - before.totalWithdrawals)).toBe(150);
+    expect(round(after.accountBalance - before.accountBalance)).toBe(-150);
+  });
 });
 
 function round(n: number) {

@@ -201,14 +201,18 @@ export async function computeAccountSummary(
   ] = await Promise.all([
     supabase.from("accounts").select("id, dep").eq("product_type", "savings"),
     supabase.from("accounts").select("id, dep").eq("product_type", "susu"),
-    // Excludes the automatic susu day-31 fee sweep (0071_susu_day31_auto_
-    // sweep.sql) — it's recorded as type='withdrawal' so it shows up in the
-    // Withdrawals report and account history, but it's company revenue, not
-    // cash the client walked away with, so it doesn't belong in
-    // withdrawalPrincipal ("Cash Paid to Clients"). Tagged the same way
-    // pay_susu_claim's legacy fee sweep is (see sweptFeeRows below), which
-    // is what excludes both from this figure.
-    supabase.from("transactions").select("amount").eq("type", "withdrawal").is("reversed_at", null).not("notes", "ilike", "%swept to company funds%"),
+    // Every withdrawal (savings + susu combined — there's no third account
+    // product_type). The automatic susu day-31 fee sweep (0071_susu_day31_
+    // auto_sweep.sql) is excluded below, in JS, not here in the query:
+    // Postgres's `notes NOT ILIKE 'pattern'` evaluates to NULL — not TRUE —
+    // for any row where notes IS NULL, so a `.not("notes","ilike",...)`
+    // filter at the SQL/PostgREST level silently drops every withdrawal
+    // that simply has no notes at all, which is most of them. (This is
+    // exactly what was undercounting withdrawalPrincipal for months — see
+    // withdrawalPrincipal below.) Filtering in JS after the fetch, the same
+    // way the Withdrawals report's cashPaidToClients already does it,
+    // avoids the trap entirely.
+    supabase.from("transactions").select("amount, notes").eq("type", "withdrawal").is("reversed_at", null),
     supabase.from("transactions").select("fee, account_id").eq("type", "withdrawal").is("reversed_at", null),
     supabase.from("susu_payments").select("amount").eq("day_in_cycle", 31),
     supabase.from("card_fees").select("amount"),
@@ -246,10 +250,16 @@ export async function computeAccountSummary(
   const totalSavings = sum(savingsRows, "dep");
   const totalSusu = sum(susuRows, "dep");
   // Raw withdrawal principal — what clients actually walked away with in
-  // hand. Kept as its own value below (not the totalWithdrawals field
-  // anymore, see that field's comment) since commission/susuFees/etc. need
-  // it as a building block.
-  const withdrawalPrincipal = sum(withdrawalRows, "amount");
+  // hand, across every savings and susu withdrawal. Kept as its own value
+  // below (not the totalWithdrawals field anymore, see that field's
+  // comment) since commission/susuFees/etc. need it as a building block.
+  // The "swept to company funds" auto-sweep exclusion happens here in JS,
+  // not as a query filter — see withdrawalRows' own comment for why.
+  const withdrawalPrincipal = round2(
+    (withdrawalRows ?? [])
+      .filter((r: { notes: string | null }) => !(r.notes ?? "").toLowerCase().includes("swept to company funds"))
+      .reduce((s: number, r: { amount: number }) => s + Number(r.amount ?? 0), 0)
+  );
 
   // Split withdrawal fees by product. Susu withdrawals are commission-exempt
   // under record_withdrawal (the shared RPC every normal susu withdrawal
