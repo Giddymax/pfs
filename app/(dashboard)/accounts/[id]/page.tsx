@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowUpRight, Banknote, CalendarDays, Landmark, PiggyBank, ReceiptText, UserRound, Wallet } from "lucide-react";
+import { ArrowUpRight, Banknote, CalendarDays, PiggyBank, ReceiptText, UserRound, Wallet } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Card, AccountStatusBadge, EmptyState, PageHeader, StatCard } from "@/components/ui";
 import { RecordTransactionForm } from "@/components/record-transaction-form";
@@ -18,7 +18,9 @@ import { SusuClaimActions } from "@/components/susu-claim-actions";
 import { ResetSusuButton } from "@/components/reset-susu-button";
 import { ClearTransactionsButton } from "@/components/clear-transactions-button";
 import { ClientPhotoViewer } from "@/components/client-photo-viewer";
+import { RecordRevenueDepositButton } from "@/components/record-revenue-deposit-button";
 import { getSettings } from "@/lib/settings/cache";
+import { computeAccountSummary } from "@/lib/finance/account-summary";
 import { computeSusuQualification, type SusuQualification } from "@/lib/susu/qualification";
 import { formatGHS } from "@/lib/loan";
 import type { Account, Client, Profile, SusuClaim, SusuPayment, Transaction } from "@/lib/types";
@@ -26,6 +28,15 @@ import type { Account, Client, Profile, SusuClaim, SusuPayment, Transaction } fr
 const PRODUCT_LABEL: Record<Account["product_type"], string> = {
   savings: "Savings account",
   susu: "Daily susu account",
+};
+
+const DEFAULT_REVENUE_COMPONENTS = {
+  interest: true,
+  commission: true,
+  susu_fees: true,
+  card_fees: true,
+  sms_fees: true,
+  processing_fees: true,
 };
 
 export default async function AccountDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -51,6 +62,15 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
   const isAdmin = profile?.role === "admin";
   const isStaffOrAdmin = profile?.role === "admin" || profile?.role === "staff";
   const companyPhone = settings.sms.company_tel ?? null;
+
+  // Only the PFS Consolidated Fund needs Total Revenue (for the Deposit
+  // revenue form's available-balance cap below) — skip the extra
+  // computeAccountSummary() call for every other account page.
+  let totalRevenue = 0;
+  if (account.is_consolidated_fund) {
+    const rc = { ...DEFAULT_REVENUE_COMPONENTS, ...(settings.overview_kpi?.total_revenue?.components ?? {}) };
+    ({ totalRevenue } = await computeAccountSummary(supabase, rc));
+  }
   const allTransactions = transactions ?? [];
   const txnsWithAccount = allTransactions.map(({ account: _acct, ...rest }) => ({
     ...rest,
@@ -114,13 +134,7 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
               ) : (
                 <>
                   {account.is_consolidated_fund ? (
-                    <Link
-                      href="/finance?deposit=revenue"
-                      className="inline-flex items-center gap-2 rounded-md bg-[#7C3AED] px-4 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-[#6D28D9]"
-                    >
-                      <Landmark size={15} />
-                      Deposit revenue on Finance page
-                    </Link>
+                    isAdmin && <RecordRevenueDepositButton totalRevenue={totalRevenue} />
                   ) : (
                     <RecordTransactionForm accountId={account.id} kind="deposit" />
                   )}

@@ -5,20 +5,8 @@ import { useRouter } from "next/navigation";
 import { Loader2, X, Landmark } from "lucide-react";
 import { formatGHS } from "@/lib/loan";
 
-export function RecordRevenueDepositButton({
-  totalRevenue,
-  autoOpen,
-}: {
-  totalRevenue: number;
-  // Opened automatically when redirected here from a savings account page
-  // that refused a normal deposit into the PFS Consolidated Fund — see
-  // app/(dashboard)/finance/page.tsx and the account detail page.
-  autoOpen?: boolean;
-}) {
-  // Lazy initializer, not an effect: autoOpen comes from a URL search param
-  // that's stable for the life of this page load, so there's no later
-  // change to react to — just start the modal in the right state.
-  const [open, setOpen] = useState(() => !!autoOpen);
+export function RecordRevenueDepositButton({ totalRevenue }: { totalRevenue: number }) {
+  const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);

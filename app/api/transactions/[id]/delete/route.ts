@@ -44,6 +44,15 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
       .eq("id", linkedPayment.id);
   }
 
+  // Delete any expenditure this withdrawal backs (PFS Consolidated Fund —
+  // see 0074_consolidated_fund_finance_link.sql). No FK forcing this order
+  // anymore (0075 dropped it), but deleting the referencing row first is
+  // still the tidier sequence.
+  await admin
+    .from("expenditures")
+    .delete()
+    .eq("linked_transaction_id", txnId);
+
   // Now safe to delete the transaction
   const { error: deleteError } = await admin
     .from("transactions")

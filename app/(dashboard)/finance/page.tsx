@@ -1,11 +1,12 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Landmark } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getSettings } from "@/lib/settings/cache";
 import { computeAccountSummary } from "@/lib/finance/account-summary";
 import { PageHeader, Card, EmptyState } from "@/components/ui";
 import { AddExpenditureButton, DeleteExpenditureButton } from "@/components/expenditure-actions";
 import { PrintFinanceSummaryButton } from "@/components/print-finance-summary-button";
-import { RecordRevenueDepositButton } from "@/components/record-revenue-deposit-button";
 import { ExportCsvButton } from "@/components/export-csv-button";
 import { formatGHS, round2 } from "@/lib/loan";
 import type { Profile } from "@/lib/types";
@@ -23,6 +24,7 @@ interface Expenditure {
 }
 
 interface ConsolidatedFundAccount {
+  id: string;
   account_number: string;
   balance: number;
   wdr: number;
@@ -52,11 +54,7 @@ function categoryBadge(cat: string) {
   return CATEGORY_COLOR[cat] ?? "bg-[#64748B]/10 text-[#475569]";
 }
 
-export default async function FinancePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ deposit?: string }>;
-}) {
+export default async function FinancePage() {
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -65,8 +63,6 @@ export default async function FinancePage({
   const { data: profile } = await supabase
     .from("profiles").select("role, full_name").eq("id", user.id).single<Pick<Profile, "role" | "full_name">>();
   if (profile?.role !== "admin") redirect("/clients");
-
-  const { deposit } = await searchParams;
 
   const settings = await getSettings();
   const rc = { ...DEFAULT_REVENUE_COMPONENTS, ...(settings.overview_kpi?.total_revenue?.components ?? {}) };
@@ -79,10 +75,12 @@ export default async function FinancePage({
       .order("created_at", { ascending: false })
       .returns<Expenditure[]>(),
     // The PFS Consolidated Fund account — see 0074_consolidated_fund_
-    // finance_link.sql. Total Expenditure and Net Balance below now read
-    // straight off its wdr/balance instead of summing the expenditures
-    // table, since every expenditure is, for real, a withdrawal from it.
-    supabase.from("accounts").select("account_number, balance, wdr").eq("is_consolidated_fund", true).maybeSingle<ConsolidatedFundAccount>(),
+    // finance_link.sql. Total Expenditure below reads straight off its wdr
+    // instead of summing the expenditures table, since every expenditure
+    // is, for real, a withdrawal from it. Depositing into it now happens
+    // on the account's own page (id below), not here — see the Deposit
+    // revenue link in the header.
+    supabase.from("accounts").select("id, account_number, balance, wdr").eq("is_consolidated_fund", true).maybeSingle<ConsolidatedFundAccount>(),
     // Same shared calculation the Overview dashboard and Bank page use, so
     // "Total Revenue" here always matches those screens exactly.
     computeAccountSummary(supabase, rc),
@@ -111,7 +109,15 @@ export default async function FinancePage({
         description="Revenue earned, expenditures recorded, and net balance."
         action={
           <div className="flex flex-wrap items-center gap-2">
-            <RecordRevenueDepositButton totalRevenue={totalRevenue} autoOpen={deposit === "revenue"} />
+            {fund && (
+              <Link
+                href={`/accounts/${fund.id}`}
+                className="inline-flex items-center gap-2 rounded-md bg-[#7C3AED] px-4 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-[#6D28D9]"
+              >
+                <Landmark size={15} />
+                Deposit revenue
+              </Link>
+            )}
             <ExportCsvButton endpoint="/api/finance/export" filename="finance.xlsx" label="Export Excel" />
             <PrintFinanceSummaryButton
               totalRevenue={totalRevenue}
@@ -126,7 +132,7 @@ export default async function FinancePage({
         }
       />
 
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <SummaryCard
           label="Total Revenue"
           value={formatGHS(totalRevenue)}
@@ -144,13 +150,6 @@ export default async function FinancePage({
           value={formatGHS(totalExpenditure)}
           color="bg-[#B3432B]"
           sub="Lifetime withdrawals from the Consolidated Fund"
-        />
-        <SummaryCard
-          label="Net Balance"
-          value={formatGHS(Math.abs(netBalance))}
-          color={netBalance >= 0 ? "bg-[#0033AA]" : "bg-[#7C3AED]"}
-          sub={netBalance >= 0 ? "The Consolidated Fund's own balance" : "Deficit: fund balance is negative"}
-          prefix={netBalance < 0 ? "-" : undefined}
         />
       </div>
 

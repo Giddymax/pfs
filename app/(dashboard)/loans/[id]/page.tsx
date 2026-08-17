@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { EditCodeButton } from "@/components/edit-code-button";
 import { RecordRepaymentForm } from "@/components/record-repayment-form";
+import { EditLoanRepaymentButton } from "@/components/edit-loan-repayment-button";
+import { DeleteLoanRepaymentButton } from "@/components/delete-loan-repayment-button";
 import { LoanStatusControl } from "@/components/loan-status-control";
 import { SetRepaymentAccountControl } from "@/components/set-repayment-account-control";
 import { Card, LoanStatusBadge, EmptyState, PageHeader } from "@/components/ui";
@@ -273,9 +275,23 @@ export default async function LoanDetailPage({
                         {r.notes ? ` · ${r.notes}` : ""}
                       </p>
                     </div>
-                    <span className="rounded-full border border-[#1D3461]/12 px-2.5 py-1 text-[11px] font-medium capitalize text-[#0A2240]/55">
-                      {methodLabel(r.method)}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-full border border-[#1D3461]/12 px-2.5 py-1 text-[11px] font-medium capitalize text-[#0A2240]/55">
+                        {methodLabel(r.method)}
+                      </span>
+                      {isAdmin && (
+                        <>
+                          <EditLoanRepaymentButton
+                            repaymentId={r.id}
+                            amount={Number(r.amount)}
+                            paymentDate={r.payment_date}
+                            method={r.method}
+                            notes={r.notes}
+                          />
+                          <DeleteLoanRepaymentButton repaymentId={r.id} amount={Number(r.amount)} />
+                        </>
+                      )}
+                    </div>
                   </li>
                 ))}
               </ul>
