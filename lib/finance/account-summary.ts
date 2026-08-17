@@ -236,7 +236,14 @@ export async function computeAccountSummary(
     // way the Withdrawals report's cashPaidToClients already does it,
     // avoids the trap entirely.
     supabase.from("transactions").select("amount, notes").eq("type", "withdrawal").is("reversed_at", null),
-    supabase.from("transactions").select("fee, account_id").eq("type", "withdrawal").is("reversed_at", null),
+    // notes needed so the susu day-31 auto-sweep (0078_susu_fee_as_
+    // commission.sql — records its fee here too, as commission, now that
+    // it isn't withdrawal principal anymore) can be told apart from a
+    // genuine early-withdrawal penalty below: without excluding it, its
+    // fee would be double-counted into susuFees/susuFeesSwept, since the
+    // day-31 amount is already counted once via susuFeeRows (susu_payments
+    // where day_in_cycle = 31).
+    supabase.from("transactions").select("fee, account_id, notes").eq("type", "withdrawal").is("reversed_at", null),
     supabase.from("susu_payments").select("amount").eq("day_in_cycle", 31),
     supabase.from("card_fees").select("amount"),
     supabase.from("sms_fee_charges").select("amount"),
@@ -266,12 +273,14 @@ export async function computeAccountSummary(
     // Cash actually swept out of a client's balance — the cash-basis figure
     // accountBalance needs. Two sources share the same "swept to company
     // funds" notes tag: pay_susu_claim's legacy fee sweep (type='fee',
-    // 0059_susu_fee_sweep.sql — still used for emergency claims and any
-    // cycle that completed before 0071) and the automatic susu day-31 sweep
-    // (type='withdrawal', 0071_susu_day31_auto_sweep.sql). Excludes SMS-fee
-    // `type='fee'` rows, which use a different notes pattern and are
-    // already counted via smsFeeRows.
-    supabase.from("transactions").select("amount").in("type", ["fee", "withdrawal"]).is("reversed_at", null).ilike("notes", "%swept to company funds%"),
+    // value in .amount — 0059_susu_fee_sweep.sql, still used for emergency
+    // claims and any cycle pay_susu_claim closes out) and
+    // sweep_susu_cycle_fee's automatic day-31 sweep (type='withdrawal',
+    // value in .fee, not .amount, since 0078_susu_fee_as_commission.sql —
+    // it's commission, not withdrawal principal, so amount is always 0 on
+    // these rows). Excludes SMS-fee `type='fee'` rows, which use a
+    // different notes pattern and are already counted via smsFeeRows.
+    supabase.from("transactions").select("type, amount, fee").in("type", ["fee", "withdrawal"]).is("reversed_at", null).ilike("notes", "%swept to company funds%"),
     // PFS Consolidated Fund's lifetime deposits — see revenueAvailable
     // below. Deposits into this account are blocked everywhere except
     // record_revenue_deposit() (0074_consolidated_fund_finance_link.sql),
@@ -299,19 +308,34 @@ export async function computeAccountSummary(
   // is the instant emergency susu withdrawal route, which charges a
   // "company fee" (early-withdrawal penalty) directly — so any nonzero fee
   // on a susu withdrawal is, by construction, that penalty, not a
-  // commission, and belongs with the other susu-cycle fees.
+  // commission, and belongs with the other susu-cycle fees. EXCEPT the
+  // day-31 auto-sweep (0078_susu_fee_as_commission.sql), which also posts a
+  // nonzero .fee on a susu withdrawal now — excluded here via its "swept to
+  // company funds" notes tag, since that fee is already counted once via
+  // susuFeeRows below (the accrual figure); counting it again here would
+  // double it.
   const savingsAccountIds = new Set((savingsRows ?? []).map((r: { id: string }) => r.id));
   const susuAccountIds = new Set((susuRows ?? []).map((r: { id: string }) => r.id));
-  const feeRows = (commissionRows ?? []) as { fee: number; account_id: string }[];
+  const feeRows = (commissionRows ?? []) as { fee: number; account_id: string; notes: string | null }[];
+  const notSweptFeeRows = feeRows.filter((r) => !(r.notes ?? "").toLowerCase().includes("swept to company funds"));
   const commission = round2(
-    feeRows.filter((r) => savingsAccountIds.has(r.account_id)).reduce((s, r) => s + Number(r.fee ?? 0), 0)
+    notSweptFeeRows.filter((r) => savingsAccountIds.has(r.account_id)).reduce((s, r) => s + Number(r.fee ?? 0), 0)
   );
   const susuEarlyWithdrawalFee = round2(
-    feeRows.filter((r) => susuAccountIds.has(r.account_id)).reduce((s, r) => s + Number(r.fee ?? 0), 0)
+    notSweptFeeRows.filter((r) => susuAccountIds.has(r.account_id)).reduce((s, r) => s + Number(r.fee ?? 0), 0)
   );
   const susuClaimPenalties = sum(susuClaimPenaltyRows, "penalty_amount");
   const susuFees = round2(sum(susuFeeRows, "amount") + susuEarlyWithdrawalFee + susuClaimPenalties);
-  const susuFeesSwept = round2(susuEarlyWithdrawalFee + sum(sweptFeeRows, "amount"));
+  // Two conventions coexist in sweptFeeRows — see that query's own comment:
+  // type='fee' rows carry their value in .amount, type='withdrawal' rows
+  // (the day-31 auto-sweep, now commission) carry it in .fee. Sum whichever
+  // column each row actually uses instead of assuming one uniformly.
+  const sweptFeeTotal = round2(
+    (sweptFeeRows ?? []).reduce((s: number, r: { type: string; amount: number; fee: number }) => {
+      return s + (r.type === "fee" ? Number(r.amount ?? 0) : Number(r.fee ?? 0));
+    }, 0)
+  );
+  const susuFeesSwept = round2(susuEarlyWithdrawalFee + sweptFeeTotal);
   const cardFees = sum(cardFeeRows, "amount");
   const totalSmsFees = sum(smsFeeRows, "amount");
   const processingFees = sum(processingFeeRows, "processing_fee");
