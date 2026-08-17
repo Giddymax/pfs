@@ -190,6 +190,8 @@ export interface OverviewKpiSettings {
   net_revenue: KpiCardConfig;
   account_balance: KpiCardConfig;
   total_withdrawals: KpiCardConfig;
+  transactional_withdrawals: KpiCardConfig;
+  revenue_withdrawals: KpiCardConfig;
   loans_disbursed: KpiCardConfig;
   loan_repayments: KpiCardConfig;
   card_fees: KpiCardConfig;

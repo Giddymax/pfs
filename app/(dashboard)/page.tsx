@@ -42,12 +42,13 @@ export default async function OverviewPage() {
   if (profile.restricted_pages?.includes("overview")) redirect("/clients");
 
   const settings = await getSettings();
-  // Overview trimmed to four cards on request: Total Clients, Combined
-  // Account Total, Total Withdrawals, Account Balance. Every other KPI
-  // (including Total Revenue) stays fully computed — other pages still
-  // depend on the same shared summary — only its Overview visibility is
-  // switched off, so it can be turned back on here later without touching
-  // any calculation.
+  // Overview trimmed to five cards on request: Total Clients, Combined
+  // Account Total, Transactional Withdrawals, Revenue Withdrawals, Account
+  // Balance. Every other KPI (including Total Revenue and the combined
+  // Total Withdrawals card it replaced) stays fully computed — other pages
+  // still depend on the same shared summary — only its Overview visibility
+  // is switched off, so it can be turned back on here later without
+  // touching any calculation.
   const defaultKpi = {
     total_clients:   { visible: true },
     total_savings:   { visible: false, calc: "dep" as const },
@@ -56,7 +57,9 @@ export default async function OverviewPage() {
     total_revenue:   { visible: false, components: { interest: true, commission: true, susu_fees: true, card_fees: true, sms_fees: true, processing_fees: true } },
     net_revenue:     { visible: true },
     account_balance: { visible: true },
-    total_withdrawals: { visible: true },
+    total_withdrawals: { visible: false },
+    transactional_withdrawals: { visible: true },
+    revenue_withdrawals: { visible: true },
     loans_disbursed: { visible: false },
     loan_repayments: { visible: false },
     card_fees:           { visible: false },
@@ -109,7 +112,8 @@ export default async function OverviewPage() {
 
   const {
     totalSavings, totalSusu, loanInterest, commission, susuFees, cardFees,
-    totalSmsFees, processingFees, totalRevenue, depositsFromRevenue, netRevenue, combinedTotal, totalWithdrawals, loansDisbursed,
+    totalSmsFees, processingFees, totalRevenue, depositsFromRevenue, netRevenue, combinedTotal, totalWithdrawals,
+    withdrawalPrincipal, revenueWithdrawals, loansDisbursed,
     loanRepayments, accountBalance, cashAtBank, cashAtHand,
   } = summary;
 
@@ -228,7 +232,7 @@ export default async function OverviewPage() {
           <SummaryCard
             label="Combined Account Total"
             value={formatGHS(combinedTotal)}
-            hint={`Savings ${formatGHS(totalSavings)} + Susu ${formatGHS(totalSusu)} — client deposits only, excludes revenue`}
+            hint={`Savings ${formatGHS(totalSavings)} + Susu ${formatGHS(totalSusu)} + Revenue ${formatGHS(totalRevenue)}`}
             tone="orange"
             icon={<Layers size={17} />}
           />
@@ -240,6 +244,24 @@ export default async function OverviewPage() {
             hint="Every deduction from a client balance, all time — cash withdrawn plus every fee charged"
             tone="rust"
             icon={<ArrowUpFromLine size={17} />}
+          />
+        )}
+        {kpi.transactional_withdrawals.visible && (
+          <SummaryCard
+            label="Transactional Withdrawals"
+            value={formatGHS(withdrawalPrincipal)}
+            hint="Cash clients actually walked away with — withdrawal principal only, excludes fees"
+            tone="rust"
+            icon={<ArrowUpFromLine size={17} />}
+          />
+        )}
+        {kpi.revenue_withdrawals.visible && (
+          <SummaryCard
+            label="Revenue Withdrawals"
+            value={formatGHS(revenueWithdrawals)}
+            hint="Commission + susu fees + SMS fees + processing fees — taken from client balances as company revenue"
+            tone="pink"
+            icon={<HandCoins size={17} />}
           />
         )}
         {kpi.loans_disbursed.visible && (
@@ -264,7 +286,7 @@ export default async function OverviewPage() {
           <SummaryCard
             label="Account Balance"
             value={formatGHS(accountBalance)}
-            hint="Actual cash position: client deposits + retained fees − loans out + repayments − expenditures"
+            hint={`Combined Account Total ${formatGHS(combinedTotal)} − Total Withdrawals ${formatGHS(totalWithdrawals)} (net of loans and expenditures)`}
             tone="purple"
             icon={<Wallet size={17} />}
           />
