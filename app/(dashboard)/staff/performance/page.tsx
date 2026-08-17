@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
 import { ShieldCheck, Users, PiggyBank, Coins, UserRound, Wallet } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getSettings } from "@/lib/settings/cache";
 import { Card, PageHeader } from "@/components/ui";
 import { ExportCsvButton } from "@/components/export-csv-button";
+import { PrintStaffPerformanceButton } from "@/components/print-staff-performance-button";
 import { SummaryControls } from "@/components/summary-controls";
 import { formatGHS, round2 } from "@/lib/loan";
 import type { Profile } from "@/lib/types";
@@ -55,6 +57,7 @@ export default async function StaffPerformancePage({
   const to = params.to ?? todayISO();
 
   const { data: rows } = await supabase.rpc("staff_performance", { p_from: from, p_to: to });
+  const settings = await getSettings();
 
   const staff = (rows ?? []) as StaffPerformanceRow[];
 
@@ -74,12 +77,25 @@ export default async function StaffPerformancePage({
         title="Staff performance"
         description="Track how much each staff member has contributed — clients registered, savings deposits collected, and daily susu contributions recorded."
         action={
-          <ExportCsvButton
-            endpoint="/api/staff/performance/export"
-            filename={`staff-performance-${from}-to-${to}.xlsx`}
-            label="Export Excel"
-            params={{ from, to }}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <ExportCsvButton
+              endpoint="/api/staff/performance/export"
+              filename={`staff-performance-${from}-to-${to}.xlsx`}
+              label="Export Excel"
+              params={{ from, to }}
+            />
+            <PrintStaffPerformanceButton
+              rows={staff}
+              from={from}
+              to={to}
+              totalClients={totalClients}
+              totalSavings={totalSavings}
+              totalSusu={totalSusu}
+              totalCollected={totalCollected}
+              printedBy={profile.full_name}
+              companyPhone={settings.sms.company_tel ?? null}
+            />
+          </div>
         }
       />
 
