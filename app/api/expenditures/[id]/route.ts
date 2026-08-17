@@ -18,8 +18,11 @@ export async function DELETE(
     return NextResponse.json({ error: "Only admins can delete expenditures" }, { status: 403 });
   }
 
-  const { error } = await supabase.from("expenditures").delete().eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  // Reverses the linked PFS Consolidated Fund withdrawal (credits the
+  // amount back) before removing the row — see delete_expenditure() in
+  // 0074_consolidated_fund_finance_link.sql.
+  const { error } = await supabase.rpc("delete_expenditure", { p_expenditure_id: id });
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
   return NextResponse.json({ ok: true });
 }

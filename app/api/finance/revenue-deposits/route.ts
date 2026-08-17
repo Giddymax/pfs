@@ -54,10 +54,12 @@ export async function POST(request: Request) {
     );
   }
 
+  // Credits the real PFS Consolidated Fund account (record_deposit() itself
+  // refuses this account for every other path) — replaces the flat
+  // revenue_deposits log now that a real account is back. See
+  // 0074_consolidated_fund_finance_link.sql.
   const { data, error } = await supabase
-    .from("revenue_deposits")
-    .insert({ amount, notes, recorded_by: user.id })
-    .select()
+    .rpc("record_revenue_deposit", { p_amount: amount, p_notes: notes, p_recorded_by: user.id })
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });

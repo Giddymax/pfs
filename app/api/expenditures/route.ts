@@ -25,16 +25,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Amount must be a positive number" }, { status: 400 });
   }
 
-  const { data, error } = await supabase.from("expenditures").insert({
-    title: title.trim(),
-    amount: amt,
-    category: category?.trim() || "general",
-    date: date || new Date().toISOString().slice(0, 10),
-    notes: notes?.trim() || null,
-    recorded_by: user.id,
-  }).select().single();
+  // Every expenditure is now, for real, a withdrawal from the PFS
+  // Consolidated Fund — record_expenditure() does both atomically. See
+  // 0074_consolidated_fund_finance_link.sql.
+  const { data, error } = await supabase
+    .rpc("record_expenditure", {
+      p_title: title.trim(),
+      p_amount: amt,
+      p_category: category?.trim() || "general",
+      p_date: date || new Date().toISOString().slice(0, 10),
+      p_notes: notes?.trim() || null,
+      p_recorded_by: user.id,
+    })
+    .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
   return NextResponse.json({ expenditure: data });
 }

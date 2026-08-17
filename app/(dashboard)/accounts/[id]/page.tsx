@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowUpRight, Banknote, CalendarDays, PiggyBank, ReceiptText, UserRound, Wallet } from "lucide-react";
+import { ArrowUpRight, Banknote, CalendarDays, Landmark, PiggyBank, ReceiptText, UserRound, Wallet } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Card, AccountStatusBadge, EmptyState, PageHeader, StatCard } from "@/components/ui";
 import { RecordTransactionForm } from "@/components/record-transaction-form";
@@ -113,7 +113,17 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
                 </>
               ) : (
                 <>
-                  <RecordTransactionForm accountId={account.id} kind="deposit" />
+                  {account.is_consolidated_fund ? (
+                    <Link
+                      href="/finance?deposit=revenue"
+                      className="inline-flex items-center gap-2 rounded-md bg-[#7C3AED] px-4 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-[#6D28D9]"
+                    >
+                      <Landmark size={15} />
+                      Deposit revenue on Finance page
+                    </Link>
+                  ) : (
+                    <RecordTransactionForm accountId={account.id} kind="deposit" />
+                  )}
                   {isAdmin && <RecordTransactionForm accountId={account.id} kind="withdrawal" />}
                 </>
               )}

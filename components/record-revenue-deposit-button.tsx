@@ -5,8 +5,20 @@ import { useRouter } from "next/navigation";
 import { Loader2, X, Landmark } from "lucide-react";
 import { formatGHS } from "@/lib/loan";
 
-export function RecordRevenueDepositButton({ totalRevenue }: { totalRevenue: number }) {
-  const [open, setOpen] = useState(false);
+export function RecordRevenueDepositButton({
+  totalRevenue,
+  autoOpen,
+}: {
+  totalRevenue: number;
+  // Opened automatically when redirected here from a savings account page
+  // that refused a normal deposit into the PFS Consolidated Fund — see
+  // app/(dashboard)/finance/page.tsx and the account detail page.
+  autoOpen?: boolean;
+}) {
+  // Lazy initializer, not an effect: autoOpen comes from a URL search param
+  // that's stable for the life of this page load, so there's no later
+  // change to react to — just start the modal in the right state.
+  const [open, setOpen] = useState(() => !!autoOpen);
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -71,7 +83,7 @@ export function RecordRevenueDepositButton({ totalRevenue }: { totalRevenue: num
               <div>
                 <h3 className="text-[15px] font-semibold text-[#7C3AED]">Deposit revenue</h3>
                 <p className="mt-0.5 text-[12.5px] text-[#0A2240]/45">
-                  Record money appropriated out of Total Revenue — e.g. swept to an external bank account.
+                  Sweeps an amount out of Total Revenue into the PFS Consolidated Fund — the only way money can enter that account. Can only be recorded between 19:00 and 23:30 each day.
                 </p>
               </div>
               <button

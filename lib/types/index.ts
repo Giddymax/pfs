@@ -86,6 +86,10 @@ export interface Account {
   dep: number; // lifetime deposits
   wdr: number; // lifetime withdrawals
   comm: number; // lifetime commission paid
+  // The one account (at most) money is set aside into as company equity —
+  // see 0074_consolidated_fund_finance_link.sql. Deposits into it are
+  // blocked everywhere except Deposit Revenue on the Finance page.
+  is_consolidated_fund: boolean;
   // savings
   minimum_opening_deposit: number | null;
   minimum_operating_balance: number | null;

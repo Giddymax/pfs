@@ -19,6 +19,13 @@ interface Expenditure {
   notes: string | null;
   recorded_by: string | null;
   created_at: string;
+  linked_transaction_id: string | null;
+}
+
+interface ConsolidatedFundAccount {
+  account_number: string;
+  balance: number;
+  wdr: number;
 }
 
 const CATEGORY_COLOR: Record<string, string> = {
@@ -45,7 +52,11 @@ function categoryBadge(cat: string) {
   return CATEGORY_COLOR[cat] ?? "bg-[#64748B]/10 text-[#475569]";
 }
 
-export default async function FinancePage() {
+export default async function FinancePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ deposit?: string }>;
+}) {
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -55,16 +66,23 @@ export default async function FinancePage() {
     .from("profiles").select("role, full_name").eq("id", user.id).single<Pick<Profile, "role" | "full_name">>();
   if (profile?.role !== "admin") redirect("/clients");
 
+  const { deposit } = await searchParams;
+
   const settings = await getSettings();
   const rc = { ...DEFAULT_REVENUE_COMPONENTS, ...(settings.overview_kpi?.total_revenue?.components ?? {}) };
 
-  const [{ data: expenditures }, summary] = await Promise.all([
+  const [{ data: expenditures }, { data: fund }, summary] = await Promise.all([
     supabase
       .from("expenditures")
       .select("*")
       .order("date", { ascending: false })
       .order("created_at", { ascending: false })
       .returns<Expenditure[]>(),
+    // The PFS Consolidated Fund account — see 0074_consolidated_fund_
+    // finance_link.sql. Total Expenditure and Net Balance below now read
+    // straight off its wdr/balance instead of summing the expenditures
+    // table, since every expenditure is, for real, a withdrawal from it.
+    supabase.from("accounts").select("account_number, balance, wdr").eq("is_consolidated_fund", true).maybeSingle<ConsolidatedFundAccount>(),
     // Same shared calculation the Overview dashboard and Bank page use, so
     // "Total Revenue" here always matches those screens exactly.
     computeAccountSummary(supabase, rc),
@@ -72,8 +90,8 @@ export default async function FinancePage() {
 
   const { loanInterest, commission, susuFees, cardFees, totalSmsFees, processingFees, totalRevenue } = summary;
 
-  const totalExpenditure = round2((expenditures ?? []).reduce((s, e) => s + Number(e.amount), 0));
-  const netBalance = round2(totalRevenue - totalExpenditure);
+  const totalExpenditure = round2(Number(fund?.wdr ?? 0));
+  const netBalance = round2(Number(fund?.balance ?? 0));
 
   const revenueItems = [
     { label: "Loan interest",   value: loanInterest,   visible: rc.interest },
@@ -93,7 +111,7 @@ export default async function FinancePage() {
         description="Revenue earned, expenditures recorded, and net balance."
         action={
           <div className="flex flex-wrap items-center gap-2">
-            <RecordRevenueDepositButton totalRevenue={totalRevenue} />
+            <RecordRevenueDepositButton totalRevenue={totalRevenue} autoOpen={deposit === "revenue"} />
             <ExportCsvButton endpoint="/api/finance/export" filename="finance.xlsx" label="Export Excel" />
             <PrintFinanceSummaryButton
               totalRevenue={totalRevenue}
@@ -108,7 +126,7 @@ export default async function FinancePage() {
         }
       />
 
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <SummaryCard
           label="Total Revenue"
           value={formatGHS(totalRevenue)}
@@ -116,16 +134,22 @@ export default async function FinancePage() {
           sub="Interest + commission + fees"
         />
         <SummaryCard
+          label="PFS Consolidated Fund"
+          value={formatGHS(Number(fund?.balance ?? 0))}
+          color="bg-[#7C3AED]"
+          sub={fund ? `Account ${fund.account_number} — always matches its live balance` : "Not set up — mark an account is_consolidated_fund"}
+        />
+        <SummaryCard
           label="Total Expenditure"
           value={formatGHS(totalExpenditure)}
           color="bg-[#B3432B]"
-          sub="Sum of all recorded costs"
+          sub="Lifetime withdrawals from the Consolidated Fund"
         />
         <SummaryCard
           label="Net Balance"
           value={formatGHS(Math.abs(netBalance))}
           color={netBalance >= 0 ? "bg-[#0033AA]" : "bg-[#7C3AED]"}
-          sub={netBalance >= 0 ? "Surplus after expenditures" : "Deficit: expenditures exceed revenue"}
+          sub={netBalance >= 0 ? "The Consolidated Fund's own balance" : "Deficit: fund balance is negative"}
           prefix={netBalance < 0 ? "-" : undefined}
         />
       </div>

@@ -81,8 +81,11 @@ export function AddExpenditureButton() {
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#061B3A]/50 px-4 animate-fade-in">
           <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
-            <div className="mb-5 flex items-center justify-between">
-              <h3 className="text-[15px] font-semibold text-[#0033AA]">Record expenditure</h3>
+            <div className="mb-5 flex items-start justify-between">
+              <div>
+                <h3 className="text-[15px] font-semibold text-[#0033AA]">Record expenditure</h3>
+                <p className="mt-0.5 text-[12.5px] text-[#0A2240]/45">Withdrawn from the PFS Consolidated Fund — fails if the fund&apos;s balance can&apos;t cover it.</p>
+              </div>
               <button type="button" onClick={handleClose} className="text-[#0A2240]/35 hover:text-[#0A2240]">
                 <X size={18} />
               </button>
