@@ -193,6 +193,7 @@ export interface OverviewKpiSettings {
   revenue_withdrawals: KpiCardConfig;
   loans_disbursed: KpiCardConfig;
   loan_repayments: KpiCardConfig;
+  repayment_remaining: KpiCardConfig;
   card_fees: KpiCardConfig;
   withdrawal_commission: KpiCardConfig;
   susu_fees: KpiCardConfig;

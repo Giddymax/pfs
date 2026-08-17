@@ -83,6 +83,14 @@ export interface AccountSummary {
   // accountBalance's comment for why interest isn't added a second time).
   loansDisbursed: number;
   loanRepayments: number;
+  // Sum of `current_balance` (principal + interest still owed, per
+  // record_loan_repayment()'s own running balance — see 0007_loan_rpcs.sql)
+  // across every loan that's been disbursed but hasn't finished repaying:
+  // status 'active' or 'defaulted'. Excludes 'completed' (current_balance is
+  // already 0 there) and 'pending'/'rejected' (current_balance is never set
+  // — nothing's been disbursed yet). Not an input to accountBalance — purely
+  // a reporting figure ("Repayment Remaining" on the Overview dashboard).
+  repaymentRemaining: number;
   totalExpenditures: number;
   // CASH basis — only the susu fee/penalty money that has actually been
   // swept out of a client's balance via a real transaction (instant-route
@@ -194,6 +202,7 @@ export async function computeAccountSummary(
     { data: bankTxnRows },
     { data: loanPrincipalRows },
     { data: repaymentRows },
+    { data: outstandingLoanRows },
     { data: expenditureRows },
     { data: susuClaimPenaltyRows },
     { data: sweptFeeRows },
@@ -226,6 +235,11 @@ export async function computeAccountSummary(
     supabase.from("bank_transactions").select("type, amount"),
     supabase.from("loans").select("principal").in("status", ["active", "completed", "defaulted"]),
     supabase.from("loan_repayments").select("amount"),
+    // Repayment Remaining — see the AccountSummary.repaymentRemaining
+    // comment. Only loans still being paid off; 'completed' is excluded
+    // (current_balance already 0) and 'pending'/'rejected' never had a
+    // current_balance seeded.
+    supabase.from("loans").select("current_balance").in("status", ["active", "defaulted"]),
     supabase.from("expenditures").select("amount"),
     // Emergency susu claims paid via pay_susu_claim — the penalty swept into
     // company funds at payout time (0059_susu_fee_sweep.sql). Normal-claim
@@ -309,6 +323,7 @@ export async function computeAccountSummary(
 
   const loansDisbursed = sum(loanPrincipalRows, "principal");
   const loanRepayments = sum(repaymentRows, "amount");
+  const repaymentRemaining = sum(outstandingLoanRows, "current_balance");
   const totalExpenditures = sum(expenditureRows, "amount");
 
   // Only subtract Loan Interest back out of Loan Repayments if it was
@@ -350,6 +365,7 @@ export async function computeAccountSummary(
     revenueWithdrawals,
     loansDisbursed,
     loanRepayments,
+    repaymentRemaining,
     totalExpenditures,
     susuFeesSwept,
     accountBalance,

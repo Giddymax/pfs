@@ -42,10 +42,10 @@ export default async function OverviewPage() {
   if (profile.restricted_pages?.includes("overview")) redirect("/clients");
 
   const settings = await getSettings();
-  // Overview trimmed to six cards on request: Total Clients, Combined
-  // Account Total, Total Revenue, Transactional Withdrawals, Revenue
-  // Withdrawals, Account Balance. Every other KPI (including the combined
-  // Total Withdrawals card its split replaced) stays fully computed —
+  // Overview on request: Total Clients, Combined Account Total, Total
+  // Revenue, Total Withdrawals, Transactional Withdrawals, Revenue
+  // Withdrawals, Loans Disbursed, Loan Repayments, Repayment Remaining,
+  // Loan Interest, Account Balance. Every other KPI stays fully computed —
   // other pages still depend on the same shared summary — only its
   // Overview visibility is switched off, so it can be turned back on here
   // later without touching any calculation. Net Revenue (and the Deposits
@@ -58,17 +58,18 @@ export default async function OverviewPage() {
     combined_total:  { visible: true },
     total_revenue:   { visible: true, components: { interest: true, commission: true, susu_fees: true, card_fees: true, sms_fees: true, processing_fees: true } },
     account_balance: { visible: true },
-    total_withdrawals: { visible: false },
+    total_withdrawals: { visible: true },
     transactional_withdrawals: { visible: true },
     revenue_withdrawals: { visible: true },
-    loans_disbursed: { visible: false },
-    loan_repayments: { visible: false },
+    loans_disbursed: { visible: true },
+    loan_repayments: { visible: true },
+    repayment_remaining: { visible: true },
     card_fees:           { visible: false },
     withdrawal_commission: { visible: false },
     susu_fees:           { visible: false },
     sms_fees:            { visible: false },
     processing_fees:     { visible: false },
-    loan_interest:       { visible: false },
+    loan_interest:       { visible: true },
     cash_at_hand:    { visible: false },
     cash_at_bank:    { visible: false },
   };
@@ -115,7 +116,7 @@ export default async function OverviewPage() {
     totalSavings, totalSusu, loanInterest, commission, susuFees, cardFees,
     totalSmsFees, processingFees, totalRevenue, combinedTotal, totalWithdrawals,
     withdrawalPrincipal, revenueWithdrawals, loansDisbursed,
-    loanRepayments, accountBalance, cashAtBank, cashAtHand,
+    loanRepayments, repaymentRemaining, accountBalance, cashAtBank, cashAtHand,
   } = summary;
 
   const recentLoans = loans ?? [];
@@ -238,7 +239,7 @@ export default async function OverviewPage() {
           <SummaryCard
             label="Total Withdrawals"
             value={formatGHS(totalWithdrawals)}
-            hint="Every deduction from a client balance, all time — cash withdrawn plus every fee charged"
+            hint={`Revenue Withdrawals ${formatGHS(revenueWithdrawals)} + Transactional Withdrawals ${formatGHS(withdrawalPrincipal)}`}
             tone="rust"
             icon={<ArrowUpFromLine size={17} />}
           />
@@ -272,11 +273,20 @@ export default async function OverviewPage() {
         )}
         {kpi.loan_repayments.visible && (
           <SummaryCard
-            label="Loan Repayments"
+            label="Repayment Made"
             value={formatGHS(loanRepayments)}
             hint="Cash actually received back — principal plus interest combined. Added back into Account Balance against Loans Disbursed"
             tone="lightgreen"
             icon={<ArrowDownLeft size={17} />}
+          />
+        )}
+        {kpi.repayment_remaining.visible && (
+          <SummaryCard
+            label="Repayment Remaining"
+            value={formatGHS(repaymentRemaining)}
+            hint="Still owed on active/defaulted loans — principal plus interest, per each loan's running balance"
+            tone="amber"
+            icon={<Banknote size={17} />}
           />
         )}
         {kpi.account_balance.visible && (
