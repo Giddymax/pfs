@@ -23,16 +23,24 @@ interface Expenditure {
 
 export function PrintFinanceSummaryButton({
   totalRevenue,
+  fundBalance,
+  revenueAvailable,
+  fundAccountNumber,
   totalExpenditure,
-  netBalance,
   revenueItems,
   expenditures,
   printedBy,
   companyPhone,
 }: {
   totalRevenue: number;
+  // PFS Consolidated Fund's live balance — see
+  // 0074_consolidated_fund_finance_link.sql. Replaces the old "Net Balance
+  // (Revenue - Expenditure)" figure this report used to compute
+  // separately; the fund's balance now is that figure, by construction.
+  fundBalance: number;
+  revenueAvailable: number;
+  fundAccountNumber?: string | null;
   totalExpenditure: number;
-  netBalance: number;
   revenueItems: RevenueItem[];
   expenditures: Expenditure[];
   printedBy?: string | null;
@@ -46,7 +54,7 @@ export function PrintFinanceSummaryButton({
     setOpen(true);
   }
 
-  const surplus = netBalance >= 0;
+  const surplus = fundBalance >= 0;
 
   return (
     <>
@@ -114,15 +122,16 @@ export function PrintFinanceSummaryButton({
               COMPANY FINANCE SUMMARY
             </p>
 
-            <div className="mb-6 grid grid-cols-3 gap-3">
+            <div className="mb-6 grid grid-cols-4 gap-3">
               <SummaryBox label="Total Revenue" value={formatGHS(totalRevenue)} color="#15803D" />
-              <SummaryBox label="Total Expenditure" value={formatGHS(totalExpenditure)} color="#B3432B" />
               <SummaryBox
-                label="Net Balance"
-                value={(surplus ? "" : "-") + formatGHS(Math.abs(netBalance))}
-                color={surplus ? "#0033AA" : "#7C3AED"}
-                sub={surplus ? "Surplus" : "Deficit"}
+                label="PFS Consolidated Fund"
+                value={formatGHS(Math.abs(fundBalance))}
+                color="#7C3AED"
+                sub={fundAccountNumber ? `Account ${fundAccountNumber}` : undefined}
               />
+              <SummaryBox label="Fund — Amount Available" value={formatGHS(revenueAvailable)} color="#0033AA" />
+              <SummaryBox label="Total Expenditure" value={formatGHS(totalExpenditure)} color="#B3432B" />
             </div>
 
             <Section title="Revenue Breakdown">
@@ -207,14 +216,14 @@ export function PrintFinanceSummaryButton({
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0A2240]/50">
-                    Net Balance (Revenue - Expenditure)
+                    PFS Consolidated Fund Balance
                   </p>
                   <p className="mt-1 text-[11.5px] text-[#0A2240]/55">
-                    {formatGHS(totalRevenue)} - {formatGHS(totalExpenditure)} = {surplus ? "Surplus" : "Deficit"} of {formatGHS(Math.abs(netBalance))}
+                    Revenue swept in via Deposit Revenue, minus every expenditure (a real withdrawal from the fund) — {surplus ? "surplus" : "deficit"} of {formatGHS(Math.abs(fundBalance))}
                   </p>
                 </div>
                 <p className={`text-[1.5rem] font-bold tabular-nums ${surplus ? "text-[#15803D]" : "text-[#B3432B]"}`}>
-                  {surplus ? "" : "-"}{formatGHS(Math.abs(netBalance))}
+                  {surplus ? "" : "-"}{formatGHS(Math.abs(fundBalance))}
                 </p>
               </div>
             </div>

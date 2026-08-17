@@ -36,6 +36,7 @@ export async function GET(request: Request) {
     "Clients Registered": s.clients_registered,
     "Savings Collected (GHS)": s.savings_collected,
     "Susu Collected (GHS)": s.susu_collected,
+    "Total Collected (GHS)": Math.round((Number(s.savings_collected) + Number(s.susu_collected)) * 100) / 100,
   }));
 
   return xlsxResponse(rows, {
@@ -43,6 +44,6 @@ export async function GET(request: Request) {
     filename: from && to
       ? `staff-performance-${from}-to-${to}.xlsx`
       : `staff-performance-${new Date().toISOString().slice(0, 10)}.xlsx`,
-    colWidths: [24, 28, 16, 14, 18, 20, 18],
+    colWidths: [24, 28, 16, 14, 18, 20, 18, 20],
   });
 }

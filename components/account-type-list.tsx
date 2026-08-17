@@ -143,6 +143,7 @@ export async function AccountTypeList({
               totalDep={totalDep}
               totalWdr={totalWdr}
               totalComm={totalComm}
+              susuFees={susuFees}
               companyPhone={companyPhone}
             />
           </div>

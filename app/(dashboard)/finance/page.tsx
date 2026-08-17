@@ -121,8 +121,10 @@ export default async function FinancePage() {
             <ExportCsvButton endpoint="/api/finance/export" filename="finance.xlsx" label="Export Excel" />
             <PrintFinanceSummaryButton
               totalRevenue={totalRevenue}
+              fundBalance={netBalance}
+              revenueAvailable={revenueAvailable}
+              fundAccountNumber={fund?.account_number ?? null}
               totalExpenditure={totalExpenditure}
-              netBalance={netBalance}
               revenueItems={revenueItems}
               expenditures={expenditures ?? []}
               printedBy={profile?.full_name}
@@ -148,7 +150,7 @@ export default async function FinancePage() {
         <SummaryCard
           label="Fund — Amount Available"
           value={formatGHS(revenueAvailable)}
-          color="bg-[#6D28D9]"
+          color="bg-[#0033AA]"
           sub={`Total Revenue ${formatGHS(totalRevenue)} − already deposited ${formatGHS(round2(totalRevenue - revenueAvailable))}`}
         />
         <SummaryCard
