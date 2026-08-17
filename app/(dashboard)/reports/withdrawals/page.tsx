@@ -5,6 +5,7 @@ import { SummaryControls } from "@/components/summary-controls";
 import { TransactionLogTable } from "@/components/transaction-log-table";
 import { AccountPicker } from "@/components/account-picker";
 import { ExportCsvButton } from "@/components/export-csv-button";
+import { PrintWithdrawalsReportButton } from "@/components/print-withdrawals-report-button";
 import { PageHeader, StatCard } from "@/components/ui";
 import { getSettings } from "@/lib/settings/cache";
 import { computeAccountSummary } from "@/lib/finance/account-summary";
@@ -200,12 +201,29 @@ export default async function WithdrawalsPage({
             : "Review every amount deducted from a client's balance — cash withdrawn or company charges — for any date range you choose. Recording a withdrawal is restricted to admins."
         }
         action={
-          <ExportCsvButton
-            endpoint="/api/reports/withdrawals/export"
-            filename={`withdrawals-${from}-to-${to}.xlsx`}
-            label="Export Excel"
-            params={{ from, to, ...(q ? { q } : {}) }}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <ExportCsvButton
+              endpoint="/api/reports/withdrawals/export"
+              filename={`withdrawals-${from}-to-${to}.xlsx`}
+              label="Export Excel"
+              params={{ from, to, ...(q ? { q } : {}) }}
+            />
+            <PrintWithdrawalsReportButton
+              transactions={searchedWithdrawals}
+              from={from}
+              to={to}
+              accountBalance={accountSummary.accountBalance}
+              totalWithdrawals={totalWithdrawals}
+              cashPaidToClients={cashPaidToClients}
+              totalFeesRetained={totalFeesRetained}
+              withdrawalCommission={withdrawalCommission}
+              susuFees={susuFees}
+              smsCharge={smsCharge}
+              processingFee={processingFee}
+              printedBy={profile.full_name}
+              companyPhone={settings.sms.company_tel ?? null}
+            />
+          </div>
         }
       />
 

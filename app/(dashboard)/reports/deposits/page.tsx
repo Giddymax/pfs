@@ -5,6 +5,7 @@ import { SummaryControls } from "@/components/summary-controls";
 import { TransactionLogTable } from "@/components/transaction-log-table";
 import { AccountPicker } from "@/components/account-picker";
 import { ExportCsvButton } from "@/components/export-csv-button";
+import { PrintDepositsReportButton } from "@/components/print-deposits-report-button";
 import { PageHeader, StatCard } from "@/components/ui";
 import { getSettings } from "@/lib/settings/cache";
 import { computeAccountSummary } from "@/lib/finance/account-summary";
@@ -127,12 +128,25 @@ export default async function DepositsPage({
         title="Deposits"
         description="Search for an account to deposit into directly, or review every deposit recorded across all accounts for any date range you choose."
         action={
-          <ExportCsvButton
-            endpoint="/api/reports/deposits/export"
-            filename={`deposits-${from}-to-${to}.xlsx`}
-            label="Export Excel"
-            params={{ from, to, ...(q ? { q } : {}) }}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <ExportCsvButton
+              endpoint="/api/reports/deposits/export"
+              filename={`deposits-${from}-to-${to}.xlsx`}
+              label="Export Excel"
+              params={{ from, to, ...(q ? { q } : {}) }}
+            />
+            <PrintDepositsReportButton
+              transactions={searchedDeposits}
+              from={from}
+              to={to}
+              accountBalance={accountSummary.accountBalance}
+              totalDeposits={totalDeposits}
+              savingsDeposits={savingsDeposits}
+              susuDeposits={susuDeposits}
+              printedBy={profile.full_name}
+              companyPhone={settings.sms.company_tel ?? null}
+            />
+          </div>
         }
       />
 
