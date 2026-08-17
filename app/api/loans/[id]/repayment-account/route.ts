@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import type { Loan, Profile } from "@/lib/types";
 
+// Attaches (or changes) the auto-deduction repayment account on an
+// already-active loan — for loans activated before 0073's monthly
+// auto-deduction feature existed, which have no repayment_account_id yet.
+// See set_loan_repayment_account() (0073_loan_repayment_automation.sql).
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
@@ -13,21 +17,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single<Profile>();
   if (!profile || profile.role !== "admin") {
-    return NextResponse.json({ error: "Only an admin can activate a loan" }, { status: 403 });
+    return NextResponse.json({ error: "Only an admin can set a loan's repayment account" }, { status: 403 });
   }
 
   const body = await request.json().catch(() => null);
-  const repaymentAccountId = typeof body?.repayment_account_id === "string" ? body.repayment_account_id : null;
-  if (!repaymentAccountId) {
-    return NextResponse.json({ error: "Choose which account the monthly repayment will be deducted from" }, { status: 400 });
+  const accountId = typeof body?.account_id === "string" ? body.account_id : null;
+  if (!accountId) {
+    return NextResponse.json({ error: "Choose an account" }, { status: 400 });
   }
 
   const { data, error } = await supabase
-    .rpc("activate_loan", {
-      p_loan_id: id,
-      p_activated_by: user.id,
-      p_repayment_account_id: repaymentAccountId,
-    })
+    .rpc("set_loan_repayment_account", { p_loan_id: id, p_account_id: accountId })
     .single<Loan>();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });

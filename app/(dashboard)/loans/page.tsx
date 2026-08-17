@@ -129,6 +129,13 @@ export default async function LoansPage({
               companyPhone={companyPhone}
             />
             <Link
+              href="/loans/repayments-due"
+              className="inline-flex items-center gap-2 rounded-md border border-[#0033AA]/20 px-5 py-2.5 text-[13.5px] font-semibold text-[#0033AA] transition-colors hover:bg-[#0033AA]/5"
+            >
+              <Banknote size={16} />
+              Repayments due
+            </Link>
+            <Link
               href="/loans/new"
               className="inline-flex items-center gap-2 rounded-md bg-[#1D3461] px-5 py-2.5 text-[13.5px] font-semibold text-[#FFFFFF] transition-colors hover:bg-[#152847]"
             >

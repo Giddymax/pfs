@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { UserRound, Calendar, Percent, Wallet, ArrowUpRight, Hash, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { UserRound, Calendar, Percent, Wallet, ArrowUpRight, Hash, CheckCircle2, XCircle, Clock, Landmark, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { EditCodeButton } from "@/components/edit-code-button";
 import { RecordRepaymentForm } from "@/components/record-repayment-form";
 import { LoanStatusControl } from "@/components/loan-status-control";
+import { SetRepaymentAccountControl } from "@/components/set-repayment-account-control";
 import { Card, LoanStatusBadge, EmptyState, PageHeader } from "@/components/ui";
 import { formatGHS, round2 } from "@/lib/loan";
-import type { Client, Loan, LoanRepayment, Profile } from "@/lib/types";
+import type { Account, Client, Loan, LoanRepayment, Profile } from "@/lib/types";
 
 export default async function LoanDetailPage({
   params,
@@ -18,11 +19,19 @@ export default async function LoanDetailPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  type LoanWithIssuer = Loan & { client: Client; issuer: { full_name: string } | null };
+  type LoanWithIssuer = Loan & {
+    client: Client;
+    issuer: { full_name: string } | null;
+    repayment_account: { account_number: string; product_type: string } | null;
+  };
   type RepaymentWithRecorder = LoanRepayment & { recorder: { full_name: string } | null };
 
   const [{ data: loan }, { data: repayments }, { data: profile }] = await Promise.all([
-    supabase.from("loans").select("*, client:clients(*), issuer:issued_by(full_name)").eq("id", id).single<LoanWithIssuer>(),
+    supabase
+      .from("loans")
+      .select("*, client:clients(*), issuer:issued_by(full_name), repayment_account:accounts!repayment_account_id(account_number, product_type)")
+      .eq("id", id)
+      .single<LoanWithIssuer>(),
     supabase
       .from("loan_repayments")
       .select("*, recorder:recorded_by(full_name)")
@@ -39,6 +48,23 @@ export default async function LoanDetailPage({
   const totalPaid = round2(allRepayments.reduce((sum, r) => sum + Number(r.amount), 0));
   const balance = Math.max(0, round2(Number(loan.total_repayable) - totalPaid));
   const progressPercent = loan.total_repayable > 0 ? Math.min(100, Math.round((totalPaid / Number(loan.total_repayable)) * 100)) : 0;
+
+  // Client's eligible repayment accounts — needed to activate a pending
+  // loan, or to attach an auto-deduction account to an active one that
+  // predates that feature. Only fetched for an admin; nobody else can
+  // change either.
+  let clientAccounts: Pick<Account, "id" | "account_number" | "product_type" | "balance">[] = [];
+  if (isAdmin && (loan.status === "pending" || (loan.status === "active" && !loan.repayment_account_id))) {
+    const { data: accounts } = await supabase
+      .from("accounts")
+      .select("id, account_number, product_type, balance")
+      .eq("client_id", loan.client_id)
+      .eq("status", "active")
+      .in("product_type", ["savings", "susu"])
+      .order("created_at", { ascending: true })
+      .returns<Pick<Account, "id" | "account_number" | "product_type" | "balance">[]>();
+    clientAccounts = accounts ?? [];
+  }
 
   return (
     <div>
@@ -70,7 +96,11 @@ export default async function LoanDetailPage({
           <Card className="p-6">
             <div className="mb-5 flex items-center justify-between">
               <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#0A2240]/45">Status</p>
-              {isAdmin ? <LoanStatusControl loanId={loan.id} status={loan.status} /> : <LoanStatusBadge status={loan.status} />}
+              {isAdmin ? (
+                <LoanStatusControl loanId={loan.id} status={loan.status} accounts={loan.status === "pending" ? clientAccounts : []} />
+              ) : (
+                <LoanStatusBadge status={loan.status} />
+              )}
             </div>
 
             <Link href={`/clients/${loan.client_id}`} className="mb-5 flex items-center gap-3 rounded-lg border border-[#0033AA]/8 bg-[#0033AA]/[0.025] px-3.5 py-3 transition-colors hover:bg-[#0033AA]/[0.05]">
@@ -114,9 +144,31 @@ export default async function LoanDetailPage({
               <DetailRow icon={<Wallet size={15} />} label="Monthly installment" value={`${formatGHS(loan.monthly_installment)} × ${loan.tenor_months} months`} />
               <DetailRow icon={<Calendar size={15} />} label="Disbursed" value={formatDate(loan.disbursement_date)} />
               <DetailRow icon={<Calendar size={15} />} label="Due date" value={formatDate(loan.due_date)} />
+              {loan.repayment_account && (
+                <DetailRow
+                  icon={<Landmark size={15} />}
+                  label="Repayment account"
+                  value={`${loan.repayment_account.account_number} (${loan.repayment_account.product_type})`}
+                />
+              )}
+              {loan.status === "active" && loan.next_due_date && (
+                <DetailRow icon={<Calendar size={15} />} label="Next auto-deduction" value={formatDate(loan.next_due_date)} />
+              )}
+              {loan.arrears > 0 && (
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 text-[#B3432B]/60"><AlertTriangle size={15} /></span>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.1em] text-[#0A2240]/40">Arrears</p>
+                    <p className="text-[#B3432B]">{formatGHS(loan.arrears)} carried forward — added to next month&apos;s due amount</p>
+                  </div>
+                </div>
+              )}
               {loan.purpose && <DetailRow icon={<Wallet size={15} />} label="Purpose" value={loan.purpose} />}
               {(loan as LoanWithIssuer).issuer?.full_name && (
                 <DetailRow icon={<UserRound size={15} />} label="Issued by" value={(loan as LoanWithIssuer).issuer!.full_name} />
+              )}
+              {isAdmin && loan.status === "active" && !loan.repayment_account_id && (
+                <SetRepaymentAccountControl loanId={loan.id} accounts={clientAccounts} />
               )}
             </div>
           </Card>
@@ -253,7 +305,7 @@ function formatDate(value: string | null) {
 }
 
 function methodLabel(method: string) {
-  return { cash: "Cash", mobile_money: "Mobile Money", bank_transfer: "Bank Transfer" }[method] ?? method;
+  return { cash: "Cash", mobile_money: "Mobile Money", bank_transfer: "Bank Transfer", account_deduction: "Auto-deducted" }[method] ?? method;
 }
 
 async function getCurrentProfile(supabase: Awaited<ReturnType<typeof createClient>>) {

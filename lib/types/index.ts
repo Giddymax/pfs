@@ -62,6 +62,10 @@ export interface Loan {
   issued_by: string | null;
   created_at: string;
   updated_at: string;
+  // Monthly auto-deduction (0073_loan_repayment_automation.sql)
+  repayment_account_id: string | null;
+  next_due_date: string | null;
+  arrears: number;
   // joined
   client?: Client;
 }
@@ -96,7 +100,7 @@ export interface Account {
   client?: Client;
 }
 
-export type RepaymentMethod = "cash" | "mobile_money" | "bank_transfer";
+export type RepaymentMethod = "cash" | "mobile_money" | "bank_transfer" | "account_deduction";
 
 export interface LoanRepayment {
   id: string;
