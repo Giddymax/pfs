@@ -36,17 +36,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Amount must be greater than zero" }, { status: 400 });
   }
 
-  // Don't let a deposit push Net Revenue negative — same defensive spirit as
+  // Don't let a deposit exceed Total Revenue — same defensive spirit as
   // record_withdrawal's insufficient-balance check, just computed here
   // instead of in SQL, since the "available revenue" figure already lives in
   // lib/finance/account-summary.ts and duplicating that formula in SQL would
-  // risk the two drifting apart.
+  // risk the two drifting apart. (There's no more "Net Revenue" tracking
+  // what's already been deposited — that concept was removed on request —
+  // so this is a flat cap against everything ever earned, not a running
+  // balance.)
   const settings = await getSettings();
   const rc = { ...DEFAULT_REVENUE_COMPONENTS, ...(settings.overview_kpi?.total_revenue?.components ?? {}) };
-  const { netRevenue } = await computeAccountSummary(supabase, rc);
-  if (amount > netRevenue) {
+  const { totalRevenue } = await computeAccountSummary(supabase, rc);
+  if (amount > totalRevenue) {
     return NextResponse.json(
-      { error: `Cannot deposit more than the available Net Revenue of ${netRevenue.toFixed(2)}` },
+      { error: `Cannot deposit more than the available Total Revenue of ${totalRevenue.toFixed(2)}` },
       { status: 400 }
     );
   }

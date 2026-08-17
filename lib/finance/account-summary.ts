@@ -26,19 +26,13 @@ export interface AccountSummary {
   processingFees: number;
   // Sum of every enabled revenue component (interest + commission + susu
   // fees + card fees + SMS fees + processing fees) — what the company has
-  // earned, full stop. This is the gross figure shown on the Finance page.
+  // earned, full stop. Shown on the Overview dashboard and the Finance page.
+  // Equivalently: Revenue Withdrawals (commission + susuFees + totalSmsFees
+  // + processingFees — the fee-type revenue taken directly out of a client
+  // balance, see revenueWithdrawals below) + cardFees + loanInterest (the
+  // two revenue sources that never touch a client balance) — same total,
+  // grouped by where the money came from instead of by fee type.
   totalRevenue: number;
-  // Lifetime total of admin-recorded "Deposits Taken From Revenue" — money
-  // appropriated out of Total Revenue (e.g. swept to an external bank
-  // account), recorded via the Finance page. Not a cash movement as far as
-  // this app is concerned (no accounts/transactions row is touched), so it
-  // deliberately does NOT feed into accountBalance below — see that field's
-  // comment. It only affects the P&L view.
-  depositsFromRevenue: number;
-  // Net Revenue = totalRevenue − depositsFromRevenue. This is the figure
-  // shown on the Overview dashboard, so what's already been swept out never
-  // gets double-presented as still-available revenue.
-  netRevenue: number;
   // Combined Account Total = Total Savings + Total Daily Susu + Total
   // Revenue — every pool of money the business is holding or has earned,
   // client-owed and company-owned combined. (Earlier versions of this figure
@@ -197,7 +191,6 @@ export async function computeAccountSummary(
     { data: expenditureRows },
     { data: susuClaimPenaltyRows },
     { data: sweptFeeRows },
-    { data: revenueDepositRows },
   ] = await Promise.all([
     supabase.from("accounts").select("id, dep").eq("product_type", "savings"),
     supabase.from("accounts").select("id, dep").eq("product_type", "susu"),
@@ -244,7 +237,6 @@ export async function computeAccountSummary(
     // `type='fee'` rows, which use a different notes pattern and are
     // already counted via smsFeeRows.
     supabase.from("transactions").select("amount").in("type", ["fee", "withdrawal"]).is("reversed_at", null).ilike("notes", "%swept to company funds%"),
-    supabase.from("revenue_deposits").select("amount"),
   ]);
 
   const totalSavings = sum(savingsRows, "dep");
@@ -303,9 +295,6 @@ export async function computeAccountSummary(
     (revenueComponents.sms_fees ? totalSmsFees : 0) +
     (revenueComponents.processing_fees ? processingFees : 0)
   );
-  const depositsFromRevenue = sum(revenueDepositRows, "amount");
-  const netRevenue = round2(totalRevenue - depositsFromRevenue);
-
   // Combined Account Total — see the AccountSummary field's own comment.
   // totalSavings/totalSusu are the GROSS lifetime-deposit figures (not the
   // net accounts.balance) — required for Account Balance below to net out
@@ -349,8 +338,6 @@ export async function computeAccountSummary(
     totalSmsFees,
     processingFees,
     totalRevenue,
-    depositsFromRevenue,
-    netRevenue,
     combinedTotal,
     totalWithdrawals,
     withdrawalPrincipal,

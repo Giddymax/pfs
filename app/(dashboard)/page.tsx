@@ -42,20 +42,21 @@ export default async function OverviewPage() {
   if (profile.restricted_pages?.includes("overview")) redirect("/clients");
 
   const settings = await getSettings();
-  // Overview trimmed to five cards on request: Total Clients, Combined
-  // Account Total, Transactional Withdrawals, Revenue Withdrawals, Account
-  // Balance. Every other KPI (including Total Revenue and the combined
-  // Total Withdrawals card it replaced) stays fully computed — other pages
-  // still depend on the same shared summary — only its Overview visibility
-  // is switched off, so it can be turned back on here later without
-  // touching any calculation.
+  // Overview trimmed to six cards on request: Total Clients, Combined
+  // Account Total, Total Revenue, Transactional Withdrawals, Revenue
+  // Withdrawals, Account Balance. Every other KPI (including the combined
+  // Total Withdrawals card its split replaced) stays fully computed —
+  // other pages still depend on the same shared summary — only its
+  // Overview visibility is switched off, so it can be turned back on here
+  // later without touching any calculation. Net Revenue (and the Deposits
+  // Taken From Revenue figure it netted against) was removed entirely on
+  // request — Total Revenue is shown gross.
   const defaultKpi = {
     total_clients:   { visible: true },
     total_savings:   { visible: false, calc: "dep" as const },
     total_susu:      { visible: false, calc: "dep" as const },
     combined_total:  { visible: true },
-    total_revenue:   { visible: false, components: { interest: true, commission: true, susu_fees: true, card_fees: true, sms_fees: true, processing_fees: true } },
-    net_revenue:     { visible: true },
+    total_revenue:   { visible: true, components: { interest: true, commission: true, susu_fees: true, card_fees: true, sms_fees: true, processing_fees: true } },
     account_balance: { visible: true },
     total_withdrawals: { visible: false },
     transactional_withdrawals: { visible: true },
@@ -112,7 +113,7 @@ export default async function OverviewPage() {
 
   const {
     totalSavings, totalSusu, loanInterest, commission, susuFees, cardFees,
-    totalSmsFees, processingFees, totalRevenue, depositsFromRevenue, netRevenue, combinedTotal, totalWithdrawals,
+    totalSmsFees, processingFees, totalRevenue, combinedTotal, totalWithdrawals,
     withdrawalPrincipal, revenueWithdrawals, loansDisbursed,
     loanRepayments, accountBalance, cashAtBank, cashAtHand,
   } = summary;
@@ -161,15 +162,11 @@ export default async function OverviewPage() {
             icon={<Repeat size={17} />}
           />
         )}
-        {/* kpi.total_revenue is kept (just never rendered as its own card)
-            purely for its .components sub-object (`rc`, passed into
-            computeAccountSummary above), which still gates what feeds
-            totalRevenue/netRevenue. */}
-        {kpi.net_revenue.visible && (
+        {kpi.total_revenue.visible && (
           <SummaryCard
-            label="Net Revenue"
-            value={formatGHS(netRevenue)}
-            hint={`Total Revenue ${formatGHS(totalRevenue)} − Deposits Taken From Revenue ${formatGHS(depositsFromRevenue)} = ${formatGHS(netRevenue)}`}
+            label="Total Revenue"
+            value={formatGHS(totalRevenue)}
+            hint={`Revenue Withdrawals ${formatGHS(revenueWithdrawals)} + Card Fees ${formatGHS(cardFees)} + Loan Interest ${formatGHS(loanInterest)}`}
             tone="jade"
             icon={<Scale size={17} />}
           />

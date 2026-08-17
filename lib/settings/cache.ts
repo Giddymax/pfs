@@ -19,19 +19,21 @@ const DEFAULTS: Settings = {
   card_fee_amount: 20,
   emergency_claim_penalty_basis: "daily_contribution_amount",
   sms_monthly_fee: 2,
-  // Overview trimmed to five cards on request: Total Clients, Combined
-  // Account Total, Transactional Withdrawals, Revenue Withdrawals, Account
-  // Balance. Every other KPI (including Total Revenue and the combined
-  // Total Withdrawals card it replaced) stays fully computed for other
-  // pages — only its Overview visibility is off, so it can be turned back
-  // on here without touching any calculation.
+  // Overview trimmed to six cards on request: Total Clients, Combined
+  // Account Total, Total Revenue, Transactional Withdrawals, Revenue
+  // Withdrawals, Account Balance. Every other KPI (including the combined
+  // Total Withdrawals card its split replaced) stays fully computed for
+  // other pages — only its Overview visibility is off, so it can be turned
+  // back on here without touching any calculation. Net Revenue (Total
+  // Revenue minus Deposits Taken From Revenue) was removed entirely on
+  // request, along with Deposits Taken From Revenue itself — Total Revenue
+  // is shown gross, full stop.
   overview_kpi: {
     total_clients:   { visible: true },
     total_savings:   { visible: false, calc: "dep" },
     total_susu:      { visible: false, calc: "dep" },
     combined_total:  { visible: true },
-    total_revenue:   { visible: false, components: { interest: true, commission: true, susu_fees: true, card_fees: true, sms_fees: true, processing_fees: true } },
-    net_revenue:     { visible: true },
+    total_revenue:   { visible: true, components: { interest: true, commission: true, susu_fees: true, card_fees: true, sms_fees: true, processing_fees: true } },
     account_balance: { visible: true },
     total_withdrawals: { visible: false },
     transactional_withdrawals: { visible: true },

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, X, Landmark } from "lucide-react";
 import { formatGHS } from "@/lib/loan";
 
-export function RecordRevenueDepositButton({ netRevenue }: { netRevenue: number }) {
+export function RecordRevenueDepositButton({ totalRevenue }: { totalRevenue: number }) {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
@@ -29,8 +29,8 @@ export function RecordRevenueDepositButton({ netRevenue }: { netRevenue: number 
       setError("Enter an amount greater than zero.");
       return;
     }
-    if (amountNum > netRevenue) {
-      setError(`Cannot deposit more than the available Net Revenue of ${formatGHS(netRevenue)}.`);
+    if (amountNum > totalRevenue) {
+      setError(`Cannot deposit more than the available Total Revenue of ${formatGHS(totalRevenue)}.`);
       return;
     }
 
@@ -61,7 +61,7 @@ export function RecordRevenueDepositButton({ netRevenue }: { netRevenue: number 
         className="inline-flex items-center gap-2 rounded-md bg-[#7C3AED] px-4 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-[#6D28D9]"
       >
         <Landmark size={15} />
-        Deposit from revenue
+        Deposit revenue
       </button>
 
       {open && (
@@ -69,10 +69,9 @@ export function RecordRevenueDepositButton({ netRevenue }: { netRevenue: number 
           <div className="w-full max-w-sm max-h-[90dvh] overflow-y-auto rounded-xl bg-white p-6 shadow-xl">
             <div className="mb-5 flex items-start justify-between">
               <div>
-                <h3 className="text-[15px] font-semibold text-[#7C3AED]">Deposit from revenue</h3>
+                <h3 className="text-[15px] font-semibold text-[#7C3AED]">Deposit revenue</h3>
                 <p className="mt-0.5 text-[12.5px] text-[#0A2240]/45">
-                  Appropriate an amount out of Total Revenue — deducted from Net Revenue on Overview. Can only be
-                  recorded between 19:00 and 23:30 each day.
+                  Record money appropriated out of Total Revenue — e.g. swept to an external bank account.
                 </p>
               </div>
               <button
@@ -96,7 +95,7 @@ export function RecordRevenueDepositButton({ netRevenue }: { netRevenue: number 
                 <label className="mb-1.5 block text-[12.5px] font-medium text-[#7C3AED]/85">
                   Amount (GHS)
                   <span className="ml-2 font-normal text-[#0A2240]/40">
-                    · Available: {formatGHS(netRevenue)}
+                    · Available: {formatGHS(totalRevenue)}
                   </span>
                 </label>
                 <input

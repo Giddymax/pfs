@@ -70,7 +70,7 @@ export default async function FinancePage() {
     computeAccountSummary(supabase, rc),
   ]);
 
-  const { loanInterest, commission, susuFees, cardFees, totalSmsFees, processingFees, totalRevenue, depositsFromRevenue, netRevenue } = summary;
+  const { loanInterest, commission, susuFees, cardFees, totalSmsFees, processingFees, totalRevenue } = summary;
 
   const totalExpenditure = round2((expenditures ?? []).reduce((s, e) => s + Number(e.amount), 0));
   const netBalance = round2(totalRevenue - totalExpenditure);
@@ -93,7 +93,7 @@ export default async function FinancePage() {
         description="Revenue earned, expenditures recorded, and net balance."
         action={
           <div className="flex flex-wrap items-center gap-2">
-            <RecordRevenueDepositButton netRevenue={netRevenue} />
+            <RecordRevenueDepositButton totalRevenue={totalRevenue} />
             <ExportCsvButton endpoint="/api/finance/export" filename="finance.xlsx" label="Export Excel" />
             <PrintFinanceSummaryButton
               totalRevenue={totalRevenue}
@@ -108,18 +108,12 @@ export default async function FinancePage() {
         }
       />
 
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <SummaryCard
           label="Total Revenue"
           value={formatGHS(totalRevenue)}
           color="bg-[#15803D]"
           sub="Interest + commission + fees"
-        />
-        <SummaryCard
-          label="Deposits Taken From Revenue"
-          value={formatGHS(depositsFromRevenue)}
-          color="bg-[#7C3AED]"
-          sub="Swept out of revenue — deducted from Net Revenue on Overview"
         />
         <SummaryCard
           label="Total Expenditure"
