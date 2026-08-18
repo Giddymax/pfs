@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Camera, Loader2, UserRound, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -17,6 +17,11 @@ export default function NewClientPage() {
 
   const [smsOptIn, setSmsOptIn] = useState(true);
   const [clientType, setClientType] = useState<"new" | "old">("new");
+  // Display-only — always reflects whatever's set at Settings → Card fee
+  // amount. The actual charge is still decided independently at submit
+  // time (see the card_fees insert below), so this box can never drift the
+  // calculation; it just shows staff what they're about to charge.
+  const [cardFeeAmount, setCardFeeAmount] = useState<number | null>(null);
   const [form, setForm] = useState({
     full_name: "",
     date_of_birth: "",
@@ -33,6 +38,20 @@ export default function NewClientPage() {
     opening_deposit: "",
     daily_contribution_amount: "",
   });
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "card_fee_amount")
+      .maybeSingle<{ value: number }>()
+      .then(({ data }) => {
+        const rawFee = data?.value;
+        const amount = typeof rawFee === "number" ? rawFee : typeof rawFee === "string" ? Number(rawFee) : 20;
+        setCardFeeAmount(amount);
+      });
+  }, []);
 
   function update<K extends keyof typeof form>(key: K, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -329,6 +348,28 @@ export default function NewClientPage() {
               <p className="mt-0.5 text-[12px] text-[#0A2240]/50">No card fee charged</p>
             </button>
           </div>
+
+          <div className="mt-4 max-w-xs">
+            <Field label="Card fee (GHS)">
+              <Input
+                type="text"
+                readOnly
+                value={
+                  clientType === "old"
+                    ? "0.00"
+                    : cardFeeAmount === null
+                    ? "Loading…"
+                    : cardFeeAmount.toFixed(2)
+                }
+                onChange={() => {}}
+              />
+            </Field>
+            <p className="mt-1.5 text-[12px] text-[#0A2240]/45">
+              {clientType === "new"
+                ? "Auto-filled from Settings → Card fee amount — not editable here."
+                : "Old/Migrated clients are not charged a card fee."}
+            </p>
+          </div>
         </section>
 
         {/* SMS notifications */}
@@ -455,11 +496,13 @@ function Input({
   onChange,
   type = "text",
   label,
+  readOnly,
 }: {
   value: string;
   onChange: (v: string) => void;
   type?: string;
   label?: string;
+  readOnly?: boolean;
 }) {
   return (
     <input
@@ -467,7 +510,12 @@ function Input({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       aria-label={label}
-      className="w-full rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] text-[#0A2240] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
+      readOnly={readOnly}
+      className={`w-full rounded-md border border-[#0033AA]/15 px-3.5 py-2.5 text-[14px] text-[#0A2240] outline-none transition-colors ${
+        readOnly
+          ? "cursor-not-allowed bg-[#0A2240]/[0.04] text-[#0A2240]/60"
+          : "bg-[#FFFFFF]/40 focus:border-[#0062E1] focus:bg-white"
+      }`}
     />
   );
 }
