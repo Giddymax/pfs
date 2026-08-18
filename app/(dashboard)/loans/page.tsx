@@ -148,12 +148,12 @@ export default async function LoansPage({
 
       {/* KPI */}
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-6">
-        <StatCard label="Total clients"       value={String(clientCount)}         icon={<Users size={16} />} />
-        <StatCard label="Total principal"     value={formatGHS(totalPrincipal)}   icon={<Banknote size={16} />} />
-        <StatCard label="Outstanding balance" value={formatGHS(totalOutstanding)} icon={<Wallet size={16} />} />
-        <StatCard label="Active loans"        value={String(activeCount)}         icon={<Banknote size={16} />} />
-        <StatCard label="Completed"           value={String(completedCount)}      icon={<CheckCircle size={16} />} />
-        <StatCard label="Defaulted"           value={String(defaultedCount)}      icon={<XCircle size={16} />} />
+        <StatCard size="sm" label="Total clients"       value={String(clientCount)}         icon={<Users size={16} />} />
+        <StatCard size="sm" label="Total principal"     value={formatGHS(totalPrincipal)}   icon={<Banknote size={16} />} />
+        <StatCard size="sm" label="Outstanding balance" value={formatGHS(totalOutstanding)} icon={<Wallet size={16} />} />
+        <StatCard size="sm" label="Active loans"        value={String(activeCount)}         icon={<Banknote size={16} />} />
+        <StatCard size="sm" label="Completed"           value={String(completedCount)}      icon={<CheckCircle size={16} />} />
+        <StatCard size="sm" label="Defaulted"           value={String(defaultedCount)}      icon={<XCircle size={16} />} />
       </div>
 
       {/* ── Overdue / At-Risk Banner ── */}
