@@ -5,6 +5,7 @@ import { BankDepositButton, BankWithdrawalButton } from "@/components/record-ban
 import { EditBankTransactionButton, DeleteBankTransactionButton } from "@/components/bank-transaction-actions";
 import { Card, PageHeader } from "@/components/ui";
 import { ExportCsvButton } from "@/components/export-csv-button";
+import { PrintBankSummaryButton } from "@/components/print-bank-summary-button";
 import { formatGHS } from "@/lib/loan";
 import { getSettings } from "@/lib/settings/cache";
 import { computeAccountSummary } from "@/lib/finance/account-summary";
@@ -75,6 +76,14 @@ export default async function BankPage() {
         action={
           <div className="flex flex-wrap items-center gap-2">
             <ExportCsvButton endpoint="/api/bank/export" filename="bank-transactions.xlsx" label="Export Excel" />
+            <PrintBankSummaryButton
+              transactions={rows}
+              cashAtBank={cashAtBank}
+              cashAtHand={cashAtHand}
+              accountBalance={accountBalance}
+              printedBy={profile.full_name}
+              companyPhone={settings.sms.company_tel ?? null}
+            />
             <BankDepositButton cashAtBank={cashAtBank} />
             <BankWithdrawalButton cashAtBank={cashAtBank} />
           </div>

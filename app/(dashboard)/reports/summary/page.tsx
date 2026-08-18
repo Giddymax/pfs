@@ -120,12 +120,23 @@ export default async function SummaryPage({
   return (
     <div>
       {/* ── Screen header ── */}
-      <div className="mb-6 print:hidden">
-        <p className="mb-0.5 text-[11.5px] font-semibold uppercase tracking-[0.18em] text-[#0033AA]/50">Reports</p>
-        <h1 className="text-[26px] font-bold text-[#0A2240]">Transaction Summary</h1>
-        <p className="mt-1 text-[14px] text-[#0A2240]/50">
-          Financial activity summary for any date range you choose.
-        </p>
+      <div className="mb-6 flex flex-col gap-4 print:hidden sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="mb-0.5 text-[11.5px] font-semibold uppercase tracking-[0.18em] text-[#0033AA]/50">Reports</p>
+          <h1 className="text-[26px] font-bold text-[#0A2240]">Transaction Summary</h1>
+          <p className="mt-1 text-[14px] text-[#0A2240]/50">
+            Financial activity summary for any date range you choose.
+          </p>
+        </div>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <ExportCsvButton
+            endpoint="/api/reports/summary/export"
+            filename={`period-summary-${from}-to-${to}.xlsx`}
+            label="Export Excel"
+            params={{ from, to }}
+          />
+          <PrintButton label="Print summary" />
+        </div>
       </div>
 
       {/* ── Date controls (client component) ── */}
@@ -291,17 +302,6 @@ export default async function SummaryPage({
             </div>
           </>
         )}
-      </div>
-
-      {/* Floating print/export buttons on screen (outside the sheet so they don't print) */}
-      <div className="mt-6 flex flex-wrap justify-end gap-2 print:hidden">
-        <ExportCsvButton
-          endpoint="/api/reports/summary/export"
-          filename={`period-summary-${from}-to-${to}.xlsx`}
-          label="Export Excel"
-          params={{ from, to }}
-        />
-        <PrintButton label="Print summary" />
       </div>
     </div>
   );
