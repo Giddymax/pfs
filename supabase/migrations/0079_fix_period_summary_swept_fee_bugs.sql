@@ -1,3 +1,44 @@
+<<<<<<< HEAD
+=======
+-- Two bugs found while compiling the calculation-logic reference doc, both
+-- in compute_period_summary() (Transaction Summary page) and
+-- list_daily_account_summary() (Account Summary page) — neither has been
+-- touched since 0071_susu_day31_auto_sweep.sql.
+--
+-- Bug 1 — NULL-notes withdrawals silently dropped.
+--   Both functions filter withdrawals with `notes not ilike '%swept to
+--   company funds%'` to exclude the automatic susu day-31 fee sweep from
+--   withdrawal_total/total_withdrawals (it's company revenue, not cash paid
+--   to a client). In Postgres, `NULL not ilike 'pattern'` evaluates to NULL,
+--   not TRUE — so any withdrawal whose notes column is simply empty (most
+--   plain manual withdrawals) was silently excluded from the WHERE clause
+--   entirely, undercounting both figures. This is the exact NULL-ILIKE trap
+--   already fixed on the Overview/Finance/Bank side by filtering in
+--   JavaScript after the fetch instead of at the query level (see
+--   lib/finance/account-summary.ts's withdrawalRows comment) — these two
+--   report-only RPCs never got the same fix since they compute their own
+--   totals independently, in SQL. Fixed by wrapping in coalesce(notes, '')
+--   first, so a NULL notes column reads as '' (which correctly does NOT
+--   match the pattern, so the row survives the filter as it always should
+--   have).
+--
+-- Bug 2 — day-31 sweep double-counted as an early-withdrawal penalty.
+--   0078_susu_fee_as_commission.sql moved the day-31 company fee from
+--   withdrawal principal (amount) to commission (fee) on the same
+--   type='withdrawal' row. Both functions separately sum `fee` on every
+--   susu withdrawal to capture the *actual* early-withdrawal penalty (the
+--   only other way a susu withdrawal ever carries a nonzero fee) — that
+--   subquery never excluded the day-31 sweep's notes tag, so as of 0078 it
+--   started picking up the swept day-31 fee too, double-counting it into
+--   susu_fee_total/total_susu_fees on top of the figure's original source
+--   (susu_payments where day_in_cycle = 31). Fixed the same way: excluded
+--   via the "swept to company funds" notes tag, matching how
+--   lib/finance/account-summary.ts's susuEarlyWithdrawalFee already excludes
+--   it (see that file's notSweptFeeRows).
+--
+-- Return signatures are unchanged from 0071, so plain create-or-replace is
+-- enough — no drop needed.
+>>>>>>> 26d6817046175dac73ce0bf6a2914940e53a4afa
 
 create or replace function compute_period_summary(p_from date, p_to date)
 returns table (
