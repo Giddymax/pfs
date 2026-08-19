@@ -204,16 +204,16 @@ const ADMIN_NAV = [
   },
 ];
 
-// MoMo's own nav (see momo-mini-app-brief.md §3) — replaces NAV/ACCOUNT_NAV/
+// Telecom's own nav (see telecom-mini-app-brief.md §3) — replaces NAV/ACCOUNT_NAV/
 // ADMIN_NAV entirely while active, never sits underneath them. Bold white
-// text/icons here (the MoMo sidebar background, .sidebar-momo in
+// text/icons here (the Telecom sidebar background, .sidebar-telecom in
 // app/globals.css, is deep blue — dark enough for white to read clearly,
 // unlike the lighter tones tried earlier). Hover flips to a solid white
 // pill, so hover states flip the text/icon to dark ink to stay legible on
 // that white ground.
-const MOMO_NAV = [
+const TELECOM_NAV = [
   {
-    href: "/momo",
+    href: "/telecom",
     label: "Overview",
     icon: LayoutDashboard,
     active: "bg-white/20 text-white",
@@ -223,7 +223,7 @@ const MOMO_NAV = [
     adminOnly: false,
   },
   {
-    href: "/momo/transactions",
+    href: "/telecom/transactions",
     label: "Transactions",
     icon: ArrowLeftRight,
     active: "bg-white/20 text-white",
@@ -232,12 +232,12 @@ const MOMO_NAV = [
     idleIcon: "text-white transition-colors group-hover:text-[#1A1A1A]",
     adminOnly: false,
   },
-  // Admin-only within MoMo — seeing every staff member's collected charges
+  // Admin-only within Telecom — seeing every staff member's collected charges
   // is a management view, not everyday work, same split PFS's own
   // Staff Performance page already draws (that page is entirely
   // admin-gated even though staff can access the rest of PFS).
   {
-    href: "/momo/performance",
+    href: "/telecom/performance",
     label: "Performance",
     icon: TrendingUp,
     active: "bg-white/20 text-white",
@@ -259,10 +259,10 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
   const isAdmin = profile.role === "admin";
-  // Every active staff/admin gets MoMo now — the admin-only phase-1 default
-  // (momo-mini-app-brief.md §3) has been lifted. "Performance" inside
-  // MOMO_NAV stays admin-gated below (see that array's comment).
-  const inMomo = pathname.startsWith("/momo");
+  // Every active staff/admin gets Telecom now — the admin-only phase-1 default
+  // (telecom-mini-app-brief.md §3) has been lifted. "Performance" inside
+  // TELECOM_NAV stays admin-gated below (see that array's comment).
+  const inTelecom = pathname.startsWith("/telecom");
   // Per-account exceptions (0066_profile_page_restrictions.sql) — hiding
   // the nav link is UX only, the real enforcement is each restricted
   // page's own redirect guard; this just keeps a dead-end link off the rail.
@@ -279,18 +279,18 @@ export function Sidebar({
       <aside
         className={clsx(
           "sidebar-drawer flex h-screen w-64 shrink-0 flex-col lg:sticky lg:top-0 lg:!transform-none",
-          inMomo ? "sidebar-momo text-[#FFFFFF]" : "sidebar-aurora text-[#FFFFFF]",
+          inTelecom ? "sidebar-telecom text-[#FFFFFF]" : "sidebar-aurora text-[#FFFFFF]",
           mobileOpen && "open"
         )}
       >
-      {inMomo ? (
-        // MoMo's own brand block — the three-network banner, not the PFS
+      {inTelecom ? (
+        // Telecom's own brand block — the three-network banner, not the PFS
         // logo mark. Shaped differently from the row below on purpose (a
         // wide banner, not an icon + text row) because the source image
         // itself is a 600×307 banner, not a square mark.
         <div className="px-6 pb-5 pt-7">
           <Image
-            src="/images/momo-logo.jpg"
+            src="/images/telecom-logo.jpg"
             alt="MTN, AirtelTigo, Telecel"
             width={600}
             height={307}
@@ -301,7 +301,7 @@ export function Sidebar({
             className="mt-2.5 text-[13px] font-bold tracking-[0.2em] text-white"
             style={{ fontFamily: "var(--font-sidebar-brand)" }}
           >
-            MOMO
+            TELECOM
           </p>
         </div>
       ) : (
@@ -314,13 +314,13 @@ export function Sidebar({
         </div>
       )}
 
-      {/* App switcher — every staff/admin, route-driven (see momo-mini-app-brief.md §3) */}
+      {/* App switcher — every staff/admin, route-driven (see telecom-mini-app-brief.md §3) */}
       <div className="flex gap-1.5 px-4 pb-4">
         <Link
           href="/"
           className={clsx(
             "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-[11.5px] font-semibold transition-colors",
-            !inMomo
+            !inTelecom
               ? "bg-[#FFFFFF]/18 text-[#FFFFFF]"
               : "text-white/85 hover:bg-white hover:text-[#1A1A1A]"
           )}
@@ -329,23 +329,23 @@ export function Sidebar({
           Financial Service
         </Link>
         <Link
-          href="/momo"
+          href="/telecom"
           className={clsx(
             "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-[11.5px] font-semibold transition-colors",
-            inMomo
+            inTelecom
               ? "bg-white/20 text-white"
               : "text-[#FFFFFF]/70 hover:bg-[#FFFFFF]/10 hover:text-[#FFFFFF]"
           )}
         >
           <Smartphone size={13} />
-          MoMo
+          Telecom
         </Link>
       </div>
 
       <nav className="sidebar-nav flex-1 space-y-1 overflow-y-auto px-3 py-2">
-        {inMomo ? (
-          MOMO_NAV.filter(({ adminOnly, href }) => (!adminOnly || isAdmin) && !(href === "/momo/performance" && restricted.has("momo_performance"))).map(({ href, label, icon: Icon, active: activeCls, activeIcon, idle, idleIcon }) => {
-            const active = href === "/momo" ? pathname === "/momo" : pathname.startsWith(href);
+        {inTelecom ? (
+          TELECOM_NAV.filter(({ adminOnly, href }) => (!adminOnly || isAdmin) && !(href === "/telecom/performance" && restricted.has("telecom_performance"))).map(({ href, label, icon: Icon, active: activeCls, activeIcon, idle, idleIcon }) => {
+            const active = href === "/telecom" ? pathname === "/telecom" : pathname.startsWith(href);
             return (
               <Link
                 key={href}
@@ -439,12 +439,12 @@ export function Sidebar({
         )}
       </nav>
 
-      <div className={clsx("border-t px-4 py-5", inMomo ? "border-white/15" : "border-[#163013]/10")}>
+      <div className={clsx("border-t px-4 py-5", inTelecom ? "border-white/15" : "border-[#163013]/10")}>
         <Link
           href="/profile"
           className={clsx(
             "group mb-4 flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors",
-            inMomo ? "bg-white/10 hover:bg-white" : "bg-[#163013]/5 hover:bg-[#163013]/10"
+            inTelecom ? "bg-white/10 hover:bg-white" : "bg-[#163013]/5 hover:bg-[#163013]/10"
           )}
         >
           <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#0033AA]/12 text-[12px] font-semibold text-[#0033AA]">
@@ -456,8 +456,8 @@ export function Sidebar({
             )}
           </span>
           <div className="min-w-0 leading-tight">
-            <p className={clsx("truncate text-[13px] font-bold", inMomo ? "text-white group-hover:text-[#1A1A1A]" : "text-[#FFFFFF]")}>{profile.full_name}</p>
-            <p className={clsx("flex items-center gap-1 text-[11px]", inMomo ? "font-semibold text-white group-hover:text-[#1A1A1A]" : "text-[#FFFFFF]")}>
+            <p className={clsx("truncate text-[13px] font-bold", inTelecom ? "text-white group-hover:text-[#1A1A1A]" : "text-[#FFFFFF]")}>{profile.full_name}</p>
+            <p className={clsx("flex items-center gap-1 text-[11px]", inTelecom ? "font-semibold text-white group-hover:text-[#1A1A1A]" : "text-[#FFFFFF]")}>
               {profile.role === "admin" && <ShieldCheck size={11} className="text-[#0033AA]" />}
               {profile.role === "admin" ? "Administrator" : "Staff"}
             </p>
@@ -468,7 +468,7 @@ export function Sidebar({
             type="submit"
             className={clsx(
               "flex w-full items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-[13px] transition-colors",
-              inMomo ? "font-bold text-white hover:bg-white hover:text-[#1A1A1A]" : "font-medium text-[#FFFFFF] hover:bg-[#163013]/5"
+              inTelecom ? "font-bold text-white hover:bg-white hover:text-[#1A1A1A]" : "font-medium text-[#FFFFFF] hover:bg-[#163013]/5"
             )}
           >
             <LogOut size={16} />

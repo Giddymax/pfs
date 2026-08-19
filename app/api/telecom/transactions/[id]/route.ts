@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { MOMO_TYPES } from "@/lib/momo/types";
+import { TELECOM_TYPES } from "@/lib/telecom/types";
 import type { Profile } from "@/lib/types";
 
-const VALID_TYPES = new Set(MOMO_TYPES.map((t) => t.value));
+const VALID_TYPES = new Set(TELECOM_TYPES.map((t) => t.value));
 
 async function requireAdmin(supabase: Awaited<ReturnType<typeof createClient>>) {
   const { data: { user } } = await supabase.auth.getUser();
@@ -21,8 +21,8 @@ async function requireAdmin(supabase: Awaited<ReturnType<typeof createClient>>) 
   return { user };
 }
 
-// Edit a MoMo transaction's fields directly — there's no balance to
-// recalculate (see momo-mini-app-brief.md §5), so this is a plain update.
+// Edit a Telecom transaction's fields directly — there's no balance to
+// recalculate (see telecom-mini-app-brief.md §5), so this is a plain update.
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
@@ -50,7 +50,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 
   const { data, error } = await supabase
-    .from("momo_transactions")
+    .from("telecom_transactions")
     .update({ phone_number: phoneNumber, type, amount, charge, note })
     .eq("id", id)
     .select()
@@ -63,7 +63,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
 // Soft-delete: flags reversed_at instead of removing the row, matching the
 // reversed_at column's purpose in 0062_momo_transactions.sql — the entry
-// stays for the record but drops out of computeMomoSummary() and the export.
+// stays for the record but drops out of computeTelecomSummary() and the export.
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
@@ -71,7 +71,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   if (authError) return authError;
 
   const { error } = await supabase
-    .from("momo_transactions")
+    .from("telecom_transactions")
     .update({ reversed_at: new Date().toISOString() })
     .eq("id", id);
 

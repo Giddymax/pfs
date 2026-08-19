@@ -1,12 +1,12 @@
 import clsx from "clsx";
-import { momoTypeConfig } from "@/lib/momo/types";
+import { telecomTypeConfig } from "@/lib/telecom/types";
 
-// Gives each of MoMo's six transaction types its own accent color, so the
+// Gives each of Telecom's six transaction types its own accent color, so the
 // log scans at a glance without reading the text — see
-// momo-mini-app-brief.md §4. Config lives in lib/momo/types.ts, shared with
+// telecom-mini-app-brief.md §4. Config lives in lib/telecom/types.ts, shared with
 // the record form's dropdown and the Transactions page filter.
-export function MomoTypeBadge({ type }: { type: string }) {
-  const config = momoTypeConfig(type);
+export function TelecomTypeBadge({ type }: { type: string }) {
+  const config = telecomTypeConfig(type);
   return (
     <span
       className={clsx(

@@ -1,25 +1,25 @@
 import clsx from "clsx";
 
-// MoMo's own stat card — deliberately not a reuse of components/ui.tsx's
+// Telecom's own stat card — deliberately not a reuse of components/ui.tsx's
 // StatCard, whose value/icon colors are hard-coded to PFS's navy/green
-// palette with no way to retint. This one carries MoMo's own identity
-// instead (see momo-mini-app-brief.md §4), while matching StatCard's layout
+// palette with no way to retint. This one carries Telecom's own identity
+// instead (see telecom-mini-app-brief.md §4), while matching StatCard's layout
 // (label, icon, value) so the two read as siblings, not strangers.
 //
 // `tone` gives every card the same light-tint-plus-matching-border
 // treatment the original yellow "emphasis" card used, just varied — green,
 // blue, or yellow — instead of leaving most cards plain white with only one
 // card colored.
-export type MomoStatTone = "neutral" | "yellow" | "green" | "blue";
+export type TelecomStatTone = "neutral" | "yellow" | "green" | "blue";
 
-const TONES: Record<MomoStatTone, { border: string; bg: string; icon: string; value: string }> = {
+const TONES: Record<TelecomStatTone, { border: string; bg: string; icon: string; value: string }> = {
   neutral: { border: "border-[#1A1A1A]/10", bg: "bg-white", icon: "text-[#1A1A1A]/50", value: "text-[#1A1A1A]" },
   yellow:  { border: "border-[#E0A800]/40", bg: "bg-[#FFC72C]/[0.10]", icon: "text-[#B45309]", value: "text-[#8A5A00]" },
   green:   { border: "border-[#16A34A]/35", bg: "bg-[#16A34A]/[0.08]", icon: "text-[#15803D]", value: "text-[#15803D]" },
   blue:    { border: "border-[#1D4ED8]/30", bg: "bg-[#1D4ED8]/[0.07]", icon: "text-[#1D4ED8]", value: "text-[#1D4ED8]" },
 };
 
-export function MomoStatCard({
+export function TelecomStatCard({
   label,
   value,
   icon,
@@ -28,7 +28,7 @@ export function MomoStatCard({
   label: string;
   value: string;
   icon?: React.ReactNode;
-  tone?: MomoStatTone;
+  tone?: TelecomStatTone;
 }) {
   const t = TONES[tone];
   return (

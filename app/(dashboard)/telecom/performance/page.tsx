@@ -1,12 +1,12 @@
 import { redirect } from "next/navigation";
 import { ShieldCheck, UserRound, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { computeMomoStaffPerformance } from "@/lib/finance/momo-summary";
-import { MOMO_TYPES } from "@/lib/momo/types";
-import { MomoStatCard } from "@/components/momo-stat-card";
+import { computeTelecomStaffPerformance } from "@/lib/finance/telecom-summary";
+import { TELECOM_TYPES } from "@/lib/telecom/types";
+import { TelecomStatCard } from "@/components/telecom-stat-card";
 import { SummaryControls } from "@/components/summary-controls";
 import { ExportCsvButton } from "@/components/export-csv-button";
-import { PrintMomoPerformanceButton } from "@/components/print-momo-performance-button";
+import { PrintTelecomPerformanceButton } from "@/components/print-telecom-performance-button";
 import { PageHeader, Card, EmptyState } from "@/components/ui";
 import { getSettings } from "@/lib/settings/cache";
 import { formatGHS } from "@/lib/loan";
@@ -25,11 +25,11 @@ function fmtDate(iso: string) {
   return new Date(iso + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 }
 
-// Admin-only within MoMo — seeing every staff member's collected charges is
+// Admin-only within Telecom — seeing every staff member's collected charges is
 // a management view, not everyday work (see components/sidebar.tsx's
-// MOMO_NAV comment). Deliberately its own page, not PFS's staff_performance
-// RPC/page — see momo-mini-app-brief.md §7.
-export default async function MomoPerformancePage({
+// TELECOM_NAV comment). Deliberately its own page, not PFS's staff_performance
+// RPC/page — see telecom-mini-app-brief.md §7.
+export default async function TelecomPerformancePage({
   searchParams,
 }: {
   searchParams: Promise<{ from?: string; to?: string; preset?: string }>;
@@ -40,15 +40,15 @@ export default async function MomoPerformancePage({
   if (!user) redirect("/login");
 
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single<Profile>();
-  if (!profile || profile.role !== "admin") redirect("/momo");
-  if (profile.restricted_pages?.includes("momo_performance")) redirect("/momo");
+  if (!profile || profile.role !== "admin") redirect("/telecom");
+  if (profile.restricted_pages?.includes("telecom_performance")) redirect("/telecom");
 
   const params = await searchParams;
   const from = params.from ?? monthStartISO();
   const to = params.to ?? todayISO();
 
   const [rows, settings] = await Promise.all([
-    computeMomoStaffPerformance(supabase, { from, to }),
+    computeTelecomStaffPerformance(supabase, { from, to }),
     getSettings(),
   ]);
 
@@ -59,12 +59,12 @@ export default async function MomoPerformancePage({
   return (
     <div>
       <PageHeader
-        eyebrow="MoMo"
+        eyebrow="Telecom"
         title="Performance"
-        description="How much each staff member and admin moved through MoMo, by transaction type, and how much they collected in charges."
+        description="How much each staff member and admin moved through Telecom, by transaction type, and how much they collected in charges."
         action={
           <div className="flex flex-wrap items-center gap-2">
-            <PrintMomoPerformanceButton
+            <PrintTelecomPerformanceButton
               rows={rows}
               from={from}
               to={to}
@@ -75,8 +75,8 @@ export default async function MomoPerformancePage({
               companyPhone={settings.sms.company_tel ?? null}
             />
             <ExportCsvButton
-              endpoint="/api/momo/performance/export"
-              filename={`momo-performance-${from}-to-${to}.xlsx`}
+              endpoint="/api/telecom/performance/export"
+              filename={`telecom-performance-${from}-to-${to}.xlsx`}
               label="Export Excel"
               params={{ from, to }}
             />
@@ -97,16 +97,16 @@ export default async function MomoPerformancePage({
 
       {/* Stat cards */}
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <MomoStatCard label="Staff with activity" value={String(staffWithActivity)} icon={<Users size={16} />} tone="blue" />
-        <MomoStatCard label="Total amount moved" value={formatGHS(totalAmount)} tone="green" />
-        <MomoStatCard label="Total charges collected" value={formatGHS(totalCharge)} tone="yellow" />
+        <TelecomStatCard label="Staff with activity" value={String(staffWithActivity)} icon={<Users size={16} />} tone="blue" />
+        <TelecomStatCard label="Total amount moved" value={formatGHS(totalAmount)} tone="green" />
+        <TelecomStatCard label="Total charges collected" value={formatGHS(totalCharge)} tone="yellow" />
       </div>
 
       <Card>
         <div className="border-b border-[#1A1A1A]/8 px-5 py-4">
           <h2 className="text-[15px] font-semibold text-[#1A1A1A]">Individual performance</h2>
           <p className="mt-0.5 text-[12.5px] text-[#0A2240]/45">
-            Every staff/admin account, sorted by the most GHS moved through MoMo in this period — real amounts,
+            Every staff/admin account, sorted by the most GHS moved through Telecom in this period — real amounts,
             not a transaction count.
           </p>
         </div>
@@ -142,7 +142,7 @@ export default async function MomoPerformancePage({
                     </div>
                   </div>
                   <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-                    {MOMO_TYPES.map((t) => (
+                    {TELECOM_TYPES.map((t) => (
                       <div key={t.value} className="rounded-lg bg-[#1A1A1A]/[0.025] px-2 py-2">
                         <p className="text-[9.5px] font-semibold uppercase tracking-[0.08em] text-[#0A2240]/40">{t.label}</p>
                         <p className="mt-0.5 text-[13px] font-bold tabular-nums text-[#0A2240]">{formatGHS(r.byType[t.value])}</p>
@@ -159,7 +159,7 @@ export default async function MomoPerformancePage({
                 <thead>
                   <tr className="border-b border-[#1A1A1A]/8 bg-[#1A1A1A]/[0.02] text-[11px] uppercase tracking-[0.1em] text-[#0A2240]/45">
                     <th className="px-5 py-3 font-semibold">Staff member</th>
-                    {MOMO_TYPES.map((t) => (
+                    {TELECOM_TYPES.map((t) => (
                       <th key={t.value} className="px-3 py-3 text-right font-semibold">{t.label}</th>
                     ))}
                     <th className="px-5 py-3 text-right font-semibold">Total amount</th>
@@ -188,7 +188,7 @@ export default async function MomoPerformancePage({
                           </span>
                         </span>
                       </td>
-                      {MOMO_TYPES.map((t) => (
+                      {TELECOM_TYPES.map((t) => (
                         <td key={t.value} className="px-3 py-3.5 text-right tabular-nums text-[#0A2240]/70">
                           {formatGHS(r.byType[t.value])}
                         </td>

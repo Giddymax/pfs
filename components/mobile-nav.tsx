@@ -16,8 +16,8 @@ export function MobileNav({
 }) {
   // Mirrors the sidebar's brand-lockup swap (components/sidebar.tsx) so the
   // top bar reads as the same app the drawer opens into — see
-  // momo-mini-app-brief.md §3.
-  const inMomo = usePathname().startsWith("/momo");
+  // telecom-mini-app-brief.md §3.
+  const inTelecom = usePathname().startsWith("/telecom");
 
   return (
     <div className="mobile-nav-bar lg:hidden">
@@ -25,7 +25,7 @@ export function MobileNav({
         <div className="flex items-center gap-2.5">
           <Logo size={32} />
           <p className="text-[12px] font-bold tracking-[0.16em] text-[#1D3461]">
-            {inMomo ? "MOMO" : "PRIME FINANCIAL"}
+            {inTelecom ? "TELECOM" : "PRIME FINANCIAL"}
           </p>
         </div>
         <button

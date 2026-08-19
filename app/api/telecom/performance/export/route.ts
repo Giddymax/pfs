@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { xlsxResponse } from "@/lib/export/xlsx";
-import { computeMomoStaffPerformance } from "@/lib/finance/momo-summary";
-import { MOMO_TYPES } from "@/lib/momo/types";
+import { computeTelecomStaffPerformance } from "@/lib/finance/telecom-summary";
+import { TELECOM_TYPES } from "@/lib/telecom/types";
 import type { Profile } from "@/lib/types";
 
-// Admin-only, same as the page itself (app/(dashboard)/momo/performance/page.tsx)
+// Admin-only, same as the page itself (app/(dashboard)/telecom/performance/page.tsx)
 // — seeing every staff member's collected charges is a management view.
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -23,7 +23,7 @@ export async function GET(request: Request) {
     .single<Pick<Profile, "role">>();
   if (profile?.role !== "admin") return NextResponse.json({ error: "Admin access required" }, { status: 403 });
 
-  const rows = await computeMomoStaffPerformance(supabase, {
+  const rows = await computeTelecomStaffPerformance(supabase, {
     from: from ?? undefined,
     to: to ?? undefined,
   });
@@ -32,17 +32,17 @@ export async function GET(request: Request) {
     "Staff member": r.fullName,
     "Role": r.role === "admin" ? "Administrator" : r.role === "staff" ? "Staff" : "—",
     "Status": r.staffId ? (r.isActive ? "Active" : "Deactivated") : "—",
-    ...Object.fromEntries(MOMO_TYPES.map((t) => [`${t.label} (GHS)`, r.byType[t.value]])),
+    ...Object.fromEntries(TELECOM_TYPES.map((t) => [`${t.label} (GHS)`, r.byType[t.value]])),
     "Total amount (GHS)": r.totalAmount,
     "Charges collected (GHS)": r.totalCharge,
     "Total transactions": r.transactionCount,
   }));
 
   return xlsxResponse(exportRows, {
-    sheetName: "MoMo Performance",
+    sheetName: "Telecom Performance",
     filename: from && to
-      ? `momo-performance-${from}-to-${to}.xlsx`
-      : `momo-performance-${new Date().toISOString().slice(0, 10)}.xlsx`,
+      ? `telecom-performance-${from}-to-${to}.xlsx`
+      : `telecom-performance-${new Date().toISOString().slice(0, 10)}.xlsx`,
     colWidths: [24, 16, 14, 12, 12, 12, 12, 14, 12, 16, 18, 16],
   });
 }

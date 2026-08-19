@@ -5,11 +5,11 @@ import { Printer, X } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { PrintPortal } from "@/components/print-portal";
 import { PrintWatermark } from "@/components/print-watermark";
-import { MOMO_TYPES } from "@/lib/momo/types";
+import { TELECOM_TYPES } from "@/lib/telecom/types";
 import { formatGHS } from "@/lib/loan";
-import type { MomoStaffPerformanceRow } from "@/lib/finance/momo-summary";
+import type { TelecomStaffPerformanceRow } from "@/lib/finance/telecom-summary";
 
-export function PrintMomoPerformanceButton({
+export function PrintTelecomPerformanceButton({
   rows,
   from,
   to,
@@ -19,7 +19,7 @@ export function PrintMomoPerformanceButton({
   printedBy,
   companyPhone,
 }: {
-  rows: MomoStaffPerformanceRow[];
+  rows: TelecomStaffPerformanceRow[];
   from: string;
   to: string;
   staffWithActivity: number;
@@ -70,7 +70,7 @@ export function PrintMomoPerformanceButton({
             </div>
 
             <div
-              id="pfs-momo-print"
+              id="pfs-telecom-print"
               className="mx-auto max-w-[820px] rounded-lg bg-white px-10 py-9 text-[#0A2240] shadow-2xl print:max-w-none print:rounded-none print:px-12 print:py-10 print:shadow-none"
             >
               <PrintWatermark />
@@ -85,7 +85,7 @@ export function PrintMomoPerformanceButton({
                   </div>
                 </div>
                 <div className="text-right text-[11px] text-[#0A2240]/45">
-                  <p className="font-semibold text-[#0A2240]/60">MoMo Staff Performance</p>
+                  <p className="font-semibold text-[#0A2240]/60">Telecom Staff Performance</p>
                   <p>Period: {fmtDate(from)} — {fmtDate(to)}</p>
                   <p>Printed by: {printedBy ?? "-"}</p>
                 </div>
@@ -93,7 +93,7 @@ export function PrintMomoPerformanceButton({
 
               <div className="h-[3px] w-full bg-[#1E3A8A]" />
               <p className="py-3.5 text-center text-[13px] font-bold tracking-[0.12em] text-[#0A2240]">
-                MOMO STAFF PERFORMANCE
+                TELECOM STAFF PERFORMANCE
               </p>
 
               <div className="mb-6 grid grid-cols-3 gap-3">
@@ -111,7 +111,7 @@ export function PrintMomoPerformanceButton({
                     <thead>
                       <tr className="border-b border-[#0A2240]/10 bg-[#0A2240]/[0.04]">
                         <th className="px-2 py-2 text-[9px] font-semibold uppercase tracking-[0.08em] text-[#0A2240]/50">Staff</th>
-                        {MOMO_TYPES.map((t) => (
+                        {TELECOM_TYPES.map((t) => (
                           <th key={t.value} className="px-2 py-2 text-right text-[9px] font-semibold uppercase tracking-[0.08em] text-[#0A2240]/50">
                             {t.label}
                           </th>
@@ -126,7 +126,7 @@ export function PrintMomoPerformanceButton({
                           <td className="px-2 py-2 text-[#0A2240]/80">
                             {r.fullName}{r.role === "admin" ? " (Admin)" : ""}
                           </td>
-                          {MOMO_TYPES.map((t) => (
+                          {TELECOM_TYPES.map((t) => (
                             <td key={t.value} className="px-2 py-2 text-right tabular-nums text-[#0A2240]/60">
                               {formatGHS(r.byType[t.value])}
                             </td>

@@ -88,12 +88,12 @@ You don't need to memorize formulas — just know what each number is *for*, in 
 
 ---
 
-## 8. MoMo — quick routine
+## 8. Telecom — quick routine
 
-- MoMo (mobile money — cash in, cash out, deposits, airtime, data bundles) is **completely separate money from everything above** — its own revenue, its own log, on purpose. Don't add its numbers to your susu/savings totals.
-- Every MoMo transaction records two numbers: the **amount** (what actually moved through the customer's MoMo wallet) and the **charge** (what you billed them — this is your MoMo revenue).
-- **Important:** the app does *not* track your MoMo float (the money/e-cash backing your MoMo operations) at all — that was a deliberate choice. **You must reconcile your MoMo float yourself, outside this app** — e.g., count your physical float / check your telco wallet balance against what you've charged, on the same rhythm as your cash reconciliation (§4). Treat this as seriously as counting the till.
-- Editing or deleting a MoMo transaction is admin-only, same as everywhere else.
+- Telecom (mobile money — cash in, cash out, deposits, airtime, data bundles) is **completely separate money from everything above** — its own revenue, its own log, on purpose. Don't add its numbers to your susu/savings totals.
+- Every Telecom transaction records two numbers: the **amount** (what actually moved through the customer's Telecom wallet) and the **charge** (what you billed them — this is your Telecom revenue).
+- **Important:** the app does *not* track your Telecom float (the money/e-cash backing your Telecom operations) at all — that was a deliberate choice. **You must reconcile your Telecom float yourself, outside this app** — e.g., count your physical float / check your telco wallet balance against what you've charged, on the same rhythm as your cash reconciliation (§4). Treat this as seriously as counting the till.
+- Editing or deleting a Telecom transaction is admin-only, same as everywhere else.
 
 ---
 
@@ -104,7 +104,7 @@ You don't need to memorize formulas — just know what each number is *for*, in 
 - An approved susu claim sitting unpaid for more than a few days.
 - Cash at Hand or Cash at Bank showing a much bigger jump than the day's activity explains.
 - A loan more than 90 days overdue with no follow-up logged.
-- Your MoMo float running noticeably lower than what your charges collected would suggest.
+- Your Telecom float running noticeably lower than what your charges collected would suggest.
 
 None of these automatically mean something is wrong — most of the time there's a simple explanation. But they're exactly the kind of thing that's cheap to check today and expensive to untangle six months from now.
 
@@ -324,14 +324,14 @@ CASH AT HAND   =  Account Balance − Cash at Bank
 | Total Savings Collected | Σ(deposit amount) each staff member recorded to savings, summed |
 | Total Susu Collected | Σ(deposit amount) each staff member recorded to susu, summed |
 
-**MoMo — Overview & Performance** (completely separate money — see §8; never mixed with any figure above)
+**Telecom — Overview & Performance** (completely separate money — see §8; never mixed with any figure above)
 | Card | = |
 |---|---|
-| Transactions today / this period | count of MoMo transaction rows |
-| Amount moved | Σ(amount) — the cash that passed through the customer's MoMo wallet |
-| Charges collected | Σ(charge) — what PFS billed for the service; this is MoMo's *only* revenue figure |
+| Transactions today / this period | count of Telecom transaction rows |
+| Amount moved | Σ(amount) — the cash that passed through the customer's Telecom wallet |
+| Charges collected | Σ(charge) — what PFS billed for the service; this is Telecom's *only* revenue figure |
 | Per-type breakdown (cash in / cash out / deposit / airtime / data / mashup) | the same two sums, filtered to that one type |
-| Staff Performance (MoMo) | same amount/charge sums, grouped by who recorded the transaction |
+| Staff Performance (Telecom) | same amount/charge sums, grouped by who recorded the transaction |
 
 **Loans page**
 | Card | = |

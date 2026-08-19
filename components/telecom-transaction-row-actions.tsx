@@ -3,25 +3,25 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Pencil, Trash2, Undo2, X } from "lucide-react";
-import { MOMO_TYPES, type MomoTransactionType } from "@/lib/momo/types";
-import type { MomoTransaction } from "@/lib/types";
+import { TELECOM_TYPES, type TelecomTransactionType } from "@/lib/telecom/types";
+import type { TelecomTransaction } from "@/lib/types";
 
-// Admin edit/reverse/delete for a single MoMo transaction row — the page
-// these render on is already admin-only (app/(dashboard)/momo/layout.tsx),
+// Admin edit/reverse/delete for a single Telecom transaction row — the page
+// these render on is already admin-only (app/(dashboard)/telecom/layout.tsx),
 // so there's no separate role check needed here, but the API routes
 // underneath still verify independently (never trust the client alone).
 //
 // Reverse and Delete are deliberately different actions, matching PFS's own
-// transaction rows: Reverse (DELETE /api/momo/transactions/[id]) flags
+// transaction rows: Reverse (DELETE /api/telecom/transactions/[id]) flags
 // reversed_at and keeps the row for the record — it drops out of totals and
 // the export but stays visible in the log. Delete (DELETE
-// /api/momo/transactions/[id]/delete) removes the row entirely and cannot
+// /api/telecom/transactions/[id]/delete) removes the row entirely and cannot
 // be undone.
-export function MomoTransactionRowActions({ transaction }: { transaction: MomoTransaction }) {
+export function TelecomTransactionRowActions({ transaction }: { transaction: TelecomTransaction }) {
   const router = useRouter();
   const [mode, setMode] = useState<"closed" | "edit" | "reverse" | "delete">("closed");
   const [phone, setPhone] = useState(transaction.phone_number);
-  const [type, setType] = useState<MomoTransactionType>(transaction.type);
+  const [type, setType] = useState<TelecomTransactionType>(transaction.type);
   const [amount, setAmount] = useState(String(transaction.amount));
   const [charge, setCharge] = useState(String(transaction.charge));
   const [note, setNote] = useState(transaction.note ?? "");
@@ -59,7 +59,7 @@ export function MomoTransactionRowActions({ transaction }: { transaction: MomoTr
 
     setSubmitting(true);
     try {
-      const res = await fetch(`/api/momo/transactions/${transaction.id}`, {
+      const res = await fetch(`/api/telecom/transactions/${transaction.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -86,7 +86,7 @@ export function MomoTransactionRowActions({ transaction }: { transaction: MomoTr
     setSubmitting(true);
     setError(null);
     try {
-      const res = await fetch(`/api/momo/transactions/${transaction.id}`, { method: "DELETE" });
+      const res = await fetch(`/api/telecom/transactions/${transaction.id}`, { method: "DELETE" });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Could not reverse this transaction. Try again.");
 
@@ -102,7 +102,7 @@ export function MomoTransactionRowActions({ transaction }: { transaction: MomoTr
     setSubmitting(true);
     setError(null);
     try {
-      const res = await fetch(`/api/momo/transactions/${transaction.id}/delete`, { method: "DELETE" });
+      const res = await fetch(`/api/telecom/transactions/${transaction.id}/delete`, { method: "DELETE" });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Could not delete this transaction. Try again.");
 
@@ -175,10 +175,10 @@ export function MomoTransactionRowActions({ transaction }: { transaction: MomoTr
                     <span className="mb-1.5 block text-[12.5px] font-medium text-[#0A2240]/75">Type</span>
                     <select
                       value={type}
-                      onChange={(e) => setType(e.target.value as MomoTransactionType)}
+                      onChange={(e) => setType(e.target.value as TelecomTransactionType)}
                       className="w-full rounded-md border border-[#0A2240]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] outline-none transition-colors focus:border-[#E0A800] focus:bg-white"
                     >
-                      {MOMO_TYPES.map((t) => (
+                      {TELECOM_TYPES.map((t) => (
                         <option key={t.value} value={t.value}>{t.label}</option>
                       ))}
                     </select>
@@ -241,7 +241,7 @@ export function MomoTransactionRowActions({ transaction }: { transaction: MomoTr
                 </div>
                 <p className="mb-5 text-[13.5px] leading-relaxed text-[#0A2240]/60">
                   This flags the entry as reversed — it stays in the log for the record, but drops out of the
-                  MoMo Overview totals and the Excel export.
+                  Telecom Overview totals and the Excel export.
                 </p>
                 {error && (
                   <div className="mb-4 rounded-md border border-[#B3432B]/25 bg-[#B3432B]/[0.06] px-3.5 py-2.5 text-[12.5px] text-[#963522]">

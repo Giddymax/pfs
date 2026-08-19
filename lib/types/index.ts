@@ -3,7 +3,7 @@ export type Role = "admin" | "staff";
 // Per-account exceptions carving specific admin-only pages out for an
 // otherwise-full admin — see 0066_profile_page_restrictions.sql for why
 // this exists instead of just demoting the account to staff.
-export type RestrictablePage = "overview" | "settings" | "staff_performance" | "momo_performance";
+export type RestrictablePage = "overview" | "settings" | "staff_performance" | "telecom_performance";
 
 export interface Profile {
   id: string;
@@ -314,14 +314,14 @@ export interface SusuClaim {
   paid_at: string | null;
 }
 
-// MoMo mini-app (see momo-mini-app-brief.md) — a flat, independent
+// Telecom mini-app (see telecom-mini-app-brief.md) — a flat, independent
 // transaction log, not related to Client/Account/Transaction above. No
 // wallet, no balance, no foreign key to clients — see the brief's §7 for why.
-export interface MomoTransaction {
+export interface TelecomTransaction {
   id: string;
   phone_number: string;
   type: "cash_in" | "cash_out" | "deposit" | "airtime" | "data_bundle" | "mashup";
-  amount: number; // the principal that moved through the customer's MoMo wallet
+  amount: number; // the principal that moved through the customer's Telecom wallet
   charge: number; // what PFS billed for facilitating it — see 0063_momo_transactions_amount.sql
   note: string | null;
   recorded_by: string | null; // nullable since 0064_staff_delete_set_null.sql — set null if the staff member's account was later deleted

@@ -5,21 +5,21 @@ import { Printer, X } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { PrintPortal } from "@/components/print-portal";
 import { PrintWatermark } from "@/components/print-watermark";
-import { momoTypeLabel } from "@/lib/momo/types";
+import { telecomTypeLabel } from "@/lib/telecom/types";
 import { formatGHS } from "@/lib/loan";
-import type { MomoTransaction } from "@/lib/types";
+import type { TelecomTransaction } from "@/lib/types";
 
-interface Row extends MomoTransaction {
+interface Row extends TelecomTransaction {
   recorder: { full_name: string } | null;
 }
 
-// MoMo's own print modal, following the same PrintPortal + #pfs-momo-print
+// Telecom's own print modal, following the same PrintPortal + #pfs-telecom-print
 // pattern as every other PFS print button (print-finance-summary-button.tsx
 // is the closest sibling) — still identifies as Prime Financial Service in
 // the header, since a printed record is the company's official document
 // regardless of which product line it covers; only the on-screen app UI
-// draws the "no PFS branding" line (momo-mini-app-brief.md §7).
-export function PrintMomoTransactionsButton({
+// draws the "no PFS branding" line (telecom-mini-app-brief.md §7).
+export function PrintTelecomTransactionsButton({
   transactions,
   from,
   to,
@@ -80,7 +80,7 @@ export function PrintMomoTransactionsButton({
             </div>
 
             <div
-              id="pfs-momo-print"
+              id="pfs-telecom-print"
               className="mx-auto max-w-[820px] rounded-lg bg-white px-10 py-9 text-[#0A2240] shadow-2xl print:max-w-none print:rounded-none print:px-12 print:py-10 print:shadow-none"
             >
               <PrintWatermark />
@@ -95,7 +95,7 @@ export function PrintMomoTransactionsButton({
                   </div>
                 </div>
                 <div className="text-right text-[11px] text-[#0A2240]/45">
-                  <p className="font-semibold text-[#0A2240]/60">MoMo Transaction Log</p>
+                  <p className="font-semibold text-[#0A2240]/60">Telecom Transaction Log</p>
                   <p>Period: {fmtDate(from)} — {fmtDate(to)}</p>
                   <p>Printed by: {printedBy ?? "-"}</p>
                 </div>
@@ -103,7 +103,7 @@ export function PrintMomoTransactionsButton({
 
               <div className="h-[3px] w-full bg-[#1E3A8A]" />
               <p className="py-3.5 text-center text-[13px] font-bold tracking-[0.12em] text-[#0A2240]">
-                MOMO TRANSACTION LOG
+                TELECOM TRANSACTION LOG
               </p>
 
               <div className="mb-6 grid grid-cols-3 gap-3">
@@ -139,7 +139,7 @@ export function PrintMomoTransactionsButton({
                             </td>
                             <td className="px-3 py-2 font-medium text-[#0A2240]">{t.phone_number}</td>
                             <td className="px-3 py-2 text-[#0A2240]/70">
-                              {momoTypeLabel(t.type)}{t.reversed_at ? " (reversed)" : ""}
+                              {telecomTypeLabel(t.type)}{t.reversed_at ? " (reversed)" : ""}
                             </td>
                             <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums text-[#0A2240]/70">{formatGHS(t.amount)}</td>
                             <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums font-medium text-[#0A2240]">{formatGHS(t.charge)}</td>

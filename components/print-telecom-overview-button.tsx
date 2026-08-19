@@ -6,9 +6,9 @@ import { Logo } from "@/components/logo";
 import { PrintPortal } from "@/components/print-portal";
 import { PrintWatermark } from "@/components/print-watermark";
 import { formatGHS } from "@/lib/loan";
-import type { MomoTypeBreakdown } from "@/lib/finance/momo-summary";
+import type { TelecomTypeBreakdown } from "@/lib/finance/telecom-summary";
 
-export function PrintMomoOverviewButton({
+export function PrintTelecomOverviewButton({
   todayCount,
   todayAmount,
   todayCharge,
@@ -23,7 +23,7 @@ export function PrintMomoOverviewButton({
   todayCharge: number;
   allTimeCharge: number;
   allTimeCount: number;
-  byType: MomoTypeBreakdown[];
+  byType: TelecomTypeBreakdown[];
   printedBy?: string | null;
   companyPhone?: string | null;
 }) {
@@ -69,7 +69,7 @@ export function PrintMomoOverviewButton({
             </div>
 
             <div
-              id="pfs-momo-print"
+              id="pfs-telecom-print"
               className="mx-auto max-w-[820px] rounded-lg bg-white px-10 py-9 text-[#0A2240] shadow-2xl print:max-w-none print:rounded-none print:px-12 print:py-10 print:shadow-none"
             >
               <PrintWatermark />
@@ -84,7 +84,7 @@ export function PrintMomoOverviewButton({
                   </div>
                 </div>
                 <div className="text-right text-[11px] text-[#0A2240]/45">
-                  <p className="font-semibold text-[#0A2240]/60">MoMo Overview</p>
+                  <p className="font-semibold text-[#0A2240]/60">Telecom Overview</p>
                   <p>As at: {printedAt ? printedAt.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : "-"}</p>
                   <p>Printed by: {printedBy ?? "-"}</p>
                 </div>
@@ -92,7 +92,7 @@ export function PrintMomoOverviewButton({
 
               <div className="h-[3px] w-full bg-[#1E3A8A]" />
               <p className="py-3.5 text-center text-[13px] font-bold tracking-[0.12em] text-[#0A2240]">
-                MOMO OVERVIEW SUMMARY
+                TELECOM OVERVIEW SUMMARY
               </p>
 
               <div className="mb-6 grid grid-cols-3 gap-3">

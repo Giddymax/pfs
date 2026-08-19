@@ -1,38 +1,38 @@
 import { createClient } from "@/lib/supabase/server";
 import { round2 } from "@/lib/loan";
-import { MOMO_TYPES, type MomoTransactionType } from "@/lib/momo/types";
+import { TELECOM_TYPES, type TelecomTransactionType } from "@/lib/telecom/types";
 
-// Single source of truth for MoMo's own Overview stat cards. Deliberately a
+// Single source of truth for Telecom's own Overview stat cards. Deliberately a
 // separate file from lib/finance/account-summary.ts, and must never import
-// from (or be imported by) it — see momo-mini-app-brief.md §7. There's no
+// from (or be imported by) it — see telecom-mini-app-brief.md §7. There's no
 // wallet or balance to reconcile here, so this is nothing more than a
-// sum(amount)/sum(charge) over momo_transactions, grouped by type. amount
+// sum(amount)/sum(charge) over telecom_transactions, grouped by type. amount
 // and charge are two distinct figures (0063_momo_transactions_amount.sql):
-// amount is the principal that moved through the customer's MoMo wallet,
+// amount is the principal that moved through the customer's Telecom wallet,
 // charge is what PFS billed for facilitating it — totalCharge, not
-// totalAmount, is MoMo's revenue figure.
+// totalAmount, is Telecom's revenue figure.
 
-export interface MomoTypeBreakdown {
-  type: MomoTransactionType;
+export interface TelecomTypeBreakdown {
+  type: TelecomTransactionType;
   label: string;
   count: number;
   amount: number;
   charge: number;
 }
 
-export interface MomoSummary {
+export interface TelecomSummary {
   transactionCount: number;
   totalAmount: number;
   totalCharge: number;
-  byType: MomoTypeBreakdown[];
+  byType: TelecomTypeBreakdown[];
 }
 
-export async function computeMomoSummary(
+export async function computeTelecomSummary(
   supabase: Awaited<ReturnType<typeof createClient>>,
   range?: { from?: string; to?: string }
-): Promise<MomoSummary> {
+): Promise<TelecomSummary> {
   let query = supabase
-    .from("momo_transactions")
+    .from("telecom_transactions")
     .select("type, amount, charge, created_at")
     .is("reversed_at", null);
 
@@ -40,9 +40,9 @@ export async function computeMomoSummary(
   if (range?.to) query = query.lte("created_at", `${range.to}T23:59:59.999`);
 
   const { data } = await query;
-  const rows = (data ?? []) as { type: MomoTransactionType; amount: number; charge: number }[];
+  const rows = (data ?? []) as { type: TelecomTransactionType; amount: number; charge: number }[];
 
-  const byType: MomoTypeBreakdown[] = MOMO_TYPES.map(({ value, label }) => {
+  const byType: TelecomTypeBreakdown[] = TELECOM_TYPES.map(({ value, label }) => {
     const forType = rows.filter((r) => r.type === value);
     return {
       type: value,
@@ -62,9 +62,9 @@ export async function computeMomoSummary(
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Staff performance — a MoMo-scoped page, deliberately separate from PFS's
-// own staff_performance() RPC (see momo-mini-app-brief.md §7: "if MoMo ever
-// needs its own staff-performance view, that's a MoMo-scoped page built
+// Staff performance — a Telecom-scoped page, deliberately separate from PFS's
+// own staff_performance() RPC (see telecom-mini-app-brief.md §7: "if Telecom ever
+// needs its own staff-performance view, that's a Telecom-scoped page built
 // later, not an extra column bolted onto the existing one"). Every active
 // profile is included even with zero transactions in the period, same as
 // the PFS RPC's left-join-everyone approach; a transaction whose recorder
@@ -72,18 +72,18 @@ export async function computeMomoSummary(
 // is folded into a separate "Unattributed" row rather than dropped.
 //
 // byType holds the sum of `amount` per type (the real GHS that moved
-// through customers' MoMo wallets), not a transaction count — a staff
+// through customers' Telecom wallets), not a transaction count — a staff
 // member who did five GHS 20 airtime top-ups and one who did a single
 // GHS 500 cash-out both show as "1 transaction" if counted, which hides
 // which one actually moved more money.
 // ─────────────────────────────────────────────────────────────────────────
 
-export interface MomoStaffPerformanceRow {
+export interface TelecomStaffPerformanceRow {
   staffId: string | null;
   fullName: string;
   role: "admin" | "staff" | null;
   isActive: boolean;
-  byType: Record<MomoTransactionType, number>;
+  byType: Record<TelecomTransactionType, number>;
   transactionCount: number;
   totalAmount: number;
   totalCharge: number;
@@ -91,12 +91,12 @@ export interface MomoStaffPerformanceRow {
 
 const UNATTRIBUTED_ID = "unattributed";
 
-export async function computeMomoStaffPerformance(
+export async function computeTelecomStaffPerformance(
   supabase: Awaited<ReturnType<typeof createClient>>,
   range?: { from?: string; to?: string }
-): Promise<MomoStaffPerformanceRow[]> {
+): Promise<TelecomStaffPerformanceRow[]> {
   let txnQuery = supabase
-    .from("momo_transactions")
+    .from("telecom_transactions")
     .select("recorded_by, type, amount, charge")
     .is("reversed_at", null);
 
@@ -108,10 +108,10 @@ export async function computeMomoStaffPerformance(
     supabase.from("profiles").select("id, full_name, role, is_active").order("full_name"),
   ]);
 
-  const emptyByType = () => Object.fromEntries(MOMO_TYPES.map((t) => [t.value, 0])) as Record<MomoTransactionType, number>;
+  const emptyByType = () => Object.fromEntries(TELECOM_TYPES.map((t) => [t.value, 0])) as Record<TelecomTransactionType, number>;
 
-  const buckets = new Map<string, { byType: Record<MomoTransactionType, number>; count: number; amount: number; charge: number }>();
-  for (const t of (txnRows ?? []) as { recorded_by: string | null; type: MomoTransactionType; amount: number; charge: number }[]) {
+  const buckets = new Map<string, { byType: Record<TelecomTransactionType, number>; count: number; amount: number; charge: number }>();
+  for (const t of (txnRows ?? []) as { recorded_by: string | null; type: TelecomTransactionType; amount: number; charge: number }[]) {
     const key = t.recorded_by ?? UNATTRIBUTED_ID;
     if (!buckets.has(key)) buckets.set(key, { byType: emptyByType(), count: 0, amount: 0, charge: 0 });
     const bucket = buckets.get(key)!;
@@ -123,7 +123,7 @@ export async function computeMomoStaffPerformance(
 
   const profiles = (profileRows ?? []) as { id: string; full_name: string; role: "admin" | "staff"; is_active: boolean }[];
 
-  const rows: MomoStaffPerformanceRow[] = profiles.map((p) => {
+  const rows: TelecomStaffPerformanceRow[] = profiles.map((p) => {
     const bucket = buckets.get(p.id) ?? { byType: emptyByType(), count: 0, amount: 0, charge: 0 };
     return {
       staffId: p.id,

@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { MOMO_TYPES } from "@/lib/momo/types";
+import { TELECOM_TYPES } from "@/lib/telecom/types";
 import type { Profile } from "@/lib/types";
 
-const VALID_TYPES = new Set(MOMO_TYPES.map((t) => t.value));
+const VALID_TYPES = new Set(TELECOM_TYPES.map((t) => t.value));
 
 // Open to any active staff or admin — recording a transaction is everyday
 // work, not an admin-only action (0065_momo_staff_access.sql). Editing,
 // reversing, and deleting an existing transaction is still admin-only; see
 // the PATCH/DELETE routes under [id]. Checked here independently of the
-// RLS policy on momo_transactions itself, so the error message is
+// RLS policy on telecom_transactions itself, so the error message is
 // meaningful instead of a generic RLS rejection.
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
   }
 
   const { data, error } = await supabase
-    .from("momo_transactions")
+    .from("telecom_transactions")
     .insert({
       phone_number: phoneNumber,
       type,

@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Profile, RestrictablePage } from "@/lib/types";
 
-const VALID_RESTRICTABLE_PAGES: RestrictablePage[] = ["overview", "settings", "staff_performance", "momo_performance"];
+const VALID_RESTRICTABLE_PAGES: RestrictablePage[] = ["overview", "settings", "staff_performance", "telecom_performance"];
 
 async function requireAdmin(supabase: Awaited<ReturnType<typeof createClient>>) {
   const {

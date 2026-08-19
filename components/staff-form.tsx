@@ -13,7 +13,7 @@ const RESTRICTABLE_PAGES: { value: RestrictablePage; label: string }[] = [
   { value: "overview", label: "Overview" },
   { value: "settings", label: "Settings" },
   { value: "staff_performance", label: "Staff Performance" },
-  { value: "momo_performance", label: "MoMo Performance" },
+  { value: "telecom_performance", label: "Telecom Performance" },
 ];
 
 // ──────────────────────────────────────────────

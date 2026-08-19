@@ -122,7 +122,7 @@ body {
   #pfs-print-sheet,
   #pfs-summary-sheet,
   #pfs-print-finance,
-  #pfs-momo-print {
+  #pfs-telecom-print {
     position: static !important;
     width: 100% !important;
     max-width: none !important;
@@ -141,7 +141,7 @@ body {
   #pfs-print-sheet table,
   #pfs-summary-sheet table,
   #pfs-print-finance table,
-  #pfs-momo-print table {
+  #pfs-telecom-print table {
     width: 100% !important;
     min-width: 0 !important;
     table-layout: fixed;
@@ -155,8 +155,8 @@ body {
   #pfs-summary-sheet td,
   #pfs-print-finance th,
   #pfs-print-finance td,
-  #pfs-momo-print th,
-  #pfs-momo-print td {
+  #pfs-telecom-print th,
+  #pfs-telecom-print td {
     padding: 3px 4px !important;
     white-space: normal !important;
   }
@@ -166,7 +166,7 @@ body {
   #pfs-print-card .grid,
   #pfs-summary-sheet .grid,
   #pfs-print-finance .grid,
-  #pfs-momo-print .grid {
+  #pfs-telecom-print .grid {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
   }
@@ -213,11 +213,11 @@ body {
   background-color: #177245;
 }
 
-/* MoMo's own sidebar skin — deep blue, not PFS's green/navy. Text/icons in
-   the MoMo nav (components/sidebar.tsx) are bold white, since this
+/* Telecom's own sidebar skin — deep blue, not PFS's green/navy. Text/icons in
+   the Telecom nav (components/sidebar.tsx) are bold white, since this
    background is dark enough for white to read clearly — see
-   momo-mini-app-brief.md §4. */
-.sidebar-momo {
+   telecom-mini-app-brief.md §4. */
+.sidebar-telecom {
   background-color: #1E3A8A;
 }
 

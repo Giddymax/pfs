@@ -3,11 +3,11 @@ import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/types";
 
 // Genuine hard delete — removes the row entirely, unlike DELETE
-// /api/momo/transactions/[id] (that one reverses: flags reversed_at and
+// /api/telecom/transactions/[id] (that one reverses: flags reversed_at and
 // keeps the row for the record). Mirrors PFS's own
 // /api/transactions/[id] (reverse) vs /api/transactions/[id]/delete (hard
 // delete) split. There's nothing to recalculate afterward — no balance, no
-// wallet (momo-mini-app-brief.md §5) — so this is just a plain delete.
+// wallet (telecom-mini-app-brief.md §5) — so this is just a plain delete.
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
@@ -26,7 +26,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   }
 
   const { error } = await supabase
-    .from("momo_transactions")
+    .from("telecom_transactions")
     .delete()
     .eq("id", id);
 

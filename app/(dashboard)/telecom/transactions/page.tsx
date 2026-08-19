@@ -1,21 +1,21 @@
 import { Search, UserRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { computeMomoSummary } from "@/lib/finance/momo-summary";
-import { MOMO_TYPES } from "@/lib/momo/types";
-import { MomoStatCard } from "@/components/momo-stat-card";
-import { MomoTypeBadge } from "@/components/momo-type-badge";
-import { MomoTransactionForm } from "@/components/momo-transaction-form";
-import { MomoTransactionRowActions } from "@/components/momo-transaction-row-actions";
+import { computeTelecomSummary } from "@/lib/finance/telecom-summary";
+import { TELECOM_TYPES } from "@/lib/telecom/types";
+import { TelecomStatCard } from "@/components/telecom-stat-card";
+import { TelecomTypeBadge } from "@/components/telecom-type-badge";
+import { TelecomTransactionForm } from "@/components/telecom-transaction-form";
+import { TelecomTransactionRowActions } from "@/components/telecom-transaction-row-actions";
 import { SummaryControls } from "@/components/summary-controls";
 import { TableFilter, type FilterOption } from "@/components/table-filter";
 import { ExportCsvButton } from "@/components/export-csv-button";
-import { PrintMomoTransactionsButton } from "@/components/print-momo-transactions-button";
+import { PrintTelecomTransactionsButton } from "@/components/print-telecom-transactions-button";
 import { PageHeader, Card, EmptyState } from "@/components/ui";
 import { getSettings } from "@/lib/settings/cache";
 import { formatGHS } from "@/lib/loan";
-import type { MomoTransaction, Profile } from "@/lib/types";
+import type { TelecomTransaction, Profile } from "@/lib/types";
 
-const TYPE_OPTIONS: FilterOption[] = MOMO_TYPES.map((t) => ({ value: t.value, label: t.label }));
+const TYPE_OPTIONS: FilterOption[] = TELECOM_TYPES.map((t) => ({ value: t.value, label: t.label }));
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
@@ -30,11 +30,11 @@ function fmtDate(iso: string) {
   return new Date(iso + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 }
 
-// The MoMo transaction log — the only place a transaction's phone number or
-// history is viewable, since MoMo has no wallet list/detail page by design
-// (momo-mini-app-brief.md §3). Recording, filtering by type/phone/date, and
+// The Telecom transaction log — the only place a transaction's phone number or
+// history is viewable, since Telecom has no wallet list/detail page by design
+// (telecom-mini-app-brief.md §3). Recording, filtering by type/phone/date, and
 // admin edit/reverse all live on this one page.
-export default async function MomoTransactionsPage({
+export default async function TelecomTransactionsPage({
   searchParams,
 }: {
   searchParams: Promise<{ from?: string; to?: string; preset?: string; type?: string; staff?: string; q?: string }>;
@@ -48,7 +48,7 @@ export default async function MomoTransactionsPage({
   const q = params.q?.trim() ?? "";
 
   let query = supabase
-    .from("momo_transactions")
+    .from("telecom_transactions")
     .select("*, recorder:recorded_by(full_name)")
     .gte("created_at", `${from}T00:00:00`)
     .lte("created_at", `${to}T23:59:59.999`)
@@ -59,8 +59,8 @@ export default async function MomoTransactionsPage({
   if (q) query = query.or(`phone_number.ilike.%${q}%,note.ilike.%${q}%`);
 
   const [{ data: rows, error }, summary, { data: { user } }, { data: staffRows }, settings] = await Promise.all([
-    query.returns<(MomoTransaction & { recorder: { full_name: string } | null })[]>(),
-    computeMomoSummary(supabase, { from, to }),
+    query.returns<(TelecomTransaction & { recorder: { full_name: string } | null })[]>(),
+    computeTelecomSummary(supabase, { from, to }),
     supabase.auth.getUser(),
     supabase.from("profiles").select("id, full_name").order("full_name").returns<{ id: string; full_name: string }[]>(),
     getSettings(),
@@ -79,7 +79,7 @@ export default async function MomoTransactionsPage({
 
   const transactions = rows ?? [];
   // No "Unattributed" entry — deleting a staff account now deletes their
-  // momo_transactions entirely (0068_staff_delete_cascade_transactions.sql)
+  // telecom_transactions entirely (0068_staff_delete_cascade_transactions.sql)
   // rather than leaving them with recorded_by null, so that state is no
   // longer reachable through normal use.
   const STAFF_OPTIONS: FilterOption[] = (staffRows ?? []).map((p) => ({ value: p.id, label: p.full_name }));
@@ -93,12 +93,12 @@ export default async function MomoTransactionsPage({
   return (
     <div>
       <PageHeader
-        eyebrow="MoMo"
+        eyebrow="Telecom"
         title="Transactions"
-        description="Every walk-in MoMo transaction, newest first. Search by phone number, filter by type, or pick a date range."
+        description="Every walk-in Telecom transaction, newest first. Search by phone number, filter by type, or pick a date range."
         action={
           <div className="flex flex-wrap items-center gap-2">
-            <PrintMomoTransactionsButton
+            <PrintTelecomTransactionsButton
               transactions={transactions}
               from={from}
               to={to}
@@ -109,12 +109,12 @@ export default async function MomoTransactionsPage({
               companyPhone={settings.sms.company_tel ?? null}
             />
             <ExportCsvButton
-              endpoint="/api/momo/transactions/export"
-              filename={`momo-transactions-${from}-to-${to}.xlsx`}
+              endpoint="/api/telecom/transactions/export"
+              filename={`telecom-transactions-${from}-to-${to}.xlsx`}
               label="Export Excel"
               params={{ from, to }}
             />
-            <MomoTransactionForm />
+            <TelecomTransactionForm />
           </div>
         }
       />
@@ -132,17 +132,17 @@ export default async function MomoTransactionsPage({
 
       {/* Stat cards for the selected period */}
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <MomoStatCard
+        <TelecomStatCard
           label="Transactions in period"
           value={String(summary.transactionCount)}
           tone="blue"
         />
-        <MomoStatCard
+        <TelecomStatCard
           label="Amount moved in period"
           value={formatGHS(summary.totalAmount)}
           tone="green"
         />
-        <MomoStatCard
+        <TelecomStatCard
           label="Charges collected in period"
           value={formatGHS(summary.totalCharge)}
           tone="yellow"
@@ -196,7 +196,7 @@ export default async function MomoTransactionsPage({
               {transactions.map((t) => (
                 <li key={t.id} className={`px-5 py-4 ${t.reversed_at ? "opacity-50" : ""}`}>
                   <div className="mb-2 flex items-start justify-between gap-2">
-                    <MomoTypeBadge type={t.type} />
+                    <TelecomTypeBadge type={t.type} />
                     <div className="text-right">
                       <p className="text-[13px] font-semibold tabular-nums text-[#1A1A1A]">{formatGHS(t.amount)}</p>
                       <p className="text-[11px] tabular-nums text-[#0A2240]/45">charge {formatGHS(t.charge)}</p>
@@ -213,7 +213,7 @@ export default async function MomoTransactionsPage({
                       {new Date(t.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
                       {t.reversed_at && " · Reversed"}
                     </p>
-                    {isAdmin && <MomoTransactionRowActions transaction={t} />}
+                    {isAdmin && <TelecomTransactionRowActions transaction={t} />}
                   </div>
                 </li>
               ))}
@@ -245,13 +245,13 @@ export default async function MomoTransactionsPage({
                         {t.reversed_at && <span className="ml-1.5 text-[11px] font-semibold text-[#963522]">Reversed</span>}
                       </td>
                       <td className="px-5 py-3.5 font-medium text-[#0A2240]">{t.phone_number}</td>
-                      <td className="px-5 py-3.5"><MomoTypeBadge type={t.type} /></td>
+                      <td className="px-5 py-3.5"><TelecomTypeBadge type={t.type} /></td>
                       <td className="px-5 py-3.5 text-right tabular-nums text-[#0A2240]/75">{formatGHS(t.amount)}</td>
                       <td className="px-5 py-3.5 text-right font-semibold tabular-nums text-[#1A1A1A]">{formatGHS(t.charge)}</td>
                       <td className="px-5 py-3.5 max-w-[220px] truncate text-[#0A2240]/55">{t.note ?? "—"}</td>
                       <td className="px-5 py-3.5 text-[#0A2240]/55">{t.recorder?.full_name ?? "—"}</td>
                       <td className="px-5 py-3.5">
-                        {isAdmin && <MomoTransactionRowActions transaction={t} />}
+                        {isAdmin && <TelecomTransactionRowActions transaction={t} />}
                       </td>
                     </tr>
                   ))}
