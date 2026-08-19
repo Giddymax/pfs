@@ -44,6 +44,15 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
       .eq("id", linkedPayment.id);
   }
 
+  // Delete any expenditure this withdrawal backs (PFS Consolidated Fund —
+  // see 0074_consolidated_fund_finance_link.sql). No FK forcing this order
+  // anymore (0075 dropped it), but deleting the referencing row first is
+  // still the tidier sequence.
+  await admin
+    .from("expenditures")
+    .delete()
+    .eq("linked_transaction_id", txnId);
+
   // Now safe to delete the transaction
   const { error: deleteError } = await admin
     .from("transactions")
@@ -93,8 +102,12 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     }
   }
 
-  // Recalculate account balance, dep, wdr, comm from remaining transactions
-  const { error: recalcError } = await admin.rpc("recalculate_account", {
+  // Recalculate account balance, dep, wdr, comm from remaining transactions.
+  // Must go through the session-authenticated client, not `admin` — the RPC
+  // is gated by is_admin(), which reads auth.uid(); the service-role client
+  // carries no user JWT, so auth.uid() is null and the call always fails
+  // (silently corrupting the account's cached totals) when called via `admin`.
+  const { error: recalcError } = await supabase.rpc("recalculate_account", {
     p_account_id: txn.account_id,
   });
 

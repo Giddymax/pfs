@@ -5,7 +5,6 @@ import type { Client } from "@/lib/types";
 const ACCOUNT_TYPE_LABEL: Record<string, string> = {
   savings: "Savings",
   susu: "Daily Susu",
-  fixed_deposit: "Fixed Deposit",
 };
 
 export async function GET() {
@@ -21,20 +20,12 @@ export async function GET() {
 
   const clientIds = (clients ?? []).map((c) => c.id);
 
-  // Regular accounts take priority; fall back to the client's active FD principal
   const accountTypeByClient = new Map<string, string>();
   const dailyContributionByClient = new Map<string, number>();
   const balanceByClient = new Map<string, number>();
   const clientsWithFees = new Set<string>();
   if (clientIds.length > 0) {
-    const [{ data: fds }, { data: accounts }, { data: cardFeeRows }] = await Promise.all([
-      supabase
-        .from("fixed_deposits")
-        .select("client_id, principal")
-        .in("client_id", clientIds)
-        .not("status", "in", '("withdrawn","rolled_over")')
-        .order("created_at", { ascending: true })
-        .returns<{ client_id: string; principal: number }[]>(),
+    const [{ data: accounts }, { data: cardFeeRows }] = await Promise.all([
       supabase
         .from("accounts")
         .select("client_id, product_type, daily_contribution_amount, balance")
@@ -47,13 +38,6 @@ export async function GET() {
         .in("client_id", clientIds)
         .returns<{ client_id: string; amount: number }[]>(),
     ]);
-    // Regular accounts take priority; fall back to FD (same rule as the Excel export)
-    for (const fd of fds ?? []) {
-      if (!accountTypeByClient.has(fd.client_id)) {
-        accountTypeByClient.set(fd.client_id, "fixed_deposit");
-        balanceByClient.set(fd.client_id, fd.principal);
-      }
-    }
     for (const acc of accounts ?? []) {
       accountTypeByClient.set(acc.client_id, acc.product_type);
       balanceByClient.set(acc.client_id, acc.balance);

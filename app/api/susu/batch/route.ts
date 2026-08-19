@@ -4,7 +4,7 @@ import { getSettings } from "@/lib/settings/cache";
 import { shouldSendAdminSms, shouldSendClientSms } from "@/lib/sms/gating";
 import { sendSms } from "@/lib/sms/arkesel";
 import { smsTemplates } from "@/lib/sms/templates";
-import type { Client, SusuPayment } from "@/lib/types";
+import type { Client, SusuPaymentResult } from "@/lib/types";
 
 interface BatchEntry {
   amount: number;
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-  const payments = data as SusuPayment[];
+  const payments = data as SusuPaymentResult[];
   await notifyBatch(supabase, accountId, payments, isMultiDayPayment);
   return NextResponse.json({ payments });
 }
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
 async function notifyBatch(
   supabase: Awaited<ReturnType<typeof createClient>>,
   accountId: string,
-  payments: SusuPayment[],
+  payments: SusuPaymentResult[],
   isMultiDayPayment: boolean,
 ) {
   if (payments.length === 0) return;
@@ -89,5 +89,19 @@ async function notifyBatch(
 
   if (shouldSendAdminSms(settings)) {
     await sendSms({ to: settings.sms.company_tel!, message: msg, event: `${event}_admin`, recipientType: "admin", relatedClientId: client.id });
+  }
+
+  // Any cycle(s) that completed during this batch — a catch-up batch can
+  // span more than one 31-day cycle. Same day-31 fee-taken SMS as the
+  // single-payment route, once per completed cycle.
+  for (const completion of payments.filter((p) => p.cycle_completed)) {
+    const feeMsg = smsTemplates.susuDay31FeeTaken(client.full_name, completion.fee_amount, completion.remaining_claimable);
+
+    if (shouldSendClientSms("susu", client, settings)) {
+      await sendSms({ to: client.phone, message: feeMsg, event: "susu_day31_fee_taken", recipientType: "client", relatedClientId: client.id });
+    }
+    if (shouldSendAdminSms(settings, "withdrawal")) {
+      await sendSms({ to: settings.sms.company_tel!, message: feeMsg, event: "susu_day31_fee_taken_admin", recipientType: "admin", relatedClientId: client.id });
+    }
   }
 }

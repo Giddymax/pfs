@@ -9,9 +9,12 @@ export async function GET(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
+  // Reversed transactions were undone — an external accounting export should
+  // never include them, only the settled record.
   let query = supabase
     .from("transactions")
     .select("*, account:accounts(account_number, product_type), client:clients(full_name, client_code), recorder:recorded_by(full_name)")
+    .is("reversed_at", null)
     .order("created_at", { ascending: false });
 
   if (accountId) query = query.eq("account_id", accountId);
@@ -19,7 +22,7 @@ export async function GET(request: Request) {
   const { data: txns } = await query;
 
   const rows = [
-    ["Date", "Time", "Client", "Client Code", "Account Number", "Product", "Type", "Amount (GHS)", "Fee (GHS)", "Balance After (GHS)", "Notes", "Recorded By", "Reversed"],
+    ["Date", "Time", "Client", "Client Code", "Account Number", "Product", "Type", "Amount (GHS)", "Fee (GHS)", "Balance After (GHS)", "Notes", "Recorded By"],
     ...(txns ?? []).map((t) => {
       const dt = new Date(t.created_at);
       return [
@@ -35,7 +38,6 @@ export async function GET(request: Request) {
         t.bal_after ?? "",
         t.notes ?? "",
         t.recorder?.full_name ?? "",
-        t.reversed_at ? "Yes" : "No",
       ];
     }),
   ];

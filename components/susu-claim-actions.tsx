@@ -50,7 +50,7 @@ export function SusuClaimActions({ claim, isAdmin }: { claim: SusuClaim; isAdmin
     );
   }
 
-  if (claim.status === "approved") {
+  if (isAdmin && claim.status === "approved") {
     buttons.push(
       <button
         key="pay"

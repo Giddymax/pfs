@@ -1,16 +1,19 @@
 import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import { createClient } from "@/lib/supabase/server";
+import { getSettings } from "@/lib/settings/cache";
+import { shouldSendAdminSms } from "@/lib/sms/gating";
+import { sendSms } from "@/lib/sms/arkesel";
+import { smsTemplates } from "@/lib/sms/templates";
 
 function str(v: unknown): string {
   return v != null ? String(v).trim() : "";
 }
 
-function parseAccountType(v: unknown): "savings" | "susu" | "fixed_deposit" | null {
+function parseAccountType(v: unknown): "savings" | "susu" | null {
   const s = str(v).toLowerCase().replace(/[\s_-]/g, "");
   if (s === "savings" || s === "sav" || s === "save") return "savings";
   if (s === "susu" || s === "dailysusu" || s === "sus" || s === "daily") return "susu";
-  if (s === "fixeddeposit" || s === "fixed" || s === "fd" || s === "fxd" || s === "fixeddepositfd") return "fixed_deposit";
   return null;
 }
 
@@ -43,13 +46,6 @@ function parseStatus(v: unknown): "active" | "inactive" | null {
   const s = str(v).toLowerCase();
   if (s === "active") return "active";
   if (s === "inactive") return "inactive";
-  return null;
-}
-
-function parseClientType(v: unknown): "new" | "old" | null {
-  const s = str(v).toLowerCase().replace(/[\s_()-]/g, "");
-  if (s === "new") return "new";
-  if (s === "old" || s === "oldmigrated" || s === "migrated") return "old";
   return null;
 }
 
@@ -93,9 +89,9 @@ export async function POST(request: Request) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, full_name")
     .eq("id", user.id)
-    .single<{ role: string }>();
+    .single<{ role: string; full_name: string }>();
 
   if (!profile || !["admin", "staff"].includes(profile.role)) {
     return NextResponse.json({ error: "Not authorised" }, { status: 403 });
@@ -136,15 +132,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "The spreadsheet appears to be empty or has no data rows." }, { status: 400 });
   }
 
-  // Card fee amount for "new" clients — old/migrated clients get a zero-amount
-  // row, matching the manual registration flow (app/(dashboard)/clients/new).
-  const { data: feeSetting } = await supabase
-    .from("settings")
-    .select("value")
-    .eq("key", "card_fee_amount")
-    .maybeSingle<{ value: number | string }>();
-  const rawFee = feeSetting?.value;
-  const cardFeeAmount = typeof rawFee === "number" ? rawFee : typeof rawFee === "string" ? Number(rawFee) : 20;
+  // Admin "new client registered" SMS — imported clients are treated exactly
+  // like a manual registration (app/(dashboard)/clients/new), one alert per
+  // client. Sent in a batch after the row loop (not per-row inside it) so a
+  // large spreadsheet doesn't serialize dozens of network round-trips onto
+  // the import's response time.
+  const settings = await getSettings();
+  const notifyRegistration = shouldSendAdminSms(settings, "registration");
+  const toNotify: { id: string; fullName: string; clientCode: string }[] = [];
 
   const succeeded: string[] = [];
   const failed: { row: number; name: string; reason: string }[] = [];
@@ -226,10 +221,6 @@ export async function POST(request: Request) {
     const balance = parseBalance(
       get("Balance", "Account Balance", "Current Balance", "AccountBalance", "CurrentBalance")
     );
-    const clientType = parseClientType(
-      get("Client Type", "ClientType", "Migration Status", "Migrated")
-    );
-
     const payload = {
       full_name: fullName,
       phone,
@@ -259,13 +250,19 @@ export async function POST(request: Request) {
     }
 
     succeeded.push(inserted.client_code);
+    if (notifyRegistration) {
+      toNotify.push({ id: inserted.id, fullName, clientCode: inserted.client_code });
+    }
 
-    // Card fee — "new" clients pay the configured fee; old/migrated (or
-    // unspecified) clients get a zero-amount row so the Client Type column
-    // and the isMigrated flag work correctly everywhere else in the app.
+    // Card fee — every Excel-imported client is treated as Old (Migrated),
+    // regardless of any Client Type column in the spreadsheet: a zero-amount
+    // row, so no registration fee is charged and the isMigrated flag (which
+    // just checks whether any card_fees row for the client is > 0) reads
+    // "Old (Migrated)" everywhere else in the app. Only the manual
+    // /clients/new flow can register a client as "New".
     await supabase.from("card_fees").insert({
       client_id: inserted.id,
-      amount: clientType === "new" ? cardFeeAmount : 0,
+      amount: 0,
       charged_by: user.id,
     });
 
@@ -298,17 +295,11 @@ export async function POST(request: Request) {
           reason: "Account Type was \"Susu\" but Daily Contribution was missing — no account was created for this client.",
         });
       }
-    } else if (accountType === "fixed_deposit") {
-      warnings.push({
-        row: rowNum,
-        name: fullName,
-        reason: "Fixed Deposit accounts need a rate and term and can't be bulk-imported — no account was created for this client. Add it manually from the client's profile.",
-      });
     } else if (str(accountTypeRaw) !== "") {
       warnings.push({
         row: rowNum,
         name: fullName,
-        reason: `Account Type "${str(accountTypeRaw)}" was not recognized (expected Savings, Susu, or Fixed Deposit) — no account was created for this client.`,
+        reason: `Account Type "${str(accountTypeRaw)}" was not recognized (expected Savings or Susu) — no account was created for this client.`,
       });
     } else if (balance != null || dailyContribution != null) {
       warnings.push({
@@ -317,6 +308,20 @@ export async function POST(request: Request) {
         reason: "Balance/Daily Contribution was provided but no Account Type column was found — no account was created for this client.",
       });
     }
+  }
+
+  if (toNotify.length > 0) {
+    await Promise.all(
+      toNotify.map((c) =>
+        sendSms({
+          to: settings.sms.company_tel!,
+          message: smsTemplates.clientRegisteredAdmin(c.fullName, c.clientCode, profile.full_name),
+          event: "client_registered_admin",
+          recipientType: "admin",
+          relatedClientId: c.id,
+        })
+      )
+    );
   }
 
   return NextResponse.json({
@@ -343,7 +348,6 @@ export async function GET() {
     "Town": "Kumasi",
     "Next of Kin Name": "Kofi Owusu",
     "Next of Kin Phone": "0244000002",
-    "Client Type": "new",
     "Account Type": "savings",
     "Daily Contribution": "",
     "Balance": "50",
@@ -355,7 +359,7 @@ export async function GET() {
   ws["!cols"] = [
     { wch: 28 }, { wch: 16 }, { wch: 16 }, { wch: 10 }, { wch: 14 },
     { wch: 20 }, { wch: 20 }, { wch: 32 }, { wch: 18 }, { wch: 24 },
-    { wch: 18 }, { wch: 10 }, { wch: 16 }, { wch: 18 }, { wch: 10 }, { wch: 10 },
+    { wch: 18 }, { wch: 16 }, { wch: 18 }, { wch: 10 }, { wch: 10 },
   ];
   XLSX.utils.book_append_sheet(wb, ws, "Clients");
 

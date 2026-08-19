@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { Plus, Search, Lock, PiggyBank, Coins, Pencil, X, Users, UserPlus, History, Trash2 } from "lucide-react";
+import { Plus, Search, PiggyBank, Coins, Pencil, X, Users, UserPlus, History, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { DeleteClientButton } from "@/components/delete-client-button";
 import { PrintRegistrationCardButton } from "@/components/print-registration-card";
 import { ClientPrintHistoryButton } from "@/components/client-print-history-button";
 import { ClientExcelButtons } from "@/components/client-excel-buttons";
+import { ClientPhotoViewer } from "@/components/client-photo-viewer";
 import { TableFilter, type FilterOption } from "@/components/table-filter";
 import { ExportCsvButton } from "@/components/export-csv-button";
 import { PageHeader, ClientStatusBadge, EmptyState, StatCard } from "@/components/ui";
@@ -14,13 +15,11 @@ import type { Client, Account, ProductType, Profile } from "@/lib/types";
 const PRODUCT_LABEL: Record<ProductType, string> = {
   savings: "Savings",
   susu: "Daily Susu",
-  fixed_deposit: "Fixed Deposit",
 };
 
 const PRODUCT_ICON: Record<ProductType, typeof PiggyBank> = {
   savings: PiggyBank,
   susu: Coins,
-  fixed_deposit: Lock,
 };
 
 const STATUS_OPTIONS: FilterOption[] = [
@@ -33,7 +32,6 @@ const STATUS_OPTIONS: FilterOption[] = [
 const ACCOUNT_OPTIONS: FilterOption[] = [
   { value: "savings", label: "Savings" },
   { value: "susu", label: "Daily Susu" },
-  { value: "fixed_deposit", label: "Fixed Deposit" },
 ];
 
 const MIGRATED_OPTIONS: FilterOption[] = [
@@ -136,26 +134,17 @@ export default async function ClientsPage({
   const accountByClient = new Map<string, Account>();
   const agentNameById = new Map<string, string>();
   const registrarNameById = new Map<string, string>();
-  const fdNumberByClient = new Map<string, string>();
-  const fdByClient = new Map<string, { client_id: string; fd_number: string; principal: number }>();
   const clientsWithFees = new Set<string>();
   if (clients.length > 0) {
     const clientIds = clients.map((c) => c.id);
 
-    const [{ data: accounts }, { data: fdRows }, { data: cardFeeRows }] = await Promise.all([
+    const [{ data: accounts }, { data: cardFeeRows }] = await Promise.all([
       supabase
         .from("accounts")
         .select("*")
         .in("client_id", clientIds)
         .order("created_at", { ascending: false })
         .returns<Account[]>(),
-      supabase
-        .from("fixed_deposits")
-        .select("client_id, fd_number, principal")
-        .in("client_id", clientIds)
-        .not("status", "in", '("withdrawn","rolled_over")')
-        .order("created_at", { ascending: false })
-        .returns<{ client_id: string; fd_number: string; principal: number }[]>(),
       supabase
         .from("card_fees")
         .select("client_id, amount")
@@ -169,10 +158,6 @@ export default async function ClientsPage({
 
     for (const acc of accounts ?? []) {
       if (!accountByClient.has(acc.client_id)) accountByClient.set(acc.client_id, acc);
-    }
-    for (const fd of fdRows ?? []) {
-      if (!fdNumberByClient.has(fd.client_id)) fdNumberByClient.set(fd.client_id, fd.fd_number);
-      fdByClient.set(fd.client_id, fd);
     }
 
     // Collect all profile IDs we need: agents + registrars
@@ -409,22 +394,23 @@ export default async function ClientsPage({
           <ul className="space-y-3 lg:hidden">
             {clients.map((client) => {
               const acc = accountByClient.get(client.id);
-              const fd = fdByClient.get(client.id);
-              const ProductIcon = acc ? PRODUCT_ICON[acc.product_type] : fd ? Lock : null;
-              const productLabel = acc ? PRODUCT_LABEL[acc.product_type] : fd ? "Fixed Deposit" : null;
-              const displayBalance = acc ? formatGHC(acc.balance) : fd ? formatGHC(fd.principal) : null;
+              const ProductIcon = acc ? PRODUCT_ICON[acc.product_type] : null;
+              const productLabel = acc ? PRODUCT_LABEL[acc.product_type] : null;
+              const displayBalance = acc ? formatGHC(acc.balance) : null;
               return (
                 <li key={client.id} className="rounded-xl border border-[#1D3461]/8 bg-white shadow-sm">
-                  <Link href={`/clients/${client.id}`} className="flex items-center gap-3 px-4 py-3.5">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#1D3461]/10 bg-[#1D3461]/5 text-[12px] font-semibold text-[#1D3461]">
-                      {client.photo_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={client.photo_url} alt={client.full_name} className="h-full w-full object-cover" />
-                      ) : (
-                        initials(client.full_name)
-                      )}
-                    </span>
-                    <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-3 px-4 py-3.5">
+                    <ClientPhotoViewer photoUrl={client.photo_url} alt={client.full_name} isAdmin={isAdmin}>
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#1D3461]/10 bg-[#1D3461]/5 text-[12px] font-semibold text-[#1D3461]">
+                        {client.photo_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={client.photo_url} alt={client.full_name} className="h-full w-full object-cover" />
+                        ) : (
+                          initials(client.full_name)
+                        )}
+                      </span>
+                    </ClientPhotoViewer>
+                    <Link href={`/clients/${client.id}`} className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <p className="truncate text-[14px] font-semibold text-[#0A2240]">{client.full_name}</p>
                         <ClientStatusBadge status={client.status} />
@@ -441,8 +427,8 @@ export default async function ClientsPage({
                         {displayBalance && <span className="font-medium text-[#0A2240]">{displayBalance}</span>}
                         {client.town && <span>{client.town}</span>}
                       </div>
-                    </div>
-                  </Link>
+                    </Link>
+                  </div>
                   <div className="flex flex-wrap items-center gap-2 border-t border-[#1D3461]/6 px-4 py-2.5">
                     <ClientPrintHistoryButton
                       client={client}
@@ -457,7 +443,6 @@ export default async function ClientsPage({
                       agentName={acc?.agent_id ? agentNameById.get(acc.agent_id) ?? null : null}
                       processedBy={profile?.full_name}
                       registeredBy={client.created_by ? registrarNameById.get(client.created_by) ?? null : null}
-                      fdNumber={fdNumberByClient.get(client.id) ?? null}
                       companyPhone={companyPhone}
                       isMigrated={!clientsWithFees.has(client.id)}
                     />
@@ -510,26 +495,27 @@ export default async function ClientsPage({
               <tbody className="divide-y divide-[#1D3461]/6">
                 {clients.map((client) => {
                   const acc = accountByClient.get(client.id);
-                  const fd = fdByClient.get(client.id);
-                  const ProductIcon = acc ? PRODUCT_ICON[acc.product_type] : fd ? Lock : null;
-                  const productLabel = acc ? PRODUCT_LABEL[acc.product_type] : fd ? "Fixed Deposit" : null;
+                  const ProductIcon = acc ? PRODUCT_ICON[acc.product_type] : null;
+                  const productLabel = acc ? PRODUCT_LABEL[acc.product_type] : null;
                   return (
                     <tr key={client.id} className="transition-colors hover:bg-[#1D3461]/[0.025]">
                       <td className="px-5 py-3.5">
-                        <Link href={`/clients/${client.id}`} className="flex items-center gap-3">
-                          <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#1D3461]/10 bg-[#1D3461]/5 text-[12px] font-semibold text-[#1D3461]">
-                            {client.photo_url ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img src={client.photo_url} alt={client.full_name} className="h-full w-full object-cover" />
-                            ) : (
-                              initials(client.full_name)
-                            )}
-                          </span>
-                          <span className="leading-tight">
+                        <div className="flex items-center gap-3">
+                          <ClientPhotoViewer photoUrl={client.photo_url} alt={client.full_name} isAdmin={isAdmin}>
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#1D3461]/10 bg-[#1D3461]/5 text-[12px] font-semibold text-[#1D3461]">
+                              {client.photo_url ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={client.photo_url} alt={client.full_name} className="h-full w-full object-cover" />
+                              ) : (
+                                initials(client.full_name)
+                              )}
+                            </span>
+                          </ClientPhotoViewer>
+                          <Link href={`/clients/${client.id}`} className="leading-tight">
                             <span className="block font-medium text-[#0A2240] hover:text-[#1D3461]">{client.full_name}</span>
                             <span className="block text-[12px] text-[#0A2240]/45">{client.client_code}</span>
-                          </span>
-                        </Link>
+                          </Link>
+                        </div>
                       </td>
                       <td className="px-5 py-3.5 text-[#0A2240]/55"><a href={`tel:${client.phone}`} className="hover:text-[#0033AA] hover:underline">{client.phone}</a></td>
                       <td className="px-5 py-3.5">
@@ -544,7 +530,7 @@ export default async function ClientsPage({
                       </td>
                       <td className="px-5 py-3.5 text-[#0A2240]/55">{client.town ?? "—"}</td>
                       <td className="px-5 py-3.5 font-medium text-[#0A2240]">
-                        {acc ? formatGHC(acc.balance) : fd ? formatGHC(fd.principal) : "—"}
+                        {acc ? formatGHC(acc.balance) : "—"}
                       </td>
                       <td className="px-5 py-3.5">
                         <ClientStatusBadge status={client.status} />
@@ -568,7 +554,6 @@ export default async function ClientsPage({
                             agentName={acc?.agent_id ? agentNameById.get(acc.agent_id) ?? null : null}
                             processedBy={profile?.full_name}
                             registeredBy={client.created_by ? registrarNameById.get(client.created_by) ?? null : null}
-                            fdNumber={fdNumberByClient.get(client.id) ?? null}
                             companyPhone={companyPhone}
                             isMigrated={!clientsWithFees.has(client.id)}
                           />

@@ -112,7 +112,7 @@ export default async function StaffPage({
                   </div>
                   <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[#1D3461]/6 pt-3">
                     <StaffStatusToggle profileId={member.id} isActive={member.is_active} isSelf={member.id === profile.id} />
-                    <EditStaffButton profileId={member.id} fullName={member.full_name} role={member.role} />
+                    <EditStaffButton profileId={member.id} fullName={member.full_name} email={member.email} role={member.role} restrictedPages={member.restricted_pages ?? []} />
                     <ChangePasswordButton profileId={member.id} fullName={member.full_name} />
                     {member.id !== profile.id && (
                       <DeleteStaffButton profileId={member.id} fullName={member.full_name} />
@@ -176,7 +176,7 @@ export default async function StaffPage({
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-1.5">
                         <StaffStatusToggle profileId={member.id} isActive={member.is_active} isSelf={member.id === profile.id} />
-                        <EditStaffButton profileId={member.id} fullName={member.full_name} role={member.role} />
+                        <EditStaffButton profileId={member.id} fullName={member.full_name} email={member.email} role={member.role} restrictedPages={member.restricted_pages ?? []} />
                         <ChangePasswordButton profileId={member.id} fullName={member.full_name} />
                         {member.id !== profile.id && (
                           <DeleteStaffButton profileId={member.id} fullName={member.full_name} />

@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => null);
-  const { title, amount, category, date, notes } = body ?? {};
+  const { title, amount, category, date, notes, commission } = body ?? {};
 
   if (!title || typeof title !== "string" || !title.trim()) {
     return NextResponse.json({ error: "Title is required" }, { status: 400 });
@@ -24,17 +24,29 @@ export async function POST(request: Request) {
   if (!isFinite(amt) || amt <= 0) {
     return NextResponse.json({ error: "Amount must be a positive number" }, { status: 400 });
   }
+  const commissionNum = Number(commission) || 0;
+  if (commissionNum < 0) {
+    return NextResponse.json({ error: "Commission cannot be negative" }, { status: 400 });
+  }
 
-  const { data, error } = await supabase.from("expenditures").insert({
-    title: title.trim(),
-    amount: amt,
-    category: category?.trim() || "general",
-    date: date || new Date().toISOString().slice(0, 10),
-    notes: notes?.trim() || null,
-    recorded_by: user.id,
-  }).select().single();
+  // Every expenditure is now, for real, a withdrawal from the PFS
+  // Consolidated Fund — following the exact same withdrawal conventions
+  // (including an optional commission fee) any other savings withdrawal
+  // does, atomically alongside logging the expenditure row. See
+  // 0076_expenditure_follows_withdrawal_conventions.sql.
+  const { data, error } = await supabase
+    .rpc("record_expenditure", {
+      p_title: title.trim(),
+      p_amount: amt,
+      p_category: category?.trim() || "general",
+      p_date: date || new Date().toISOString().slice(0, 10),
+      p_notes: notes?.trim() || null,
+      p_commission: commissionNum,
+      p_recorded_by: user.id,
+    })
+    .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
   return NextResponse.json({ expenditure: data });
 }

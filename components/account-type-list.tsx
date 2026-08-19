@@ -1,14 +1,25 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Search, Users, Wallet, ArrowDownToLine, ArrowUpFromLine, ReceiptText } from "lucide-react";
+import { Search, Users, Wallet, ArrowDownToLine, ArrowUpFromLine, ReceiptText, Percent } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader, AccountStatusBadge, EmptyState, StatCard } from "@/components/ui";
 import { TableFilter, type FilterOption } from "@/components/table-filter";
 import { ExportCsvButton } from "@/components/export-csv-button";
 import { formatGHS, round2 } from "@/lib/loan";
 import { getSettings } from "@/lib/settings/cache";
+import { computeAccountSummary } from "@/lib/finance/account-summary";
 import { PrintAccountListButton } from "@/components/print-account-list-button";
+import { ClientPhotoViewer } from "@/components/client-photo-viewer";
 import type { Account, ProductType } from "@/lib/types";
+
+const DEFAULT_REVENUE_COMPONENTS = {
+  interest: true,
+  commission: true,
+  susu_fees: true,
+  card_fees: true,
+  sms_fees: true,
+  processing_fees: true,
+};
 
 const PRODUCT_BY_SLUG: Record<string, { product_type: ProductType; label: string; description: string }> = {
   savings: {
@@ -72,13 +83,20 @@ export async function AccountTypeList({
     }
   }
 
-  const [{ data: accounts }, { count: totalCount }, { data: statsRows }, settings] = await Promise.all([
+  const [{ data: accounts }, { count: totalCount }, { data: statsRows }, settings, { data: { user } }] = await Promise.all([
     query.returns<Account[]>(),
     supabase.from("accounts").select("*", { count: "exact", head: true }).eq("product_type", product.product_type),
     supabase.from("accounts").select("balance, dep, wdr, comm").eq("product_type", product.product_type)
       .returns<{ balance: number; dep: number; wdr: number; comm: number }[]>(),
     getSettings(),
+    supabase.auth.getUser(),
   ]);
+
+  let isAdmin = false;
+  if (user) {
+    const { data: viewerProfile } = await supabase.from("profiles").select("role").eq("id", user.id).single<{ role: string }>();
+    isAdmin = viewerProfile?.role === "admin";
+  }
 
   const companyPhone = settings.sms.company_tel ?? null;
 
@@ -89,6 +107,15 @@ export async function AccountTypeList({
   const totalDep     = sum("dep");
   const totalWdr     = sum("wdr");
   const totalComm    = sum("comm");
+
+  // Susu fees (day-31 cycle fee + early-withdrawal penalties) — sourced from
+  // the same shared helper the Overview/Bank/Finance pages use, so this
+  // figure can never drift from those screens.
+  let susuFees = 0;
+  if (product.product_type === "susu") {
+    const rc = { ...DEFAULT_REVENUE_COMPONENTS, ...(settings.overview_kpi?.total_revenue?.components ?? {}) };
+    susuFees = (await computeAccountSummary(supabase, rc)).susuFees;
+  }
 
   const hasSearch = !!q?.trim();
   const hasFilter = !!status;
@@ -116,6 +143,7 @@ export async function AccountTypeList({
               totalDep={totalDep}
               totalWdr={totalWdr}
               totalComm={totalComm}
+              susuFees={susuFees}
               companyPhone={companyPhone}
             />
           </div>
@@ -124,19 +152,20 @@ export async function AccountTypeList({
 
       {/* KPI */}
       {product.product_type === "savings" ? (
-        <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-5">
-          <StatCard label="Total clients"     value={String(totalCount ?? 0)}  icon={<Users size={16} />} />
-          <StatCard label="Total balance"     value={formatGHS(totalBalance)}   icon={<Wallet size={16} />} />
-          <StatCard label="Total deposits"    value={formatGHS(totalDep)}       icon={<ArrowDownToLine size={16} />} />
-          <StatCard label="Total withdrawals" value={formatGHS(totalWdr)}       icon={<ArrowUpFromLine size={16} />} />
-          <StatCard label="Total commission"  value={formatGHS(totalComm)}      icon={<ReceiptText size={16} />} />
+        <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
+          <StatCard size="sm" label="Total clients"     value={String(totalCount ?? 0)}  icon={<Users size={13} />} />
+          <StatCard size="sm" label="Total balance"     value={formatGHS(totalBalance)}   icon={<Wallet size={13} />} />
+          <StatCard size="sm" label="Total deposits"    value={formatGHS(totalDep)}       icon={<ArrowDownToLine size={13} />} />
+          <StatCard size="sm" label="Total withdrawals" value={formatGHS(totalWdr)}       icon={<ArrowUpFromLine size={13} />} />
+          <StatCard size="sm" label="Total commission"  value={formatGHS(totalComm)}      icon={<ReceiptText size={13} />} />
         </div>
       ) : (
-        <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <StatCard label="Total clients"       value={String(totalCount ?? 0)}  icon={<Users size={16} />} />
-          <StatCard label="Total balance"       value={formatGHS(totalBalance)}   icon={<Wallet size={16} />} />
-          <StatCard label="Total contributions" value={formatGHS(totalDep)}       icon={<ArrowDownToLine size={16} />} />
-          <StatCard label="Total withdrawn"     value={formatGHS(totalWdr)}       icon={<ArrowUpFromLine size={16} />} />
+        <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
+          <StatCard size="sm" label="Total clients"       value={String(totalCount ?? 0)}  icon={<Users size={13} />} />
+          <StatCard size="sm" label="Total balance"       value={formatGHS(totalBalance)}   icon={<Wallet size={13} />} />
+          <StatCard size="sm" label="Total contributions" value={formatGHS(totalDep)}       icon={<ArrowDownToLine size={13} />} />
+          <StatCard size="sm" label="Total withdrawn"     value={formatGHS(totalWdr)}       icon={<ArrowUpFromLine size={13} />} />
+          <StatCard size="sm" label="Susu fees"           value={formatGHS(susuFees)}      icon={<Percent size={13} />} highlight />
         </div>
       )}
 
@@ -179,20 +208,21 @@ export async function AccountTypeList({
                 <div className="px-4 py-3.5">
                   <div className="flex items-center justify-between gap-2">
                     {account.client ? (
-                      <Link
-                        href={`/clients/${account.client.id}`}
-                        className="flex min-w-0 items-center gap-2.5"
-                      >
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#1D3461]/10 bg-[#1D3461]/5 text-[12px] font-semibold text-[#1D3461]">
-                          {account.client.photo_url ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={account.client.photo_url} alt={account.client.full_name} className="h-full w-full object-cover" />
-                          ) : (
-                            initials(account.client.full_name)
-                          )}
-                        </span>
-                        <span className="truncate text-[14px] font-semibold text-[#0A2240]">{account.client.full_name}</span>
-                      </Link>
+                      <span className="flex min-w-0 items-center gap-2.5">
+                        <ClientPhotoViewer photoUrl={account.client.photo_url} alt={account.client.full_name} isAdmin={isAdmin}>
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#1D3461]/10 bg-[#1D3461]/5 text-[12px] font-semibold text-[#1D3461]">
+                            {account.client.photo_url ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={account.client.photo_url} alt={account.client.full_name} className="h-full w-full object-cover" />
+                            ) : (
+                              initials(account.client.full_name)
+                            )}
+                          </span>
+                        </ClientPhotoViewer>
+                        <Link href={`/clients/${account.client.id}`} className="truncate text-[14px] font-semibold text-[#0A2240] hover:underline">
+                          {account.client.full_name}
+                        </Link>
+                      </span>
                     ) : (
                       <span className="text-[#0A2240]/45">—</span>
                     )}
@@ -229,17 +259,21 @@ export async function AccountTypeList({
                   <tr key={account.id} className="transition-colors hover:bg-[#1D3461]/[0.025]">
                     <td className="px-5 py-3.5">
                       {account.client ? (
-                        <Link href={`/clients/${account.client.id}`} className="flex items-center gap-3">
-                          <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#1D3461]/10 bg-[#1D3461]/5 text-[12px] font-semibold text-[#1D3461]">
-                            {account.client.photo_url ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img src={account.client.photo_url} alt={account.client.full_name} className="h-full w-full object-cover" />
-                            ) : (
-                              initials(account.client.full_name)
-                            )}
-                          </span>
-                          <span className="font-medium text-[#0A2240] hover:text-[#1D3461]">{account.client.full_name}</span>
-                        </Link>
+                        <span className="flex items-center gap-3">
+                          <ClientPhotoViewer photoUrl={account.client.photo_url} alt={account.client.full_name} isAdmin={isAdmin}>
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#1D3461]/10 bg-[#1D3461]/5 text-[12px] font-semibold text-[#1D3461]">
+                              {account.client.photo_url ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={account.client.photo_url} alt={account.client.full_name} className="h-full w-full object-cover" />
+                              ) : (
+                                initials(account.client.full_name)
+                              )}
+                            </span>
+                          </ClientPhotoViewer>
+                          <Link href={`/clients/${account.client.id}`} className="font-medium text-[#0A2240] hover:text-[#1D3461]">
+                            {account.client.full_name}
+                          </Link>
+                        </span>
                       ) : (
                         "—"
                       )}
@@ -271,8 +305,6 @@ function detailColumnLabel(productType: ProductType) {
       return "Phone";
     case "susu":
       return "Daily contribution";
-    case "fixed_deposit":
-      return "Principal / tenor";
   }
 }
 
@@ -286,10 +318,6 @@ function detailColumnValue(account: Account) {
     }
     case "susu":
       return account.daily_contribution_amount != null ? `${formatGHS(account.daily_contribution_amount)} / day` : "—";
-    case "fixed_deposit":
-      return account.principal_amount != null && account.tenor_days != null
-        ? `${formatGHS(account.principal_amount)} · ${account.tenor_days} days`
-        : "—";
   }
 }
 

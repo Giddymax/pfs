@@ -24,14 +24,6 @@ interface PeriodSummary {
   card_fee_count: number;
   card_fee_total: number;
   sms_cost_total: number;
-  fd_principal_count: number;
-  fd_principal_total: number;
-  fd_payout_count: number;
-  fd_payout_total: number;
-  investment_returned_count: number;
-  investment_returned_total: number;
-  investment_placed_count: number;
-  investment_placed_total: number;
   expenditure_count: number;
   expenditure_total: number;
   susu_fee_total: number;
@@ -54,7 +46,7 @@ interface PeriodTransaction {
   client_code: string;
   account_id: string;
   account_number: string;
-  product_type: "savings" | "susu" | "fixed_deposit";
+  product_type: "savings" | "susu";
   recorded_by_name: string | null;
   edited_by_name: string | null;
   edited_at: string | null;
@@ -128,12 +120,23 @@ export default async function SummaryPage({
   return (
     <div>
       {/* ── Screen header ── */}
-      <div className="mb-6 print:hidden">
-        <p className="mb-0.5 text-[11.5px] font-semibold uppercase tracking-[0.18em] text-[#0033AA]/50">Reports</p>
-        <h1 className="text-[26px] font-bold text-[#0A2240]">Transaction Summary</h1>
-        <p className="mt-1 text-[14px] text-[#0A2240]/50">
-          Financial activity summary for any date range you choose.
-        </p>
+      <div className="mb-6 flex flex-col gap-4 print:hidden sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="mb-0.5 text-[11.5px] font-semibold uppercase tracking-[0.18em] text-[#0033AA]/50">Reports</p>
+          <h1 className="text-[26px] font-bold text-[#0A2240]">Transaction Summary</h1>
+          <p className="mt-1 text-[14px] text-[#0A2240]/50">
+            Financial activity summary for any date range you choose.
+          </p>
+        </div>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <ExportCsvButton
+            endpoint="/api/reports/summary/export"
+            filename={`period-summary-${from}-to-${to}.xlsx`}
+            label="Export Excel"
+            params={{ from, to }}
+          />
+          <PrintButton label="Print summary" />
+        </div>
       </div>
 
       {/* ── Date controls (client component) ── */}
@@ -208,13 +211,6 @@ export default async function SummaryPage({
                 color="text-[#1F6E4A]"
               />
               <MetricRow
-                label="Fixed deposits opened"
-                amount={summary.fd_principal_total}
-                count={summary.fd_principal_count}
-                sign="+"
-                color="text-[#1F6E4A]"
-              />
-              <MetricRow
                 label="Loan repayments received"
                 amount={summary.repayment_total}
                 count={summary.repayment_count}
@@ -225,13 +221,6 @@ export default async function SummaryPage({
                 label="Card fees collected"
                 amount={summary.card_fee_total}
                 count={summary.card_fee_count}
-                sign="+"
-                color="text-[#1F6E4A]"
-              />
-              <MetricRow
-                label="Returned investment revenue"
-                amount={summary.investment_returned_total}
-                count={summary.investment_returned_count}
                 sign="+"
                 color="text-[#1F6E4A]"
               />
@@ -255,23 +244,9 @@ export default async function SummaryPage({
                 color="text-[#963522]"
               />
               <MetricRow
-                label="Fixed deposit payouts"
-                amount={summary.fd_payout_total}
-                count={summary.fd_payout_count}
-                sign="−"
-                color="text-[#963522]"
-              />
-              <MetricRow
                 label="Expenditures"
                 amount={summary.expenditure_total}
                 count={summary.expenditure_count}
-                sign="−"
-                color="text-[#963522]"
-              />
-              <MetricRow
-                label="New investments placed"
-                amount={summary.investment_placed_total}
-                count={summary.investment_placed_count}
                 sign="−"
                 color="text-[#963522]"
               />
@@ -327,17 +302,6 @@ export default async function SummaryPage({
             </div>
           </>
         )}
-      </div>
-
-      {/* Floating print/export buttons on screen (outside the sheet so they don't print) */}
-      <div className="mt-6 flex flex-wrap justify-end gap-2 print:hidden">
-        <ExportCsvButton
-          endpoint="/api/reports/summary/export"
-          filename={`period-summary-${from}-to-${to}.xlsx`}
-          label="Export Excel"
-          params={{ from, to }}
-        />
-        <PrintButton label="Print summary" />
       </div>
     </div>
   );

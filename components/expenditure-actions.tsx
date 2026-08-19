@@ -31,6 +31,7 @@ export function AddExpenditureButton() {
   const [category, setCategory] = useState("Miscellaneous");
   const [date, setDate] = useState(todayLocal());
   const [notes, setNotes] = useState("");
+  const [commission, setCommission] = useState("");
 
   function handleClose() {
     setOpen(false);
@@ -40,6 +41,7 @@ export function AddExpenditureButton() {
     setCategory("Miscellaneous");
     setDate(todayLocal());
     setNotes("");
+    setCommission("");
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -51,7 +53,7 @@ export function AddExpenditureButton() {
       const res = await fetch("/api/expenditures", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, amount: Number(amount), category, date, notes }),
+        body: JSON.stringify({ title, amount: Number(amount), category, date, notes, commission: Number(commission) || 0 }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -81,8 +83,11 @@ export function AddExpenditureButton() {
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#061B3A]/50 px-4 animate-fade-in">
           <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
-            <div className="mb-5 flex items-center justify-between">
-              <h3 className="text-[15px] font-semibold text-[#0033AA]">Record expenditure</h3>
+            <div className="mb-5 flex items-start justify-between">
+              <div>
+                <h3 className="text-[15px] font-semibold text-[#0033AA]">Record expenditure</h3>
+                <p className="mt-0.5 text-[12.5px] text-[#0A2240]/45">Withdrawn from the PFS Consolidated Fund — fails if the fund&apos;s balance can&apos;t cover it.</p>
+              </div>
               <button type="button" onClick={handleClose} className="text-[#0A2240]/35 hover:text-[#0A2240]">
                 <X size={18} />
               </button>
@@ -125,6 +130,22 @@ export function AddExpenditureButton() {
                     className="w-full rounded-md border border-[#0033AA]/15 bg-white px-3.5 py-2.5 text-[14px] text-[#0A2240] outline-none transition-colors focus:border-[#0062E1]"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-[12.5px] font-medium text-[#0033AA]/75">Commission (GHS)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={commission}
+                  onChange={(e) => setCommission(e.target.value)}
+                  placeholder="0.00"
+                  className="w-full rounded-md border border-[#0033AA]/15 bg-white px-3.5 py-2.5 text-[14px] text-[#0A2240] outline-none transition-colors focus:border-[#0062E1]"
+                />
+                <p className="mt-1 text-[11.5px] text-[#0A2240]/45">
+                  Same withdrawal conventions as any savings account — leave at 0 if no commission applies.
+                </p>
               </div>
 
               <div>

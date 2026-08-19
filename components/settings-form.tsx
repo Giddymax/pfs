@@ -8,17 +8,14 @@ import type { SmsSettings } from "@/lib/types";
 export function SettingsForm({
   sms,
   cardFeeAmount,
-  fdTermsMonths,
   smsMonthlyFee,
 }: {
   sms: SmsSettings;
   cardFeeAmount: number;
-  fdTermsMonths: number[];
   smsMonthlyFee: number;
 }) {
   const [smsSettings, setSmsSettings] = useState<SmsSettings>(sms);
   const [cardFee, setCardFee] = useState(String(cardFeeAmount));
-  const [fdTerms, setFdTerms] = useState(fdTermsMonths.join(", "));
   const [smsFee, setSmsFee] = useState(String(smsMonthlyFee));
 
   const [saving, setSaving] = useState(false);
@@ -30,18 +27,12 @@ export function SettingsForm({
     setError(null);
     setSaved(false);
 
-    const fdTermsParsed = fdTerms
-      .split(",")
-      .map((v) => Number(v.trim()))
-      .filter((v) => Number.isFinite(v) && v > 0);
-
     const res = await fetch("/api/settings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         sms: smsSettings,
         card_fee_amount: Number(cardFee) || 0,
-        fd_terms_months: fdTermsParsed,
         sms_monthly_fee: Number(smsFee) || 0,
       }),
     });
@@ -103,8 +94,8 @@ export function SettingsForm({
             />
           </div>
           <p className="text-[12px] text-[#0A2240]/45">
-            Susu, fixed-deposit, and reversal notifications follow the client master switch only — they have no
-            individual toggle. Every client message additionally requires that client&rsquo;s own opt-in to be on.
+            Susu and reversal notifications follow the client master switch only — they have no individual
+            toggle. Every client message additionally requires that client&rsquo;s own opt-in to be on.
           </p>
           <div className="grid grid-cols-1 gap-x-6 gap-y-4 border-t border-[#0033AA]/6 pt-4 sm:grid-cols-2">
             <Toggle
@@ -119,11 +110,22 @@ export function SettingsForm({
             />
           </div>
           <p className="text-[12px] text-[#0A2240]/45">
-            Every admin alert falls into exactly one of these two switches. &ldquo;Withdrawals &amp; deductions&rdquo;
-            covers regular withdrawals, susu withdrawals/emergency withdrawals/claims, and fixed-deposit early
-            withdrawals or maturity payouts. &ldquo;Deposits &amp; other events&rdquo; covers everything else —
-            deposits, loan payments, susu contributions, fixed-deposit openings/rollovers, and reversals.
+            Every transaction-related admin alert falls into exactly one of these two switches.
+            &ldquo;Withdrawals &amp; deductions&rdquo; covers regular withdrawals and susu withdrawals/emergency
+            withdrawals/claims. &ldquo;Deposits &amp; other events&rdquo; covers everything else — deposits, loan
+            payments, susu contributions, and reversals.
           </p>
+          <div className="border-t border-[#0033AA]/6 pt-4">
+            <Toggle
+              label="Admin SMS — new client registered"
+              checked={smsSettings.sms_admin_registration}
+              onChange={(v) => setSmsSettings((s) => ({ ...s, sms_admin_registration: v }))}
+            />
+            <p className="mt-2 text-[12px] text-[#0A2240]/45">
+              Sent to the company phone only (not the client) whenever a new client is registered. Independent of
+              the two switches above.
+            </p>
+          </div>
           <div className="grid grid-cols-1 gap-5 border-t border-[#0033AA]/6 pt-4 sm:grid-cols-2">
             <label className="block">
               <span className="mb-1.5 block text-[13px] font-medium text-[#0033AA]/75">Company phone (admin alerts)</span>
@@ -154,7 +156,7 @@ export function SettingsForm({
 
       <Card>
         <div className="border-b border-[#0033AA]/8 px-5 py-4">
-          <h2 className="text-[15px] font-semibold text-[#0033AA]">Registration fee &amp; fixed-deposit terms</h2>
+          <h2 className="text-[15px] font-semibold text-[#0033AA]">Registration fee</h2>
         </div>
         <div className="grid grid-cols-1 gap-5 px-5 py-5 sm:grid-cols-2">
           <label className="block">
@@ -165,16 +167,6 @@ export function SettingsForm({
               step="0.01"
               value={cardFee}
               onChange={(e) => setCardFee(e.target.value)}
-              className="w-full rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] text-[#0A2240] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
-            />
-          </label>
-          <label className="block">
-            <span className="mb-1.5 block text-[13px] font-medium text-[#0033AA]/75">Fixed-deposit terms offered (months, comma-separated)</span>
-            <input
-              type="text"
-              value={fdTerms}
-              onChange={(e) => setFdTerms(e.target.value)}
-             
               className="w-full rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] text-[#0A2240] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
             />
           </label>

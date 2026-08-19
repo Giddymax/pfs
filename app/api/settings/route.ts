@@ -19,7 +19,6 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const sms = body?.sms as SmsSettings | undefined;
   const cardFeeAmount = Number(body?.card_fee_amount);
-  const fdTermsMonths = body?.fd_terms_months as number[] | undefined;
   const smsMonthlyFee = Number(body?.sms_monthly_fee);
 
   if (!sms || typeof sms !== "object") {
@@ -28,9 +27,6 @@ export async function POST(request: Request) {
   if (!Number.isFinite(cardFeeAmount) || cardFeeAmount < 0) {
     return NextResponse.json({ error: "card_fee_amount cannot be negative" }, { status: 400 });
   }
-  if (!Array.isArray(fdTermsMonths)) {
-    return NextResponse.json({ error: "fd_terms_months must be an array" }, { status: 400 });
-  }
   if (!Number.isFinite(smsMonthlyFee) || smsMonthlyFee < 0) {
     return NextResponse.json({ error: "sms_monthly_fee cannot be negative" }, { status: 400 });
   }
@@ -38,7 +34,6 @@ export async function POST(request: Request) {
   const updates = [
     { key: "sms", value: sms },
     { key: "card_fee_amount", value: cardFeeAmount },
-    { key: "fd_terms_months", value: fdTermsMonths },
     { key: "sms_monthly_fee", value: smsMonthlyFee },
   ];
 

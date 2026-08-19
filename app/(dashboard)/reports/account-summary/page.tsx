@@ -101,6 +101,7 @@ export default async function AccountSummaryPage({
           eyebrow="Reports"
           title="Account Summary"
           description="Daily deposits, withdrawals, commission, and new clients for any month."
+          action={<PrintButton label="Print account summary" />}
         />
       </div>
 
@@ -189,11 +190,6 @@ export default async function AccountSummaryPage({
           <p>Prime Financial Service — confidential</p>
           <p>{printedAt}</p>
         </div>
-      </div>
-
-      {/* Floating print button on screen (outside the sheet so it doesn't print) */}
-      <div className="mt-6 flex justify-end print:hidden">
-        <PrintButton label="Print account summary" />
       </div>
     </div>
   );

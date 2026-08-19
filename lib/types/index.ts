@@ -1,5 +1,10 @@
 export type Role = "admin" | "staff";
 
+// Per-account exceptions carving specific admin-only pages out for an
+// otherwise-full admin — see 0066_profile_page_restrictions.sql for why
+// this exists instead of just demoting the account to staff.
+export type RestrictablePage = "overview" | "settings" | "staff_performance" | "momo_performance";
+
 export interface Profile {
   id: string;
   full_name: string;
@@ -7,6 +12,7 @@ export interface Profile {
   role: Role;
   is_active: boolean;
   photo_url: string | null;
+  restricted_pages: RestrictablePage[];
   created_at: string;
 }
 
@@ -56,16 +62,16 @@ export interface Loan {
   issued_by: string | null;
   created_at: string;
   updated_at: string;
+  // Monthly auto-deduction (0073_loan_repayment_automation.sql)
+  repayment_account_id: string | null;
+  next_due_date: string | null;
+  arrears: number;
   // joined
   client?: Client;
 }
 
-export type ProductType = "savings" | "susu" | "fixed_deposit";
-export type AccountStatus = "active" | "dormant" | "closed" | "matured";
-export type MaturityInstruction =
-  | "payout_full"
-  | "rollover_principal"
-  | "rollover_principal_and_interest";
+export type ProductType = "savings" | "susu";
+export type AccountStatus = "active" | "dormant" | "closed";
 
 export interface Account {
   id: string;
@@ -80,6 +86,10 @@ export interface Account {
   dep: number; // lifetime deposits
   wdr: number; // lifetime withdrawals
   comm: number; // lifetime commission paid
+  // The one account (at most) money is set aside into as company equity —
+  // see 0074_consolidated_fund_finance_link.sql. Deposits into it are
+  // blocked everywhere except Deposit Revenue on the Finance page.
+  is_consolidated_fund: boolean;
   // savings
   minimum_opening_deposit: number | null;
   minimum_operating_balance: number | null;
@@ -87,11 +97,6 @@ export interface Account {
   // daily susu
   daily_contribution_amount: number | null;
   cycle_length_days: number | null;
-  // fixed deposit
-  principal_amount: number | null;
-  tenor_days: number | null;
-  maturity_date: string | null;
-  maturity_instruction: MaturityInstruction | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -99,7 +104,7 @@ export interface Account {
   client?: Client;
 }
 
-export type RepaymentMethod = "cash" | "mobile_money" | "bank_transfer";
+export type RepaymentMethod = "cash" | "mobile_money" | "bank_transfer" | "account_deduction";
 
 export interface LoanRepayment {
   id: string;
@@ -154,6 +159,7 @@ export interface SmsSettings {
   sms_payment: boolean;
   sms_admin_deposit: boolean;
   sms_admin_withdrawal: boolean;
+  sms_admin_registration: boolean;
   company_tel: string | null;
 }
 
@@ -165,15 +171,18 @@ export interface KpiCardCalcConfig extends KpiCardConfig {
   calc: "balance" | "dep";
 }
 
+// Company Income (P&L revenue) — generic accounting default: every fee
+// charged for a service rendered is Fee Income, recognized gross, on the
+// same cash basis. Card Fees and SMS Fees were briefly carved out as
+// non-income "Other Receipts" per an earlier owner instruction, then
+// reverted back to this default.
 export interface RevenueComponents {
-  interest: boolean;
-  commission: boolean;
-  susu_fees: boolean;
-  card_fees: boolean;
-  sms_fees: boolean;
-  sms_charges?: boolean;
-  processing_fees: boolean;
-  investment_revenue: boolean;
+  interest: boolean;        // loan interest
+  commission: boolean;      // savings withdrawal commission
+  susu_fees: boolean;       // susu fee (day-31 + early-withdrawal/emergency penalties)
+  card_fees: boolean;       // registration card fees
+  sms_fees: boolean;        // monthly SMS charges
+  processing_fees: boolean; // loan processing fees
 }
 
 export interface KpiRevenueConfig extends KpiCardConfig {
@@ -184,18 +193,22 @@ export interface OverviewKpiSettings {
   total_clients: KpiCardConfig;
   total_savings: KpiCardCalcConfig;
   total_susu: KpiCardCalcConfig;
-  total_fd: KpiCardConfig;
   combined_total: KpiCardConfig;
   total_revenue: KpiRevenueConfig;
+  revenue_available: KpiCardConfig;
   account_balance: KpiCardConfig;
   total_withdrawals: KpiCardConfig;
+  transactional_withdrawals: KpiCardConfig;
+  revenue_withdrawals: KpiCardConfig;
+  loans_disbursed: KpiCardConfig;
+  loan_repayments: KpiCardConfig;
+  repayment_remaining: KpiCardConfig;
   card_fees: KpiCardConfig;
   withdrawal_commission: KpiCardConfig;
   susu_fees: KpiCardConfig;
   sms_fees: KpiCardConfig;
   processing_fees: KpiCardConfig;
   loan_interest: KpiCardConfig;
-  investment_revenue: KpiCardConfig;
   cash_at_hand: KpiCardConfig;
   cash_at_bank: KpiCardConfig;
 }
@@ -203,7 +216,6 @@ export interface OverviewKpiSettings {
 export interface Settings {
   sms: SmsSettings;
   card_fee_amount: number;
-  fd_terms_months: number[];
   emergency_claim_penalty_basis: "daily_contribution_amount";
   overview_kpi: OverviewKpiSettings;
   sms_monthly_fee: number;
@@ -244,6 +256,10 @@ export interface SusuCycle {
   status: SusuCycleStatus;
   total_collected: number;
   company_fee: number | null;
+  // Set once the cycle's company fee has actually been extracted from the
+  // account balance — by the automatic day-31 sweep (0071) or, for cycles
+  // that completed before that migration, by pay_susu_claim's legacy sweep.
+  fee_swept_at: string | null;
   created_at: string;
 }
 
@@ -257,6 +273,25 @@ export interface SusuPayment {
   payment_date: string;
   recorded_by: string | null;
   created_at: string;
+}
+
+// What record_susu_payment/record_susu_batch return as of 0071 — widened
+// from a plain SusuPayment row so the caller can send the "day-31 fee
+// taken" SMS without a second round-trip.
+export interface SusuPaymentResult {
+  payment_id: string;
+  cycle_id: string;
+  account_id: string;
+  transaction_id: string | null;
+  amount: number;
+  day_in_cycle: number;
+  payment_date: string;
+  cycle_completed: boolean;
+  fee_amount: number;
+  remaining_claimable: number;
+  client_id: string;
+  client_full_name: string;
+  client_phone: string;
 }
 
 export type SusuClaimType = "normal" | "emergency";
@@ -279,42 +314,20 @@ export interface SusuClaim {
   paid_at: string | null;
 }
 
-export type FdTermMonths = 3 | 6 | 9 | 12 | 18 | 24;
-export type FdStatus = "active" | "matured" | "pending_early" | "approved_early" | "withdrawn" | "rolled_over";
-
-export interface FixedDeposit {
+// MoMo mini-app (see momo-mini-app-brief.md) — a flat, independent
+// transaction log, not related to Client/Account/Transaction above. No
+// wallet, no balance, no foreign key to clients — see the brief's §7 for why.
+export interface MomoTransaction {
   id: string;
-  fd_number: string;
-  client_id: string;
-  principal: number;
-  annual_rate_percent: number;
-  term_months: number;
-  start_date: string;
-  maturity_date: string;
-  expected_interest: number;
-  expected_payout: number;
-  status: FdStatus;
-  rolled_into_fd_id: string | null;
-  rolled_from_fd_id: string | null;
-  created_by: string | null;
+  phone_number: string;
+  type: "cash_in" | "cash_out" | "deposit" | "airtime" | "data_bundle" | "mashup";
+  amount: number; // the principal that moved through the customer's MoMo wallet
+  charge: number; // what PFS billed for facilitating it — see 0063_momo_transactions_amount.sql
+  note: string | null;
+  recorded_by: string | null; // nullable since 0064_staff_delete_set_null.sql — set null if the staff member's account was later deleted
+  reversed_at: string | null;
   created_at: string;
-  updated_at: string;
+  // joined
+  recorder?: { full_name: string } | null;
 }
 
-export type FdEventType =
-  | "early_withdrawal_requested"
-  | "early_withdrawal_approved"
-  | "early_withdrawal_rejected"
-  | "matured_paid_out"
-  | "rollover_requested"
-  | "rollover_completed";
-
-export interface FdEvent {
-  id: string;
-  fd_id: string;
-  event_type: FdEventType;
-  amount: number | null;
-  actor_id: string | null;
-  notes: string | null;
-  created_at: string;
-}

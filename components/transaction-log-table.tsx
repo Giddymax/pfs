@@ -16,7 +16,7 @@ interface PeriodTransaction {
   client_code: string;
   account_id: string;
   account_number: string;
-  product_type: "savings" | "susu" | "fixed_deposit";
+  product_type: "savings" | "susu";
   recorded_by_name: string | null;
   edited_by_name: string | null;
   edited_at: string | null;
@@ -28,7 +28,6 @@ interface PeriodTransaction {
 const PRODUCT_LABEL: Record<PeriodTransaction["product_type"], string> = {
   savings: "Savings",
   susu: "Daily Susu",
-  fixed_deposit: "Fixed Deposit",
 };
 
 type TypeFilter = "all" | PeriodTransaction["type"];
@@ -54,21 +53,48 @@ function fmtDateTime(iso: string) {
 export function TransactionLogTable({
   transactions,
   error,
+  title = "Transaction log",
+  description = "Every deposit, withdrawal, fee, and reversal recorded in this period, newest first — including reversed/edited entries the totals above net out.",
+  showTypeFilter = true,
+  showStaffFilter = true,
 }: {
   transactions: PeriodTransaction[];
   error?: string | null;
+  title?: string;
+  description?: string;
+  showTypeFilter?: boolean;
+  showStaffFilter?: boolean;
 }) {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+  const [staffFilter, setStaffFilter] = useState<string>("all");
+
+  // Who recorded a transaction — derived from what's actually in this
+  // period rather than the full staff roster, so the dropdown never offers
+  // a name with nothing behind it.
+  const staffOptions = useMemo(() => {
+    const names = new Set<string>();
+    for (const t of transactions) {
+      if (t.recorded_by_name) names.add(t.recorded_by_name);
+    }
+    return Array.from(names).sort((a, b) => a.localeCompare(b));
+  }, [transactions]);
 
   const filtered = useMemo(
-    () => (typeFilter === "all" ? transactions : transactions.filter((t) => t.type === typeFilter)),
-    [transactions, typeFilter]
+    () =>
+      transactions.filter(
+        (t) =>
+          (typeFilter === "all" || t.type === typeFilter) &&
+          (staffFilter === "all" || t.recorded_by_name === staffFilter)
+      ),
+    [transactions, typeFilter, staffFilter]
   );
 
   const emptyMessage =
     transactions.length === 0
       ? "No transactions were recorded in this period."
-      : `No ${typeFilter === "all" ? "" : FILTERS.find((f) => f.value === typeFilter)?.label.toLowerCase() + " "}transactions match this filter.`;
+      : `No ${typeFilter === "all" ? "" : FILTERS.find((f) => f.value === typeFilter)?.label.toLowerCase() + " "}transactions match this filter${
+          staffFilter !== "all" ? ` for ${staffFilter}` : ""
+        }.`;
 
   return (
     <div className="overflow-hidden rounded-xl border border-[#0A2240]/8 bg-white shadow-sm">
@@ -78,28 +104,46 @@ export function TransactionLogTable({
       >
         <div>
           <h2 className="text-[13px] font-semibold uppercase tracking-[0.1em] text-[#0A2240]">
-            Transaction log ({filtered.length}{typeFilter !== "all" ? ` of ${transactions.length}` : ""})
+            {title} ({filtered.length}{filtered.length !== transactions.length ? ` of ${transactions.length}` : ""})
           </h2>
           <p className="mt-0.5 text-[11.5px] text-[#0A2240]/45 print:hidden">
-            Every deposit, withdrawal, fee, and reversal recorded in this period, newest first — including
-            reversed/edited entries the totals above net out.
+            {description}
           </p>
         </div>
-        <div className="flex flex-wrap gap-1.5 print:hidden">
-          {FILTERS.map((f) => (
-            <button
-              key={f.value}
-              type="button"
-              onClick={() => setTypeFilter(f.value)}
-              className={`rounded-full px-3 py-1 text-[11.5px] font-medium transition-colors ${
-                typeFilter === f.value
-                  ? "bg-[#0033AA] text-white"
-                  : "border border-[#0033AA]/15 text-[#0A2240]/55 hover:border-[#0033AA]/30 hover:text-[#0A2240]"
-              }`}
+        <div className="flex flex-wrap items-center gap-2 print:hidden">
+          {showStaffFilter && staffOptions.length > 0 && (
+            <select
+              value={staffFilter}
+              onChange={(e) => setStaffFilter(e.target.value)}
+              aria-label="Filter by staff"
+              className="rounded-full border border-[#0033AA]/15 bg-white px-3 py-1 text-[11.5px] font-medium text-[#0A2240]/70 outline-none transition-colors hover:border-[#0033AA]/30 focus:border-[#0062E1]"
             >
-              {f.label}
-            </button>
-          ))}
+              <option value="all">All staff</option>
+              {staffOptions.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          )}
+          {showTypeFilter && (
+            <div className="flex flex-wrap gap-1.5">
+              {FILTERS.map((f) => (
+                <button
+                  key={f.value}
+                  type="button"
+                  onClick={() => setTypeFilter(f.value)}
+                  className={`rounded-full px-3 py-1 text-[11.5px] font-medium transition-colors ${
+                    typeFilter === f.value
+                      ? "bg-[#0033AA] text-white"
+                      : "border border-[#0033AA]/15 text-[#0A2240]/55 hover:border-[#0033AA]/30 hover:text-[#0A2240]"
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

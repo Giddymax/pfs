@@ -3,6 +3,18 @@
 :root {
   --background: #f3f3f4;
   --foreground: #0a2240;
+
+  /* Self-hosted fonts (via @fontsource — bundled at install time, not
+     fetched from Google's CDN at build time). A Vercel build previously
+     failed outright because fonts.gstatic.com 404'd on next/font/google's
+     live fetch; these variables now point at locally-bundled @font-face
+     rules instead, so that class of failure can't happen again. */
+  --font-geist-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-sidebar-brand: "Playfair Display", serif;
+  --font-sidebar-nav: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-sidebar-accounts: "IBM Plex Mono", ui-monospace, monospace;
 }
 
 @theme inline {
@@ -109,7 +121,8 @@ body {
   #pfs-print-card,
   #pfs-print-sheet,
   #pfs-summary-sheet,
-  #pfs-print-finance {
+  #pfs-print-finance,
+  #pfs-momo-print {
     position: static !important;
     width: 100% !important;
     max-width: none !important;
@@ -127,7 +140,8 @@ body {
   /* Scale tables to fit paper width */
   #pfs-print-sheet table,
   #pfs-summary-sheet table,
-  #pfs-print-finance table {
+  #pfs-print-finance table,
+  #pfs-momo-print table {
     width: 100% !important;
     min-width: 0 !important;
     table-layout: fixed;
@@ -140,7 +154,9 @@ body {
   #pfs-summary-sheet th,
   #pfs-summary-sheet td,
   #pfs-print-finance th,
-  #pfs-print-finance td {
+  #pfs-print-finance td,
+  #pfs-momo-print th,
+  #pfs-momo-print td {
     padding: 3px 4px !important;
     white-space: normal !important;
   }
@@ -149,7 +165,8 @@ body {
   #pfs-print-sheet .grid,
   #pfs-print-card .grid,
   #pfs-summary-sheet .grid,
-  #pfs-print-finance .grid {
+  #pfs-print-finance .grid,
+  #pfs-momo-print .grid {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
   }
@@ -194,6 +211,14 @@ body {
 
 .sidebar-aurora {
   background-color: #177245;
+}
+
+/* MoMo's own sidebar skin — deep blue, not PFS's green/navy. Text/icons in
+   the MoMo nav (components/sidebar.tsx) are bold white, since this
+   background is dark enough for white to read clearly — see
+   momo-mini-app-brief.md §4. */
+.sidebar-momo {
+  background-color: #1E3A8A;
 }
 
 .animate-fade-up {

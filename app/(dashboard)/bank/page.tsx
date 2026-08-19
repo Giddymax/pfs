@@ -5,8 +5,10 @@ import { BankDepositButton, BankWithdrawalButton } from "@/components/record-ban
 import { EditBankTransactionButton, DeleteBankTransactionButton } from "@/components/bank-transaction-actions";
 import { Card, PageHeader } from "@/components/ui";
 import { ExportCsvButton } from "@/components/export-csv-button";
-import { formatGHS, round2 } from "@/lib/loan";
+import { PrintBankSummaryButton } from "@/components/print-bank-summary-button";
+import { formatGHS } from "@/lib/loan";
 import { getSettings } from "@/lib/settings/cache";
+import { computeAccountSummary } from "@/lib/finance/account-summary";
 import type { Profile } from "@/lib/types";
 
 const DEFAULT_REVENUE_COMPONENTS = {
@@ -16,7 +18,6 @@ const DEFAULT_REVENUE_COMPONENTS = {
   card_fees: true,
   sms_fees: true,
   processing_fees: true,
-  investment_revenue: true,
 };
 
 interface BankTxn {
@@ -49,101 +50,21 @@ export default async function BankPage() {
     .from("profiles").select("*").eq("id", user.id).single<Profile>();
   if (!profile || profile.role !== "admin") redirect("/");
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sum = (rows: any[] | null, key: string) =>
-    round2((rows ?? []).reduce((s: number, r: Record<string, unknown>) => s + Number(r[key] ?? 0), 0));
-
-  const [
-    { data: txns },
-    { data: savingsRows },
-    { data: susuRows },
-    { data: fdRows },
-    { data: cardFeeRows },
-    { data: commissionRows },
-    { data: susuFeeRows },
-    { data: withdrawalRows },
-    { data: loanPrincipalRows },
-    { data: repaymentRows },
-    { data: smsFeeRows },
-    { data: processingFeeRows },
-    { data: collectedInterest },
-    { data: investmentRows },
-    settings,
-  ] = await Promise.all([
+  const [{ data: txns }, settings] = await Promise.all([
     supabase
       .from("bank_transactions")
       .select("*, recorder:recorded_by(full_name)")
       .order("created_at", { ascending: false })
       .returns<BankTxn[]>(),
-    supabase.from("accounts").select("dep").eq("product_type", "savings"),
-    supabase.from("accounts").select("dep").eq("product_type", "susu"),
-    supabase.from("fixed_deposits").select("principal").not("status", "in", '("withdrawn","rolled_over")'),
-    supabase.from("card_fees").select("amount"),
-    supabase.from("transactions").select("fee").eq("type", "withdrawal").is("reversed_at", null),
-    supabase.from("susu_payments").select("amount").eq("day_in_cycle", 31),
-    supabase.from("transactions").select("amount").eq("type", "withdrawal").is("reversed_at", null),
-    supabase.from("loans").select("principal").in("status", ["active", "completed", "defaulted"]),
-    supabase.from("loan_repayments").select("amount"),
-    supabase.from("sms_fee_charges").select("amount"),
-    supabase.from("loans").select("processing_fee"),
-    supabase.rpc("compute_collected_loan_interest"),
-    supabase.from("investments").select("amount_invested, revenue_made, status"),
     getSettings(),
   ]);
 
   const rows = txns ?? [];
 
-  // Account Balance — same formula as the Overview KPI, including the
+  // Same calculation as the Overview dashboard, including the
   // revenue-component visibility toggles, so the two never silently diverge.
   const rc = { ...DEFAULT_REVENUE_COMPONENTS, ...(settings.overview_kpi?.total_revenue?.components ?? {}) };
-
-  const combined = round2(sum(savingsRows, "dep") + sum(susuRows, "dep") + sum(fdRows, "principal"));
-  const cardFees = sum(cardFeeRows, "amount");
-  const commission = sum(commissionRows, "fee");
-  const susuFees = sum(susuFeeRows, "amount");
-  const processingFees = sum(processingFeeRows, "processing_fee");
-  const totalSmsFees = sum(smsFeeRows, "amount");
-  const loanInterest = round2(Number(collectedInterest ?? 0));
-
-  const investmentList = (investmentRows ?? []) as { amount_invested: number; revenue_made: number; status: string }[];
-  const activeInvestmentTotal = round2(
-    investmentList.filter((e) => e.status === "active").reduce((s, e) => s + Number(e.amount_invested), 0)
-  );
-  const returnedInvestmentRevenue = round2(
-    investmentList.filter((e) => e.status === "returned").reduce((s, e) => s + Number(e.revenue_made), 0)
-  );
-
-  const revenueBeforeInvestments = round2(
-    (rc.interest ? loanInterest : 0) +
-    (rc.commission ? commission : 0) +
-    (rc.susu_fees ? susuFees : 0) +
-    (rc.card_fees ? cardFees : 0) +
-    (rc.sms_fees ? totalSmsFees : 0) +
-    (rc.processing_fees ? processingFees : 0) +
-    (rc.investment_revenue ? returnedInvestmentRevenue : 0)
-  );
-  const investmentDeductedFromAccount = round2(Math.max(activeInvestmentTotal - revenueBeforeInvestments, 0));
-
-  const accountBalance = round2(
-    combined
-    - (sum(withdrawalRows, "amount") + commission)
-    - susuFees
-    - totalSmsFees
-    - sum(loanPrincipalRows, "principal")
-    + sum(repaymentRows, "amount")
-    + cardFees
-    + processingFees
-    + returnedInvestmentRevenue
-    - investmentDeductedFromAccount
-  );
-
-  const rawCashAtBank = round2(
-    rows.reduce((acc, t) => (t.type === "deposit" ? acc + t.amount : acc - t.amount), 0)
-  );
-  // Neither figure is ever allowed to show negative — cashAtBank + cashAtHand
-  // always equals accountBalance exactly when accountBalance is non-negative.
-  const cashAtBank = Math.max(0, Math.min(rawCashAtBank, accountBalance));
-  const cashAtHand = Math.max(0, round2(accountBalance - cashAtBank));
+  const { accountBalance, cashAtBank, cashAtHand } = await computeAccountSummary(supabase, rc);
 
   return (
     <div>
@@ -155,6 +76,14 @@ export default async function BankPage() {
         action={
           <div className="flex flex-wrap items-center gap-2">
             <ExportCsvButton endpoint="/api/bank/export" filename="bank-transactions.xlsx" label="Export Excel" />
+            <PrintBankSummaryButton
+              transactions={rows}
+              cashAtBank={cashAtBank}
+              cashAtHand={cashAtHand}
+              accountBalance={accountBalance}
+              printedBy={profile.full_name}
+              companyPhone={settings.sms.company_tel ?? null}
+            />
             <BankDepositButton cashAtBank={cashAtBank} />
             <BankWithdrawalButton cashAtBank={cashAtBank} />
           </div>
@@ -190,7 +119,7 @@ export default async function BankPage() {
         <BalanceCard
           label="Account balance"
           value={accountBalance}
-          hint="Combined deposits − withdrawals − commissions − susu fees − SMS fees − loans + repayments + card fees + returned investment revenue − investment overflow"
+          hint="Combined Account Total − Total Withdrawals, net of loans — matches Overview"
           color="text-[#0A2240]"
           bg="bg-[#0A2240]/[0.04] border-[#0A2240]/10"
         />

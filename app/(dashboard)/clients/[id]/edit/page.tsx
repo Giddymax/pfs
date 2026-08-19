@@ -5,7 +5,16 @@ import { useRouter } from "next/navigation";
 import { Camera, Loader2, UserRound, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { PageHeader } from "@/components/ui";
-import type { Client } from "@/lib/types";
+import type { Account, Client, ProductType } from "@/lib/types";
+
+type EditableAccount = {
+  id: string;
+  account_number: string;
+  status: string;
+  original_type: ProductType;
+  type: ProductType;
+  daily_contribution_amount: string;
+};
 
 export default function EditClientPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -21,6 +30,7 @@ export default function EditClientPage({ params }: { params: Promise<{ id: strin
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | null>(null);
+  const [accounts, setAccounts] = useState<EditableAccount[]>([]);
 
   const [form, setForm] = useState({
     client_code: "",
@@ -60,6 +70,14 @@ export default function EditClientPage({ params }: { params: Promise<{ id: strin
         return;
       }
 
+      const { data: accts } = await supabase
+        .from("accounts")
+        .select("*")
+        .eq("client_id", id)
+        .neq("status", "closed")
+        .order("created_at", { ascending: true })
+        .returns<Account[]>();
+
       if (!cancelled) {
         setForm({
           client_code: client.client_code,
@@ -77,6 +95,18 @@ export default function EditClientPage({ params }: { params: Promise<{ id: strin
         });
         setSmsOptIn(client.sms_opt_in);
         setExistingPhotoUrl(client.photo_url);
+
+        setAccounts(
+          (accts ?? []).map((a) => ({
+            id: a.id,
+            account_number: a.account_number,
+            status: a.status,
+            original_type: a.product_type,
+            type: a.product_type,
+            daily_contribution_amount: a.daily_contribution_amount != null ? String(a.daily_contribution_amount) : "",
+          }))
+        );
+
         setLoading(false);
       }
     })();
@@ -87,6 +117,24 @@ export default function EditClientPage({ params }: { params: Promise<{ id: strin
 
   function update<K extends keyof typeof form>(key: K, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  function updateAccountType(accountId: string, type: ProductType) {
+    setAccounts((list) =>
+      list.map((a) => (a.id === accountId ? { ...a, type, daily_contribution_amount: type === "susu" ? a.daily_contribution_amount : "" } : a))
+    );
+  }
+
+  function updateAccountContribution(accountId: string, value: string) {
+    setAccounts((list) => list.map((a) => (a.id === accountId ? { ...a, daily_contribution_amount: value } : a)));
+  }
+
+  // Account numbers are prefixed by product type (SAV-/SUS-); when the type
+  // changes we swap the prefix but keep the existing numeric suffix.
+  function reprefixAccountNumber(accountNumber: string, type: "savings" | "susu") {
+    const prefix = type === "savings" ? "SAV" : "SUS";
+    const suffix = accountNumber.split("-").slice(1).join("-") || accountNumber;
+    return `${prefix}-${suffix}`;
   }
 
   function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -111,6 +159,14 @@ export default function EditClientPage({ params }: { params: Promise<{ id: strin
     if (!form.full_name.trim() || !form.phone.trim()) {
       setError("Full name and phone number are required.");
       return;
+    }
+
+    const changedAccounts = accounts.filter((a) => a.type !== a.original_type);
+    for (const a of changedAccounts) {
+      if (a.type === "susu" && !(Number(a.daily_contribution_amount) > 0)) {
+        setError(`Enter the daily contribution amount for account ${a.account_number}.`);
+        return;
+      }
     }
 
     setSubmitting(true);
@@ -152,6 +208,26 @@ export default function EditClientPage({ params }: { params: Promise<{ id: strin
         .eq("id", id);
 
       if (updateError) throw new Error(updateError.message);
+
+      for (const a of changedAccounts) {
+        const accountUpdate: Record<string, unknown> =
+          a.type === "susu"
+            ? {
+                product_type: "susu",
+                account_number: reprefixAccountNumber(a.account_number, "susu"),
+                daily_contribution_amount: Number(a.daily_contribution_amount),
+                cycle_length_days: 31,
+              }
+            : {
+                product_type: "savings",
+                account_number: reprefixAccountNumber(a.account_number, "savings"),
+                daily_contribution_amount: null,
+                cycle_length_days: null,
+              };
+
+        const { error: accountError } = await supabase.from("accounts").update(accountUpdate).eq("id", a.id);
+        if (accountError) throw new Error(`Client saved, but converting account ${a.account_number} failed: ${accountError.message}`);
+      }
 
       window.location.href = `/clients/${id}`;
     } catch (err) {
@@ -268,6 +344,48 @@ export default function EditClientPage({ params }: { params: Promise<{ id: strin
             </Field>
           </div>
         </section>
+
+        {accounts.length > 0 && (
+          <section className="rounded-xl border border-[#0033AA]/8 bg-white p-6">
+            <h2 className="mb-1 text-[14px] font-semibold text-[#0033AA]">Deposit accounts</h2>
+            <p className="mb-4 text-[12.5px] text-[#0A2240]/50">
+              Change the account type for a Savings or Daily Susu account. The account keeps its balance and number, just with a new prefix.
+            </p>
+            <div className="space-y-5">
+              {accounts.map((a) => (
+                <div key={a.id} className="rounded-lg border border-[#0033AA]/10 bg-[#0033AA]/[0.02] p-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <Field label="Account">
+                      <div className="flex h-[42px] items-center rounded-md border border-transparent px-3.5 font-mono text-[13.5px] text-[#0A2240]/70">
+                        {a.account_number}
+                      </div>
+                    </Field>
+                    <Field label="Account type">
+                      <Select value={a.type} onChange={(v) => updateAccountType(a.id, v as ProductType)}>
+                        <option value="savings">Savings</option>
+                        <option value="susu">Daily Susu</option>
+                      </Select>
+                    </Field>
+                    {a.type === "susu" && (
+                      <Field label="Daily contribution amount (GHS)" required full>
+                        <Input
+                          type="number"
+                          value={a.daily_contribution_amount}
+                          onChange={(v) => updateAccountContribution(a.id, v)}
+                        />
+                      </Field>
+                    )}
+                  </div>
+                  {a.type !== a.original_type && (
+                    <p className="mt-3 text-[12px] font-medium text-[#0062E1]">
+                      Will convert from {a.original_type === "savings" ? "Savings" : "Daily Susu"} to {a.type === "savings" ? "Savings" : "Daily Susu"} when you save.
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section className="rounded-xl border border-[#0033AA]/8 bg-white p-6">
           <h2 className="mb-4 text-[14px] font-semibold text-[#0033AA]">Contact &amp; address</h2>

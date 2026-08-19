@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { Logo } from "@/components/logo";
 import type { Profile } from "@/lib/types";
@@ -13,12 +14,19 @@ export function MobileNav({
   onMenuToggle: () => void;
   sidebarOpen: boolean;
 }) {
+  // Mirrors the sidebar's brand-lockup swap (components/sidebar.tsx) so the
+  // top bar reads as the same app the drawer opens into — see
+  // momo-mini-app-brief.md §3.
+  const inMomo = usePathname().startsWith("/momo");
+
   return (
     <div className="mobile-nav-bar lg:hidden">
       <div className="flex items-center justify-between border-b border-[#1D3461]/10 bg-[#FFFFFF] px-4 py-3.5">
         <div className="flex items-center gap-2.5">
           <Logo size={32} />
-          <p className="text-[12px] font-bold tracking-[0.16em] text-[#1D3461]">PRIME FINANCIAL</p>
+          <p className="text-[12px] font-bold tracking-[0.16em] text-[#1D3461]">
+            {inMomo ? "MOMO" : "PRIME FINANCIAL"}
+          </p>
         </div>
         <button
           type="button"

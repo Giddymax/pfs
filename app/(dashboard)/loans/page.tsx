@@ -129,6 +129,13 @@ export default async function LoansPage({
               companyPhone={companyPhone}
             />
             <Link
+              href="/loans/repayments-due"
+              className="inline-flex items-center gap-2 rounded-md border border-[#0033AA]/20 px-5 py-2.5 text-[13.5px] font-semibold text-[#0033AA] transition-colors hover:bg-[#0033AA]/5"
+            >
+              <Banknote size={16} />
+              Repayments due
+            </Link>
+            <Link
               href="/loans/new"
               className="inline-flex items-center gap-2 rounded-md bg-[#1D3461] px-5 py-2.5 text-[13.5px] font-semibold text-[#FFFFFF] transition-colors hover:bg-[#152847]"
             >
@@ -141,12 +148,12 @@ export default async function LoansPage({
 
       {/* KPI */}
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-6">
-        <StatCard label="Total clients"       value={String(clientCount)}         icon={<Users size={16} />} />
-        <StatCard label="Total principal"     value={formatGHS(totalPrincipal)}   icon={<Banknote size={16} />} />
-        <StatCard label="Outstanding balance" value={formatGHS(totalOutstanding)} icon={<Wallet size={16} />} />
-        <StatCard label="Active loans"        value={String(activeCount)}         icon={<Banknote size={16} />} />
-        <StatCard label="Completed"           value={String(completedCount)}      icon={<CheckCircle size={16} />} />
-        <StatCard label="Defaulted"           value={String(defaultedCount)}      icon={<XCircle size={16} />} />
+        <StatCard size="sm" label="Total clients"       value={String(clientCount)}         icon={<Users size={16} />} />
+        <StatCard size="sm" label="Total principal"     value={formatGHS(totalPrincipal)}   icon={<Banknote size={16} />} />
+        <StatCard size="sm" label="Outstanding balance" value={formatGHS(totalOutstanding)} icon={<Wallet size={16} />} />
+        <StatCard size="sm" label="Active loans"        value={String(activeCount)}         icon={<Banknote size={16} />} />
+        <StatCard size="sm" label="Completed"           value={String(completedCount)}      icon={<CheckCircle size={16} />} />
+        <StatCard size="sm" label="Defaulted"           value={String(defaultedCount)}      icon={<XCircle size={16} />} />
       </div>
 
       {/* ── Overdue / At-Risk Banner ── */}

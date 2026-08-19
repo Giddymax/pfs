@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Coins, Landmark, HandCoins, PiggyBank } from "lucide-react";
+import { ArrowLeft, Coins, HandCoins, PiggyBank } from "lucide-react";
 import { Logo } from "@/components/logo";
 
 const PRODUCTS: Record<string, {
@@ -31,27 +31,6 @@ const PRODUCTS: Record<string, {
       "SMS notifications for every deposit and withdrawal",
       "Emergency access to your funds when life demands it",
       "Your officer comes to you — no need to travel to a branch",
-    ],
-  },
-  "fixed-deposits": {
-    title: "Fixed Deposits",
-    icon: Landmark,
-    color: "#4F46E5",
-    intro:
-      "Lock your money away for a set period and earn guaranteed interest. Fixed deposits with Prime Financial Service offer higher returns than regular savings, with terms from 3 months to 24 months.",
-    howItWorks: [
-      "Choose your deposit amount and term length (3, 6, 9, 12, 18, or 24 months).",
-      "Your principal is locked for the chosen term and earns interest at the agreed rate.",
-      "At maturity, you can withdraw your principal plus interest, or roll over into a new term.",
-      "If you need early access, you can request an early withdrawal — your principal is returned but accrued interest is forfeited.",
-      "All transactions are documented and you receive SMS confirmations at every step.",
-    ],
-    benefits: [
-      "Higher interest rates than regular savings",
-      "Guaranteed returns — your rate is locked for the full term",
-      "Flexible term options from 3 to 24 months",
-      "Rollover option at maturity to keep earning",
-      "Early withdrawal available when you need it",
     ],
   },
   "client-loans": {

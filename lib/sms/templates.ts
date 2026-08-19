@@ -22,6 +22,9 @@ export const smsTemplates = {
   susuWithdrawalRecorded: (clientName: string, amount: number, balanceAfter: number, proxyName?: string | null) =>
     `WITHDRAWAL: ${clientName}, susu ${formatGHS(amount)} paid out. Bal: ${formatGHS(balanceAfter)}.${proxyName ? ` Withdrawn by: ${proxyName}.` : ""}`,
 
+  susuDay31FeeTaken: (clientName: string, feeAmount: number, remainingClaimable: number) =>
+    `SUSU: ${clientName}, your 31-day cycle is complete. Company fee of ${formatGHS(feeAmount)} has been taken. ${formatGHS(remainingClaimable)} is now eligible to claim.`,
+
   susuClaimApproved: (clientName: string, amount: number) =>
     `${clientName}, your susu claim of ${formatGHS(amount)} is approved. Visit your branch to collect.`,
 
@@ -37,40 +40,8 @@ export const smsTemplates = {
   loanRepaymentReceivedAdmin: (clientName: string, amount: number, remainingBalance: number) =>
     `LOAN: ${clientName} paid ${formatGHS(amount)}. Outstanding: ${formatGHS(remainingBalance)}.`,
 
-  fdOpened: (clientName: string, fdNumber: string, principal: number, maturityDate: string) =>
-    `${clientName}, your fixed deposit ${fdNumber} of ${formatGHS(principal)} has been opened. Maturity: ${maturityDate}.`,
-
-  fdOpenedAdmin: (clientName: string, fdNumber: string, principal: number, termMonths: number) =>
-    `NEW FD: ${clientName} opened ${fdNumber} — ${formatGHS(principal)} for ${termMonths} month${termMonths === 1 ? "" : "s"}.`,
-
-  fdEarlyWithdrawalRequestedAdmin: (clientName: string, fdNumber: string, principal: number) =>
-    `${clientName} requested early withdrawal on FD ${fdNumber} (${formatGHS(principal)}). Review for approval.`,
-
-  fdEarlyWithdrawalApproved: (clientName: string, fdNumber: string) =>
-    `${clientName}, early withdrawal on FD ${fdNumber} approved. Visit your branch to collect. Note: accrued interest is forfeited.`,
-
-  fdEarlyWithdrawalApprovedAdmin: (clientName: string, fdNumber: string) =>
-    `FD ${fdNumber} early withdrawal for ${clientName} has been approved.`,
-
-  fdEarlyWithdrawalRejected: (clientName: string, fdNumber: string) =>
-    `${clientName}, early withdrawal on FD ${fdNumber} was not approved. Your deposit remains active until maturity.`,
-
-  fdEarlyWithdrawalRejectedAdmin: (clientName: string, fdNumber: string) =>
-    `FD ${fdNumber} early withdrawal for ${clientName} has been rejected.`,
-
-  fdEarlyWithdrawalPaidOut: (clientName: string, amount: number) =>
-    `WITHDRAWAL: ${clientName}, early FD withdrawal of ${formatGHS(amount)} (principal only) paid out.`,
-
-  fdMaturityPaidOut: (clientName: string, amount: number) =>
-    `${clientName}, your fixed deposit matured. ${formatGHS(amount)} (principal + interest) paid out.`,
-
-  fdRolledOver: (clientName: string, oldFdNumber: string, newFdNumber: string, cashInterestPaid: number) =>
-    `${clientName}, FD ${oldFdNumber} rolled over to ${newFdNumber}.${
-      cashInterestPaid > 0 ? ` Interest of ${formatGHS(cashInterestPaid)} paid in cash.` : " Interest capitalised into new principal."
-    }`,
-
-  fdRolledOverAdmin: (clientName: string, oldFdNumber: string, newFdNumber: string) =>
-    `FD ROLLOVER: ${clientName}'s ${oldFdNumber} rolled over to ${newFdNumber}.`,
+  clientRegisteredAdmin: (clientName: string, clientCode: string, registeredBy?: string | null) =>
+    `NEW CLIENT: ${clientName} (${clientCode}) registered${registeredBy ? ` by ${registeredBy}` : ""}.`,
 
   adminEmergencyClaimAlert: (clientName: string, amount: number, reason?: string) =>
     `${clientName} requested an emergency susu claim of ${formatGHS(amount)}.${reason ? ` Reason: ${reason}.` : ""} Review for approval.`,

@@ -13,7 +13,7 @@ interface PeriodTransaction {
   client_full_name: string;
   client_code: string;
   account_number: string;
-  product_type: "savings" | "susu" | "fixed_deposit";
+  product_type: "savings" | "susu";
   recorded_by_name: string | null;
   edited_by_name: string | null;
   edited_at: string | null;
@@ -25,7 +25,6 @@ interface PeriodTransaction {
 const PRODUCT_LABEL: Record<PeriodTransaction["product_type"], string> = {
   savings: "Savings",
   susu: "Daily Susu",
-  fixed_deposit: "Fixed Deposit",
 };
 
 export async function GET(request: Request) {
@@ -43,7 +42,9 @@ export async function GET(request: Request) {
   const { data, error } = await supabase.rpc("list_period_transactions", { p_from: from, p_to: to });
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-  const txns = (data ?? []) as PeriodTransaction[];
+  // Reversed transactions were undone — an external accounting export should
+  // never include them, only the settled record.
+  const txns = ((data ?? []) as PeriodTransaction[]).filter((t) => !t.reversed_at);
 
   const rows = txns.map((t) => {
     const dt = new Date(t.created_at);
@@ -61,8 +62,6 @@ export async function GET(request: Request) {
       "Recorded By": t.recorded_by_name ?? "",
       "Edited By": t.edited_by_name ?? "",
       "Original Amount (GHS)": t.original_amount ?? "",
-      "Reversed By": t.reversed_by_name ?? "",
-      "Reversed At": t.reversed_at ? new Date(t.reversed_at).toLocaleString("en-GB") : "",
       "Notes": t.notes ?? "",
     };
   });
@@ -70,6 +69,6 @@ export async function GET(request: Request) {
   return xlsxResponse(rows, {
     sheetName: "Transaction Log",
     filename: `period-summary-${from}-to-${to}.xlsx`,
-    colWidths: [12, 10, 24, 12, 16, 14, 10, 14, 12, 16, 18, 18, 16, 18, 18, 30],
+    colWidths: [12, 10, 24, 12, 16, 14, 10, 14, 12, 16, 18, 18, 16, 30],
   });
 }

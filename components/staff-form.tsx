@@ -3,6 +3,18 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, KeyRound, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
+import type { RestrictablePage } from "@/lib/types";
+
+// Per-account exceptions (0066_profile_page_restrictions.sql) — an admin
+// keeps every other admin privilege, but any of these specific pages can be
+// individually hidden/blocked for their account. Label text matches what
+// the sidebar/page actually calls each destination.
+const RESTRICTABLE_PAGES: { value: RestrictablePage; label: string }[] = [
+  { value: "overview", label: "Overview" },
+  { value: "settings", label: "Settings" },
+  { value: "staff_performance", label: "Staff Performance" },
+  { value: "momo_performance", label: "MoMo Performance" },
+];
 
 // ──────────────────────────────────────────────
 // Add staff
@@ -32,11 +44,15 @@ export function AddStaffButton() {
 export function EditStaffButton({
   profileId,
   fullName,
+  email,
   role,
+  restrictedPages,
 }: {
   profileId: string;
   fullName: string;
+  email: string;
   role: string;
+  restrictedPages: RestrictablePage[];
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -54,7 +70,9 @@ export function EditStaffButton({
           mode="edit"
           profileId={profileId}
           defaultFullName={fullName}
+          defaultEmail={email}
           defaultRole={role}
+          defaultRestrictedPages={restrictedPages}
           onClose={() => setOpen(false)}
         />
       )}
@@ -161,22 +179,31 @@ function StaffModal({
   mode,
   profileId,
   defaultFullName = "",
+  defaultEmail = "",
   defaultRole = "staff",
+  defaultRestrictedPages = [],
   onClose,
 }: {
   mode: Mode;
   profileId?: string;
   defaultFullName?: string;
+  defaultEmail?: string;
   defaultRole?: string;
+  defaultRestrictedPages?: RestrictablePage[];
   onClose: () => void;
 }) {
   const router = useRouter();
   const [fullName, setFullName] = useState(defaultFullName);
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(defaultEmail);
   const [password, setPassword] = useState("");
   const [role, setRole] = useState(defaultRole);
+  const [restrictedPages, setRestrictedPages] = useState<RestrictablePage[]>(defaultRestrictedPages);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function toggleRestriction(page: RestrictablePage) {
+    setRestrictedPages((prev) => (prev.includes(page) ? prev.filter((p) => p !== page) : [...prev, page]));
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -188,7 +215,7 @@ function StaffModal({
     const body =
       mode === "create"
         ? { email, password, full_name: fullName, role }
-        : { full_name: fullName, role };
+        : { full_name: fullName, email, role, restricted_pages: restrictedPages };
 
     const res = await fetch(url, {
       method,
@@ -237,30 +264,34 @@ function StaffModal({
             />
           </Field>
 
+          <Field label="Email address">
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+
+              className="w-full rounded-md border border-[#0A2240]/15 px-3 py-2.5 text-[13.5px] text-[#0A2240] focus:border-[#0033AA] focus:outline-none focus:ring-1 focus:ring-[#0033AA]/20"
+            />
+            {mode === "edit" && (
+              <p className="mt-1 text-[11px] text-[#0A2240]/40">
+                This is also their sign-in email — changing it updates their login.
+              </p>
+            )}
+          </Field>
+
           {mode === "create" && (
-            <>
-              <Field label="Email address">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                 
-                  className="w-full rounded-md border border-[#0A2240]/15 px-3 py-2.5 text-[13.5px] text-[#0A2240] focus:border-[#0033AA] focus:outline-none focus:ring-1 focus:ring-[#0033AA]/20"
-                />
-              </Field>
-              <Field label="Password">
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={8}
-                 
-                  className="w-full rounded-md border border-[#0A2240]/15 px-3 py-2.5 text-[13.5px] text-[#0A2240] focus:border-[#0033AA] focus:outline-none focus:ring-1 focus:ring-[#0033AA]/20"
-                />
-              </Field>
-            </>
+            <Field label="Password">
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={8}
+
+                className="w-full rounded-md border border-[#0A2240]/15 px-3 py-2.5 text-[13.5px] text-[#0A2240] focus:border-[#0033AA] focus:outline-none focus:ring-1 focus:ring-[#0033AA]/20"
+              />
+            </Field>
           )}
 
           <Field label="Role">
@@ -273,6 +304,27 @@ function StaffModal({
               <option value="admin">Administrator</option>
             </select>
           </Field>
+
+          {mode === "edit" && role === "admin" && (
+            <Field label="Restricted pages">
+              <div className="space-y-2 rounded-md border border-[#0A2240]/15 px-3 py-2.5">
+                {RESTRICTABLE_PAGES.map((p) => (
+                  <label key={p.value} className="flex items-center gap-2 text-[13px] text-[#0A2240]/80 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={restrictedPages.includes(p.value)}
+                      onChange={() => toggleRestriction(p.value)}
+                      className="accent-[#0033AA]"
+                    />
+                    {p.label}
+                  </label>
+                ))}
+              </div>
+              <p className="mt-1 text-[11px] text-[#0A2240]/40">
+                Checked pages are hidden and blocked for this account, even though it stays Administrator otherwise.
+              </p>
+            </Field>
+          )}
 
           {error && (
             <p className="rounded-md bg-red-50 px-3 py-2 text-[12.5px] text-red-600">{error}</p>

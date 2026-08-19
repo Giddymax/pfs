@@ -6,6 +6,7 @@ import { DeleteClientButton } from "@/components/delete-client-button";
 import { PrintRegistrationCardButton } from "@/components/print-registration-card";
 import { PrintTransactionHistoryButton } from "@/components/print-transaction-history-button";
 import { Card, ClientStatusBadge, LoanStatusBadge, EmptyState, PageHeader } from "@/components/ui";
+import { ClientPhotoViewer } from "@/components/client-photo-viewer";
 import { getSettings } from "@/lib/settings/cache";
 import { formatGHS } from "@/lib/loan";
 import type { Account, Client, Loan, Profile, Transaction } from "@/lib/types";
@@ -18,7 +19,7 @@ export default async function ClientDetailPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: client }, { data: loans }, { data: profile }, { data: accounts }, { data: transactions }, { data: fds }, settings, { data: cardFeeRows }] = await Promise.all([
+  const [{ data: client }, { data: loans }, { data: profile }, { data: accounts }, { data: transactions }, settings, { data: cardFeeRows }] = await Promise.all([
     supabase.from("clients").select("*").eq("id", id).single<Client>(),
     supabase.from("loans").select("*").eq("client_id", id).order("created_at", { ascending: false }).returns<Loan[]>(),
     getCurrentProfile(supabase),
@@ -29,14 +30,6 @@ export default async function ClientDetailPage({
       .eq("client_id", id)
       .order("created_at", { ascending: false })
       .returns<(Transaction & { account: { account_number: string; product_type: string } | null; recorder: { full_name: string } | null })[]>(),
-    supabase
-      .from("fixed_deposits")
-      .select("fd_number")
-      .eq("client_id", id)
-      .not("status", "in", '("withdrawn","rolled_over")')
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .returns<{ fd_number: string }[]>(),
     getSettings(),
     supabase.from("card_fees").select("amount").eq("client_id", id).returns<{ amount: number }[]>(),
   ]);
@@ -93,7 +86,6 @@ export default async function ClientDetailPage({
               agentName={agentName}
               processedBy={profile?.full_name}
               registeredBy={registeredBy}
-              fdNumber={fds?.[0]?.fd_number ?? null}
               companyPhone={companyPhone}
               isMigrated={isMigrated}
             />
@@ -121,14 +113,16 @@ export default async function ClientDetailPage({
         {/* Profile card */}
         <Card className="lg:col-span-1">
           <div className="flex flex-col items-center gap-3 border-b border-[#0033AA]/8 px-6 py-7 text-center">
-            <span className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 border-[#0033AA]/10 bg-[#0033AA]/5">
-              {client.photo_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={client.photo_url} alt={client.full_name} className="h-full w-full object-cover" />
-              ) : (
-                <UserRound size={34} className="text-[#0033AA]/25" />
-              )}
-            </span>
+            <ClientPhotoViewer photoUrl={client.photo_url} alt={client.full_name} isAdmin={isAdmin}>
+              <span className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 border-[#0033AA]/10 bg-[#0033AA]/5">
+                {client.photo_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={client.photo_url} alt={client.full_name} className="h-full w-full object-cover" />
+                ) : (
+                  <UserRound size={34} className="text-[#0033AA]/25" />
+                )}
+              </span>
+            </ClientPhotoViewer>
             <div>
               <p className="text-[16px] font-semibold text-[#0033AA]">{client.full_name}</p>
               <p className="text-[12.5px] text-[#0A2240]/45">{client.client_code}</p>

@@ -6,7 +6,6 @@ import type { Account, Client, ProductType } from "@/lib/types";
 const PRODUCT_LABEL: Record<ProductType, string> = {
   savings: "Savings",
   susu: "Daily Susu",
-  fixed_deposit: "Fixed Deposit",
 };
 
 export async function GET(request: Request) {

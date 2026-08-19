@@ -1,12 +1,10 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Camera, Loader2, UserRound, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { PageHeader } from "@/components/ui";
-
-const FD_TERM_OPTIONS = [3, 6, 9, 12, 18, 24];
 
 export default function NewClientPage() {
   const router = useRouter();
@@ -19,6 +17,11 @@ export default function NewClientPage() {
 
   const [smsOptIn, setSmsOptIn] = useState(true);
   const [clientType, setClientType] = useState<"new" | "old">("new");
+  // Display-only — always reflects whatever's set at Settings → Card fee
+  // amount. The actual charge is still decided independently at submit
+  // time (see the card_fees insert below), so this box can never drift the
+  // calculation; it just shows staff what they're about to charge.
+  const [cardFeeAmount, setCardFeeAmount] = useState<number | null>(null);
   const [form, setForm] = useState({
     full_name: "",
     date_of_birth: "",
@@ -34,10 +37,21 @@ export default function NewClientPage() {
     account_type: "",
     opening_deposit: "",
     daily_contribution_amount: "",
-    principal: "",
-    annual_rate_percent: "",
-    term_months: "",
   });
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "card_fee_amount")
+      .maybeSingle<{ value: number }>()
+      .then(({ data }) => {
+        const rawFee = data?.value;
+        const amount = typeof rawFee === "number" ? rawFee : typeof rawFee === "string" ? Number(rawFee) : 20;
+        setCardFeeAmount(amount);
+      });
+  }, []);
 
   function update<K extends keyof typeof form>(key: K, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -75,21 +89,6 @@ export default function NewClientPage() {
     if (form.account_type === "susu" && !(Number(form.daily_contribution_amount) > 0)) {
       setError("Enter the agreed daily contribution amount.");
       return;
-    }
-
-    if (form.account_type === "fixed_deposit") {
-      if (!(Number(form.principal) > 0)) {
-        setError("Enter the fixed deposit principal amount.");
-        return;
-      }
-      if (!(Number(form.annual_rate_percent) >= 0)) {
-        setError("Enter the fixed deposit's annual interest rate.");
-        return;
-      }
-      if (!FD_TERM_OPTIONS.includes(Number(form.term_months))) {
-        setError("Select the fixed deposit's term.");
-        return;
-      }
     }
 
     setSubmitting(true);
@@ -138,42 +137,23 @@ export default function NewClientPage() {
 
       if (insertError) throw new Error(insertError.message);
 
-      if (form.account_type === "fixed_deposit") {
-        // Fixed deposits are lump-sum term placements with their own
-        // maturity/rollover lifecycle — they live in `fixed_deposits`,
-        // not the shared `accounts` ledger table, so they're opened via
-        // the dedicated route (which calls the `open_fixed_deposit` RPC).
-        const res = await fetch("/api/fixed-deposits", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            client_id: inserted.id,
-            principal: Number(form.principal),
-            annual_rate_percent: Number(form.annual_rate_percent),
-            term_months: Number(form.term_months),
-          }),
-        });
-        const json = await res.json();
-        if (!res.ok) throw new Error("Client saved, but opening the fixed deposit failed: " + json.error);
-      } else {
-        const accountInsert: Record<string, unknown> = {
-          client_id: inserted.id,
-          product_type: form.account_type,
-          created_by: user?.id ?? null,
-        };
+      const accountInsert: Record<string, unknown> = {
+        client_id: inserted.id,
+        product_type: form.account_type,
+        created_by: user?.id ?? null,
+      };
 
-        if (form.account_type === "savings") {
-          const opening = form.opening_deposit ? Number(form.opening_deposit) : 0;
-          accountInsert.balance = opening;
-          accountInsert.minimum_opening_deposit = form.opening_deposit ? opening : null;
-        } else if (form.account_type === "susu") {
-          accountInsert.daily_contribution_amount = Number(form.daily_contribution_amount);
-          accountInsert.cycle_length_days = 31;
-        }
-
-        const { error: accountError } = await supabase.from("accounts").insert(accountInsert);
-        if (accountError) throw new Error("Client saved, but opening the account failed: " + accountError.message);
+      if (form.account_type === "savings") {
+        const opening = form.opening_deposit ? Number(form.opening_deposit) : 0;
+        accountInsert.balance = opening;
+        accountInsert.minimum_opening_deposit = form.opening_deposit ? opening : null;
+      } else if (form.account_type === "susu") {
+        accountInsert.daily_contribution_amount = Number(form.daily_contribution_amount);
+        accountInsert.cycle_length_days = 31;
       }
+
+      const { error: accountError } = await supabase.from("accounts").insert(accountInsert);
+      if (accountError) throw new Error("Client saved, but opening the account failed: " + accountError.message);
 
       // Card fee — new clients pay the configured fee; old/migrated clients
       // get a zero-amount row so the isMigrated flag works correctly everywhere.
@@ -197,6 +177,13 @@ export default function NewClientPage() {
         if (feeError) console.error("card_fees insert failed:", feeError.message);
       } catch (feeErr) {
         console.error("card_fees block threw:", feeErr);
+      }
+
+      // Admin-only "new client registered" SMS — never blocks registration.
+      try {
+        await fetch(`/api/clients/${inserted.id}/notify-registration`, { method: "POST" });
+      } catch (notifyErr) {
+        console.error("registration notification failed:", notifyErr);
       }
 
       window.location.href = `/clients/${inserted.id}`;
@@ -361,6 +348,28 @@ export default function NewClientPage() {
               <p className="mt-0.5 text-[12px] text-[#0A2240]/50">No card fee charged</p>
             </button>
           </div>
+
+          <div className="mt-4 max-w-xs">
+            <Field label="Card fee (GHS)">
+              <Input
+                type="text"
+                readOnly
+                value={
+                  clientType === "old"
+                    ? "0.00"
+                    : cardFeeAmount === null
+                    ? "Loading…"
+                    : cardFeeAmount.toFixed(2)
+                }
+                onChange={() => {}}
+              />
+            </Field>
+            <p className="mt-1.5 text-[12px] text-[#0A2240]/45">
+              {clientType === "new"
+                ? "Auto-filled from Settings → Card fee amount — not editable here."
+                : "Old/Migrated clients are not charged a card fee."}
+            </p>
+          </div>
         </section>
 
         {/* SMS notifications */}
@@ -401,16 +410,12 @@ export default function NewClientPage() {
                     account_type: v,
                     opening_deposit: "",
                     daily_contribution_amount: "",
-                    principal: "",
-                    annual_rate_percent: "",
-                    term_months: "",
                   }))
                 }
               >
                 <option value="">Select account type</option>
                 <option value="savings">Savings</option>
                 <option value="susu">Daily Susu</option>
-                <option value="fixed_deposit">Fixed Deposit</option>
               </Select>
             </Field>
 
@@ -420,7 +425,7 @@ export default function NewClientPage() {
                   type="number"
                   value={form.opening_deposit}
                   onChange={(v) => update("opening_deposit", v)}
-                 
+
                 />
               </Field>
             )}
@@ -431,51 +436,14 @@ export default function NewClientPage() {
                   type="number"
                   value={form.daily_contribution_amount}
                   onChange={(v) => update("daily_contribution_amount", v)}
-                 
+
                 />
               </Field>
-            )}
-
-            {form.account_type === "fixed_deposit" && (
-              <>
-                <Field label="Principal amount (GHS)" required>
-                  <Input
-                    type="number"
-                    value={form.principal}
-                    onChange={(v) => update("principal", v)}
-                   
-                  />
-                </Field>
-                <Field label="Annual interest rate (%)" required>
-                  <Input
-                    type="number"
-                    value={form.annual_rate_percent}
-                    onChange={(v) => update("annual_rate_percent", v)}
-                   
-                  />
-                </Field>
-                <Field label="Term" required>
-                  <Select value={form.term_months} onChange={(v) => update("term_months", v)}>
-                    <option value="">Select term</option>
-                    {FD_TERM_OPTIONS.map((m) => (
-                      <option key={m} value={m}>
-                        {m} months
-                      </option>
-                    ))}
-                  </Select>
-                </Field>
-              </>
             )}
           </div>
           {form.account_type === "susu" && (
             <p className="mt-3 text-[12px] text-[#0A2240]/45">
               Standard cycle is 31 days; the collector keeps one day&apos;s contribution as commission at cycle-end.
-            </p>
-          )}
-          {form.account_type === "fixed_deposit" && (
-            <p className="mt-3 text-[12px] text-[#0A2240]/45">
-              Maturity date and expected interest are computed automatically (simple interest) from the principal,
-              rate and term. Early withdrawal forfeits all accrued interest.
             </p>
           )}
         </section>
@@ -528,11 +496,13 @@ function Input({
   onChange,
   type = "text",
   label,
+  readOnly,
 }: {
   value: string;
   onChange: (v: string) => void;
   type?: string;
   label?: string;
+  readOnly?: boolean;
 }) {
   return (
     <input
@@ -540,7 +510,12 @@ function Input({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       aria-label={label}
-      className="w-full rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] text-[#0A2240] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
+      readOnly={readOnly}
+      className={`w-full rounded-md border border-[#0033AA]/15 px-3.5 py-2.5 text-[14px] text-[#0A2240] outline-none transition-colors ${
+        readOnly
+          ? "cursor-not-allowed bg-[#0A2240]/[0.04] text-[#0A2240]/60"
+          : "bg-[#FFFFFF]/40 focus:border-[#0062E1] focus:bg-white"
+      }`}
     />
   );
 }

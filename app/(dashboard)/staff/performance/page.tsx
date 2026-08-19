@@ -1,8 +1,11 @@
 import { redirect } from "next/navigation";
-import { ShieldCheck, Users, PiggyBank, Coins, UserRound } from "lucide-react";
+import { ShieldCheck, Users, PiggyBank, Coins, UserRound, Wallet } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getSettings } from "@/lib/settings/cache";
 import { Card, PageHeader } from "@/components/ui";
 import { ExportCsvButton } from "@/components/export-csv-button";
+import { PrintStaffPerformanceButton } from "@/components/print-staff-performance-button";
+import { SummaryControls } from "@/components/summary-controls";
 import { formatGHS, round2 } from "@/lib/loan";
 import type { Profile } from "@/lib/types";
 
@@ -17,7 +20,28 @@ interface StaffPerformanceRow {
   susu_collected: number;
 }
 
-export default async function StaffPerformancePage() {
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function monthStartISO() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+}
+
+function fmtDate(iso: string) {
+  return new Date(iso + "T00:00:00").toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+export default async function StaffPerformancePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string; to?: string; preset?: string }>;
+}) {
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -26,14 +50,24 @@ export default async function StaffPerformancePage() {
   const { data: profile } = await supabase
     .from("profiles").select("*").eq("id", user.id).single<Profile>();
   if (!profile || profile.role !== "admin") redirect("/");
+  if (profile.restricted_pages?.includes("staff_performance")) redirect("/");
 
-  const { data: rows } = await supabase.rpc("staff_performance");
+  const params = await searchParams;
+  const from = params.from ?? monthStartISO();
+  const to = params.to ?? todayISO();
+
+  const { data: rows } = await supabase.rpc("staff_performance", { p_from: from, p_to: to });
+  const settings = await getSettings();
 
   const staff = (rows ?? []) as StaffPerformanceRow[];
 
   const totalClients  = staff.reduce((s, r) => s + Number(r.clients_registered), 0);
   const totalSavings  = round2(staff.reduce((s, r) => s + Number(r.savings_collected), 0));
   const totalSusu     = round2(staff.reduce((s, r) => s + Number(r.susu_collected), 0));
+  // Per-staff total = that staff member's own savings + susu collected —
+  // computed per row, not looked up, so it can never drift from the two
+  // columns it's built from.
+  const totalCollected = round2(totalSavings + totalSusu);
 
   return (
     <div>
@@ -42,11 +76,44 @@ export default async function StaffPerformancePage() {
         eyebrow="Administration"
         title="Staff performance"
         description="Track how much each staff member has contributed — clients registered, savings deposits collected, and daily susu contributions recorded."
-        action={<ExportCsvButton endpoint="/api/staff/performance/export" filename="staff-performance.xlsx" label="Export Excel" />}
+        action={
+          <div className="flex flex-wrap items-center gap-2">
+            <ExportCsvButton
+              endpoint="/api/staff/performance/export"
+              filename={`staff-performance-${from}-to-${to}.xlsx`}
+              label="Export Excel"
+              params={{ from, to }}
+            />
+            <PrintStaffPerformanceButton
+              rows={staff}
+              from={from}
+              to={to}
+              totalClients={totalClients}
+              totalSavings={totalSavings}
+              totalSusu={totalSusu}
+              totalCollected={totalCollected}
+              printedBy={profile.full_name}
+              companyPhone={settings.sms.company_tel ?? null}
+            />
+          </div>
+        }
       />
 
+      {/* Date controls */}
+      <div className="mb-6">
+        <SummaryControls from={from} to={to} preset={params.preset ?? "this_month"} />
+      </div>
+
+      {/* Period band */}
+      <div className="mb-6 rounded-lg border border-[#0033AA]/10 bg-[#0033AA]/[0.03] px-5 py-3.5">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0033AA]/50">Period</p>
+        <p className="mt-0.5 text-[15px] font-semibold text-[#0A2240]">
+          {fmtDate(from)} — {fmtDate(to)}
+        </p>
+      </div>
+
       {/* Summary cards */}
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <SummaryCard
           label="Total clients registered"
           value={String(totalClients)}
@@ -68,6 +135,13 @@ export default async function StaffPerformancePage() {
           color="text-[#0284C7]"
           bg="bg-[#0284C7]/[0.05] border-[#0284C7]/12"
         />
+        <SummaryCard
+          label="Total collected"
+          value={formatGHS(totalCollected)}
+          icon={<Wallet size={18} />}
+          color="text-[#15803D]"
+          bg="bg-[#15803D]/[0.05] border-[#15803D]/12"
+        />
       </div>
 
       {/* Performance table */}
@@ -75,7 +149,8 @@ export default async function StaffPerformancePage() {
         <div className="border-b border-[#0033AA]/8 px-5 py-4">
           <h2 className="text-[15px] font-semibold text-[#0033AA]">Individual performance</h2>
           <p className="mt-0.5 text-[12.5px] text-[#0A2240]/45">
-            Sorted by most clients registered. Susu collected = sum of daily contributions recorded by each staff.
+            For the period above. Sorted by most clients registered. Susu collected = sum of daily contributions
+            recorded by each staff.
           </p>
         </div>
 
@@ -108,10 +183,11 @@ export default async function StaffPerformancePage() {
                       <p className="truncate text-[12px] text-[#0A2240]/45">{member.email}</p>
                     </div>
                   </div>
-                  <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                  <div className="mt-3 grid grid-cols-4 gap-2 text-center">
                     <StatCell label="Clients" value={String(member.clients_registered)} color="text-[#7C3AED]" />
                     <StatCell label="Savings" value={formatGHS(Number(member.savings_collected))} color="text-[#EA580C]" />
                     <StatCell label="Susu" value={formatGHS(Number(member.susu_collected))} color="text-[#0284C7]" />
+                    <StatCell label="Total" value={formatGHS(round2(Number(member.savings_collected) + Number(member.susu_collected)))} color="text-[#15803D]" />
                   </div>
                 </li>
               ))}
@@ -127,6 +203,7 @@ export default async function StaffPerformancePage() {
                     <th className="px-5 py-3 text-right font-semibold">Clients registered</th>
                     <th className="px-5 py-3 text-right font-semibold">Savings collected</th>
                     <th className="px-5 py-3 text-right font-semibold">Susu collected</th>
+                    <th className="px-5 py-3 text-right font-semibold">Total</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#0033AA]/6">
@@ -167,6 +244,11 @@ export default async function StaffPerformancePage() {
                           {formatGHS(Number(member.susu_collected))}
                         </span>
                       </td>
+                      <td className="px-5 py-3.5 text-right">
+                        <span className="text-[14px] font-semibold tabular-nums text-[#15803D]">
+                          {formatGHS(round2(Number(member.savings_collected) + Number(member.susu_collected)))}
+                        </span>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -185,6 +267,9 @@ export default async function StaffPerformancePage() {
                     </td>
                     <td className="px-5 py-3 text-right text-[14px] font-bold tabular-nums text-[#0284C7]">
                       {formatGHS(totalSusu)}
+                    </td>
+                    <td className="px-5 py-3 text-right text-[14px] font-bold tabular-nums text-[#15803D]">
+                      {formatGHS(totalCollected)}
                     </td>
                   </tr>
                 </tfoot>

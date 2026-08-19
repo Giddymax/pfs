@@ -17,14 +17,26 @@ import { SusuClaimRequestButton } from "@/components/susu-claim-request-button";
 import { SusuClaimActions } from "@/components/susu-claim-actions";
 import { ResetSusuButton } from "@/components/reset-susu-button";
 import { ClearTransactionsButton } from "@/components/clear-transactions-button";
+import { ClientPhotoViewer } from "@/components/client-photo-viewer";
+import { RecordRevenueDepositButton } from "@/components/record-revenue-deposit-button";
 import { getSettings } from "@/lib/settings/cache";
+import { computeAccountSummary } from "@/lib/finance/account-summary";
+import { computeSusuQualification, type SusuQualification } from "@/lib/susu/qualification";
 import { formatGHS } from "@/lib/loan";
-import type { Account, Client, Profile, SusuClaim, SusuCycle, SusuPayment, Transaction } from "@/lib/types";
+import type { Account, Client, Profile, SusuClaim, SusuPayment, Transaction } from "@/lib/types";
 
 const PRODUCT_LABEL: Record<Account["product_type"], string> = {
   savings: "Savings account",
   susu: "Daily susu account",
-  fixed_deposit: "Fixed deposit account",
+};
+
+const DEFAULT_REVENUE_COMPONENTS = {
+  interest: true,
+  commission: true,
+  susu_fees: true,
+  card_fees: true,
+  sms_fees: true,
+  processing_fees: true,
 };
 
 export default async function AccountDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -50,6 +62,15 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
   const isAdmin = profile?.role === "admin";
   const isStaffOrAdmin = profile?.role === "admin" || profile?.role === "staff";
   const companyPhone = settings.sms.company_tel ?? null;
+
+  // Only the PFS Consolidated Fund needs Revenue Available (for the
+  // Deposit revenue form's available-balance cap below) — skip the extra
+  // computeAccountSummary() call for every other account page.
+  let revenueAvailable = 0;
+  if (account.is_consolidated_fund) {
+    const rc = { ...DEFAULT_REVENUE_COMPONENTS, ...(settings.overview_kpi?.total_revenue?.components ?? {}) };
+    ({ revenueAvailable } = await computeAccountSummary(supabase, rc));
+  }
   const allTransactions = transactions ?? [];
   const txnsWithAccount = allTransactions.map(({ account: _acct, ...rest }) => ({
     ...rest,
@@ -57,21 +78,25 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
   })) as TxnWithAccount[];
   const isSusu = account.product_type === "susu";
 
-  let cycles: SusuCycle[] = [];
   let claims: SusuClaim[] = [];
   let payments: SusuPayment[] = [];
+  let activeCycle: SusuQualification["activeCycle"] = null;
+  let normalCycle: SusuQualification["normalCycle"] = null;
+  let emergencyCycle: SusuQualification["emergencyCycle"] = null;
+  let isQualifiedToWithdraw = false;
   if (isSusu) {
-    const [{ data: cycleRows }, { data: claimRows }, { data: paymentRows }] = await Promise.all([
-      supabase.from("susu_cycles").select("*").eq("account_id", id).order("cycle_number", { ascending: false }).returns<SusuCycle[]>(),
-      supabase.from("susu_claims").select("*").eq("account_id", id).order("requested_at", { ascending: false }).returns<SusuClaim[]>(),
+    const [qualification, { data: paymentRows }] = await Promise.all([
+      computeSusuQualification(supabase, id, account.balance),
       supabase.from("susu_payments").select("*").eq("account_id", id).order("day_in_cycle", { ascending: false }).returns<SusuPayment[]>(),
     ]);
-    cycles = cycleRows ?? [];
-    claims = claimRows ?? [];
+    claims = qualification.claims;
+    activeCycle = qualification.activeCycle;
+    normalCycle = qualification.normalCycle;
+    emergencyCycle = qualification.emergencyCycle;
+    isQualifiedToWithdraw = qualification.isQualified;
     payments = paymentRows ?? [];
   }
 
-  const activeCycle = cycles.find((c) => c.status === "in_progress") ?? null;
   // Max day recorded in the active cycle (payments ordered desc by day_in_cycle)
   const dayInCycle = activeCycle
     ? Math.max(0, ...payments.filter((p) => p.cycle_id === activeCycle.id).map((p) => p.day_in_cycle))
@@ -79,15 +104,6 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
   // The full cycle is 31 days — day 31's contribution becomes the company fee
   const CLIENT_DAYS = 31;
   const clientDayInCycle = Math.min(dayInCycle, CLIENT_DAYS);
-  const liveClaimStatuses: SusuClaim["status"][] = ["pending_admin", "approved"];
-  const claimedCycleIds = new Set(claims.filter((c) => liveClaimStatuses.includes(c.status) || c.status === "paid").map((c) => c.cycle_id));
-  const normalCycle = cycles.find((c) => c.status === "complete" && !claimedCycleIds.has(c.id)) ?? null;
-  const emergencyCycle =
-    activeCycle && !claims.some((c) => c.cycle_id === activeCycle.id && c.claim_type === "emergency" && c.status !== "rejected")
-      ? activeCycle
-      : null;
-  // Qualified only when a complete unclaimed cycle exists (full 31-day cycle finished)
-  const isQualifiedToWithdraw = account.balance > 0 && normalCycle !== null;
 
   // Susu KPI values — grounded in the live account balance so deletions always reflect correctly
   const daily = account.daily_contribution_amount ?? 0;
@@ -101,29 +117,31 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
   return (
     <div>
       <PageHeader
-        back={account.product_type === "fixed_deposit" ? "/fixed-deposits" : `/accounts/${account.product_type}`}
+        back={`/accounts/${account.product_type}`}
         eyebrow={PRODUCT_LABEL[account.product_type]}
         title={account.account_number}
         description={`Opened ${formatDate(account.opening_date)} · ${account.client.full_name}`}
         action={
           isStaffOrAdmin && (
             <div className="flex flex-wrap items-center gap-2.5">
-              {account.product_type !== "fixed_deposit" && (
-                isSusu ? (
-                  <>
-                    <SusuContributionForm accountId={account.id} dailyAmount={account.daily_contribution_amount} />
-                    <SusuWithdrawalForm accountId={account.id} availableBalance={account.balance} dailyAmount={daily} isQualified={isQualifiedToWithdraw} emergencyCycle={emergencyCycle} />
-                    <SusuClaimRequestButton accountId={account.id} normalCycle={normalCycle} emergencyCycle={emergencyCycle} />
-                    {isAdmin && <ResetSusuButton accountId={account.id} />}
-                  </>
-                ) : (
-                  <>
+              {isSusu ? (
+                <>
+                  <SusuContributionForm accountId={account.id} dailyAmount={account.daily_contribution_amount} />
+                  {isAdmin && <SusuWithdrawalForm accountId={account.id} availableBalance={account.balance} dailyAmount={daily} isQualified={isQualifiedToWithdraw} emergencyCycle={emergencyCycle} />}
+                  <SusuClaimRequestButton accountId={account.id} normalCycle={normalCycle} emergencyCycle={emergencyCycle} />
+                  {isAdmin && <ResetSusuButton accountId={account.id} />}
+                </>
+              ) : (
+                <>
+                  {account.is_consolidated_fund ? (
+                    isAdmin && <RecordRevenueDepositButton revenueAvailable={revenueAvailable} />
+                  ) : (
                     <RecordTransactionForm accountId={account.id} kind="deposit" />
-                    <RecordTransactionForm accountId={account.id} kind="withdrawal" />
-                  </>
-                )
+                  )}
+                  {isAdmin && <RecordTransactionForm accountId={account.id} kind="withdrawal" />}
+                </>
               )}
-              {isAdmin && account.product_type !== "fixed_deposit" && <RecalculateAccountButton accountId={account.id} />}
+              {isAdmin && <RecalculateAccountButton accountId={account.id} />}
               {isAdmin && <ClearTransactionsButton accountId={account.id} />}
               <ExportCsvButton
                 endpoint="/api/export/transactions"
@@ -256,26 +274,27 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
             <AccountStatusBadge status={account.status} />
           </div>
 
-          <Link
-            href={`/clients/${account.client.id}`}
-            className="mb-5 flex items-center gap-3 rounded-lg border border-[#0033AA]/8 bg-[#0033AA]/[0.025] px-3.5 py-3 transition-colors hover:bg-[#0033AA]/[0.05]"
-          >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#0033AA]/10 bg-white text-[12px] font-semibold text-[#0033AA]">
-              {account.client.photo_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={account.client.photo_url} alt={account.client.full_name} className="h-full w-full object-cover" />
-              ) : (
-                <UserRound size={18} className="text-[#0033AA]/30" />
-              )}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-[14px] font-medium text-[#0A2240]">{account.client.full_name}</span>
-              <span className="block text-[12px] text-[#0A2240]/45">
-                {account.client.client_code} · <a href={`tel:${account.client.phone}`} className="hover:text-[#0033AA] hover:underline">{account.client.phone}</a>
+          <div className="mb-5 flex items-center gap-3 rounded-lg border border-[#0033AA]/8 bg-[#0033AA]/[0.025] px-3.5 py-3 transition-colors hover:bg-[#0033AA]/[0.05]">
+            <ClientPhotoViewer photoUrl={account.client.photo_url} alt={account.client.full_name} isAdmin={isAdmin}>
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#0033AA]/10 bg-white text-[12px] font-semibold text-[#0033AA]">
+                {account.client.photo_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={account.client.photo_url} alt={account.client.full_name} className="h-full w-full object-cover" />
+                ) : (
+                  <UserRound size={18} className="text-[#0033AA]/30" />
+                )}
               </span>
-            </span>
-            <ArrowUpRight size={15} className="shrink-0 text-[#0033AA]/30" />
-          </Link>
+            </ClientPhotoViewer>
+            <Link href={`/clients/${account.client.id}`} className="flex min-w-0 flex-1 items-center gap-3">
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[14px] font-medium text-[#0A2240]">{account.client.full_name}</span>
+                <span className="block text-[12px] text-[#0A2240]/45">
+                  {account.client.client_code} · <a href={`tel:${account.client.phone}`} className="hover:text-[#0033AA] hover:underline">{account.client.phone}</a>
+                </span>
+              </span>
+              <ArrowUpRight size={15} className="shrink-0 text-[#0033AA]/30" />
+            </Link>
+          </div>
 
           <div className="space-y-4 text-[13.5px]">
             <div>

@@ -34,6 +34,7 @@ export function PrintAccountListButton({
   totalDep,
   totalWdr,
   totalComm,
+  susuFees,
   companyPhone,
 }: {
   productType: "savings" | "susu";
@@ -43,6 +44,7 @@ export function PrintAccountListButton({
   totalDep: number;
   totalWdr: number;
   totalComm: number;
+  susuFees?: number;
   companyPhone?: string | null;
 }) {
   const [open, setOpen] = useState(false);
@@ -128,12 +130,14 @@ export function PrintAccountListButton({
             <div className="h-[3px] w-full bg-[#0033AA]" />
 
             {/* KPI strip */}
-            <div className={`mt-5 grid gap-3 ${isSavings ? "grid-cols-5" : "grid-cols-4"}`}>
+            <div className="mt-5 grid grid-cols-5 gap-3">
               <KpiBox label="Total clients" value={String(totalCount)} />
               <KpiBox label="Total balance" value={formatGHS(totalBalance)} />
               <KpiBox label={isSavings ? "Total deposits" : "Total contributions"} value={formatGHS(totalDep)} />
               <KpiBox label={isSavings ? "Total withdrawals" : "Total withdrawn"} value={formatGHS(totalWdr)} />
-              {isSavings && <KpiBox label="Total commission" value={formatGHS(totalComm)} />}
+              {isSavings
+                ? <KpiBox label="Total commission" value={formatGHS(totalComm)} />
+                : <KpiBox label="Susu fees" value={formatGHS(susuFees ?? 0)} />}
             </div>
 
             {/* Account table */}

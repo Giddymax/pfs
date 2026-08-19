@@ -11,7 +11,6 @@ import type { Account, Client, ProductType } from "@/lib/types";
 const PRODUCT_LABEL: Record<ProductType, string> = {
   savings: "Savings",
   susu: "Daily Susu",
-  fixed_deposit: "Fixed Deposits",
 };
 
 function fullDate(value: string | null) {
@@ -25,7 +24,6 @@ export function PrintRegistrationCardButton({
   agentName,
   processedBy,
   registeredBy,
-  fdNumber,
   companyPhone,
   isMigrated,
 }: {
@@ -34,7 +32,6 @@ export function PrintRegistrationCardButton({
   agentName?: string | null;
   processedBy?: string | null;
   registeredBy?: string | null;
-  fdNumber?: string | null;
   companyPhone?: string | null;
   isMigrated?: boolean;
 }) {
@@ -156,13 +153,6 @@ export function PrintRegistrationCardButton({
                   {account.product_type === "susu" && (
                     <Field label="Daily contribution" value={account.daily_contribution_amount != null ? formatGHS(account.daily_contribution_amount) : "—"} />
                   )}
-                  {account.product_type === "fixed_deposit" && (
-                    <>
-                      <Field label="Principal amount" value={account.principal_amount != null ? formatGHS(account.principal_amount) : "—"} />
-                      <Field label="Tenor" value={account.tenor_days != null ? `${account.tenor_days} days` : "—"} />
-                      <Field label="Maturity date" value={account.maturity_date ? fullDate(account.maturity_date) : "—"} />
-                    </>
-                  )}
                 </div>
               ) : (
                 <p className="text-[13px] text-[#0A2240]/45">No account opened at registration.</p>
@@ -174,7 +164,7 @@ export function PrintRegistrationCardButton({
               <p className="mb-3 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-[#0A2240]/45">Office use</p>
               <div className="grid grid-cols-1 gap-x-8 gap-y-3.5 sm:grid-cols-2">
                 <Field label="Account name" value={client.full_name} />
-                <Field label="Account number" value={account?.account_number ?? fdNumber ?? "—"} />
+                <Field label="Account number" value={account?.account_number ?? "—"} />
                 <Field label="Branch" value={account?.branch ?? "Asuom"} />
                 <Field label="Registered by" value={registeredBy ?? "—"} />
               </div>

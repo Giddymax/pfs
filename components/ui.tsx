@@ -50,29 +50,35 @@ export function StatCard({
   hint,
   icon,
   highlight = false,
+  size = "md",
 }: {
   label: string;
   value: string;
   hint?: string;
   icon?: React.ReactNode;
   highlight?: boolean;
+  /** "sm" is a compact variant for pages with many cards in a row — everything else defaults to "md" (unchanged). */
+  size?: "md" | "sm";
 }) {
+  const sm = size === "sm";
   return (
     <div className={clsx(
-      "min-w-0 rounded-xl border px-5 py-4 shadow-sm",
+      "min-w-0 rounded-xl border shadow-sm",
+      sm ? "px-3.5 py-3" : "px-5 py-4",
       highlight ? "border-[#1F6E4A]/25 bg-[#1F6E4A]/[0.04]" : "border-[#0033AA]/8 bg-white"
     )}>
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-[#0A2240]/45">{label}</p>
+      <div className={clsx("flex items-center justify-between gap-2", sm ? "mb-1.5" : "mb-3")}>
+        <p className={clsx("font-medium uppercase tracking-[0.12em] text-[#0A2240]/45", sm ? "text-[10.5px]" : "text-[12px]")}>{label}</p>
         {icon && (
           <span className={clsx("shrink-0", highlight ? "text-[#1F6E4A]" : "text-[#0062E1]")}>{icon}</span>
         )}
       </div>
       <p className={clsx(
-        "break-words text-[1.25rem] font-semibold tracking-tight sm:text-[1.6rem]",
+        "break-words font-semibold tracking-tight",
+        sm ? "text-[1rem] sm:text-[1.2rem]" : "text-[1.25rem] sm:text-[1.6rem]",
         highlight ? "text-[#1F6E4A]" : "text-[#0033AA]"
       )}>{value}</p>
-      {hint && <p className="mt-1 text-[12px] text-[#0A2240]/45">{hint}</p>}
+      {hint && <p className={clsx("text-[#0A2240]/45", sm ? "mt-0.5 text-[10.5px]" : "mt-1 text-[12px]")}>{hint}</p>}
     </div>
   );
 }
@@ -129,7 +135,6 @@ export function ClientStatusBadge({ status }: { status: ClientStatus }) {
 const ACCOUNT_STATUS_STYLES: Record<AccountStatus, string> = {
   active: "bg-[#1F6E4A]/10 text-[#1F6E4A] border-[#1F6E4A]/25",
   dormant: "bg-[#0062E1]/12 text-[#0A4DA6] border-[#0062E1]/25",
-  matured: "bg-[#0033AA]/8 text-[#0033AA] border-[#0033AA]/20",
   closed: "bg-[#0A2240]/8 text-[#0A2240]/45 border-[#0A2240]/15",
 };
 

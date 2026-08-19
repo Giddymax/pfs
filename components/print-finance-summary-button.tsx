@@ -21,46 +21,28 @@ interface Expenditure {
   notes: string | null;
 }
 
-type InvestmentStatus = "active" | "returned";
-
-interface Investment {
-  id: string;
-  title: string;
-  investment_type: string;
-  amount_invested: number;
-  revenue_made: number;
-  status: InvestmentStatus;
-  date: string;
-  return_date: string | null;
-  notes: string | null;
-}
-
 export function PrintFinanceSummaryButton({
   totalRevenue,
+  fundBalance,
+  revenueAvailable,
+  fundAccountNumber,
   totalExpenditure,
-  netBalance,
   revenueItems,
   expenditures,
-  investments,
-  totalInvested,
-  activeInvestmentTotal,
-  investmentDeductedFromRevenue,
-  investmentDeductedFromAccount,
-  investmentRevenue,
   printedBy,
   companyPhone,
 }: {
   totalRevenue: number;
+  // PFS Consolidated Fund's live balance — see
+  // 0074_consolidated_fund_finance_link.sql. Replaces the old "Net Balance
+  // (Revenue - Expenditure)" figure this report used to compute
+  // separately; the fund's balance now is that figure, by construction.
+  fundBalance: number;
+  revenueAvailable: number;
+  fundAccountNumber?: string | null;
   totalExpenditure: number;
-  netBalance: number;
   revenueItems: RevenueItem[];
   expenditures: Expenditure[];
-  investments: Investment[];
-  totalInvested: number;
-  activeInvestmentTotal: number;
-  investmentDeductedFromRevenue: number;
-  investmentDeductedFromAccount: number;
-  investmentRevenue: number;
   printedBy?: string | null;
   companyPhone?: string | null;
 }) {
@@ -72,7 +54,7 @@ export function PrintFinanceSummaryButton({
     setOpen(true);
   }
 
-  const surplus = netBalance >= 0;
+  const surplus = fundBalance >= 0;
 
   return (
     <>
@@ -140,17 +122,16 @@ export function PrintFinanceSummaryButton({
               COMPANY FINANCE SUMMARY
             </p>
 
-            <div className="mb-6 grid grid-cols-5 gap-3">
+            <div className="mb-6 grid grid-cols-4 gap-3">
               <SummaryBox label="Total Revenue" value={formatGHS(totalRevenue)} color="#15803D" />
-              <SummaryBox label="Returned Investment Revenue" value={formatGHS(investmentRevenue)} color="#1F6E4A" />
-              <SummaryBox label="Active Investments" value={formatGHS(activeInvestmentTotal)} color="#0D9488" sub={`${formatGHS(investmentDeductedFromRevenue)} from revenue`} />
-              <SummaryBox label="Account Balance Used" value={formatGHS(investmentDeductedFromAccount)} color="#D97706" />
               <SummaryBox
-                label="Net Balance"
-                value={(surplus ? "" : "-") + formatGHS(Math.abs(netBalance))}
-                color={surplus ? "#0033AA" : "#7C3AED"}
-                sub={surplus ? "Surplus" : "Deficit"}
+                label="PFS Consolidated Fund"
+                value={formatGHS(Math.abs(fundBalance))}
+                color="#7C3AED"
+                sub={fundAccountNumber ? `Account ${fundAccountNumber}` : undefined}
               />
+              <SummaryBox label="Fund — Amount Available" value={formatGHS(revenueAvailable)} color="#0033AA" />
+              <SummaryBox label="Total Expenditure" value={formatGHS(totalExpenditure)} color="#B3432B" />
             </div>
 
             <Section title="Revenue Breakdown">
@@ -174,15 +155,6 @@ export function PrintFinanceSummaryButton({
                       </td>
                     </tr>
                   ))}
-                  {investmentDeductedFromAccount > 0 && (
-                    <tr>
-                      <td className="px-4 py-2.5 text-[#0A2240]/70">Taken from account balance</td>
-                      <td className="px-4 py-2.5 text-right tabular-nums font-medium text-[#D97706]">
-                        {formatGHS(investmentDeductedFromAccount)}
-                      </td>
-                      <td className="px-4 py-2.5 text-right tabular-nums text-[#0A2240]/50">-</td>
-                    </tr>
-                  )}
                 </tbody>
                 <tfoot>
                   <tr className="border-t-2 border-[#0A2240]/15 bg-[#0A2240]/[0.03]">
@@ -194,61 +166,6 @@ export function PrintFinanceSummaryButton({
                   </tr>
                 </tfoot>
               </table>
-            </Section>
-
-            <Section title={`Investment Log (${investments.length} entr${investments.length === 1 ? "y" : "ies"})`}>
-              {investments.length === 0 ? (
-                <p className="px-4 py-4 text-[12px] text-[#0A2240]/45">No investments recorded.</p>
-              ) : (
-                <table className="w-full text-left text-[12px]">
-                  <thead>
-                    <tr className="border-b border-[#0A2240]/10 bg-[#0A2240]/[0.04]">
-                      <th className="px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#0A2240]/50">Date</th>
-                      <th className="px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#0A2240]/50">Status</th>
-                      <th className="px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#0A2240]/50">Investment</th>
-                      <th className="px-4 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.1em] text-[#0A2240]/50">Invested</th>
-                      <th className="px-4 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.1em] text-[#0A2240]/50">Revenue</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#0A2240]/6">
-                    {investments.map((investment) => (
-                      <tr key={investment.id}>
-                        <td className="whitespace-nowrap px-4 py-2.5 text-[#0A2240]/60">
-                          {formatDate(investment.date)}
-                        </td>
-                        <td className="px-4 py-2.5 text-[#0A2240]/70">
-                          {investment.status === "returned" ? "Returned" : "Active"}
-                          {investment.return_date && <p className="text-[11px] text-[#0A2240]/45">{formatDate(investment.return_date)}</p>}
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <p className="font-medium text-[#0A2240]">{investment.title}</p>
-                          <p className="text-[11px] text-[#0A2240]/45">{investment.investment_type}</p>
-                          {investment.notes && (
-                            <p className="text-[11px] text-[#0A2240]/45">{investment.notes}</p>
-                          )}
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-2.5 text-right tabular-nums font-medium text-[#0A2240]">
-                          {formatGHS(investment.amount_invested)}
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-2.5 text-right tabular-nums font-medium text-[#15803D]">
-                          {formatGHS(investment.revenue_made)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr className="border-t-2 border-[#0A2240]/15 bg-[#0A2240]/[0.03]">
-                      <td colSpan={3} className="px-4 py-2.5 text-[12px] font-bold text-[#0A2240]">Total Investments</td>
-                      <td className="px-4 py-2.5 text-right text-[13px] font-bold tabular-nums text-[#0A2240]">
-                        {formatGHS(totalInvested)}
-                      </td>
-                      <td className="px-4 py-2.5 text-right text-[13px] font-bold tabular-nums text-[#15803D]">
-                        {formatGHS(investmentRevenue)}
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
-              )}
             </Section>
 
             <Section title={`Expenditure Log (${expenditures.length} entr${expenditures.length === 1 ? "y" : "ies"})`}>
@@ -299,14 +216,14 @@ export function PrintFinanceSummaryButton({
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0A2240]/50">
-                    Net Balance (Revenue - Expenditure)
+                    PFS Consolidated Fund Balance
                   </p>
                   <p className="mt-1 text-[11.5px] text-[#0A2240]/55">
-                    {formatGHS(totalRevenue)} - {formatGHS(totalExpenditure)} = {surplus ? "Surplus" : "Deficit"} of {formatGHS(Math.abs(netBalance))}
+                    Revenue swept in via Deposit Revenue, minus every expenditure (a real withdrawal from the fund) — {surplus ? "surplus" : "deficit"} of {formatGHS(Math.abs(fundBalance))}
                   </p>
                 </div>
                 <p className={`text-[1.5rem] font-bold tabular-nums ${surplus ? "text-[#15803D]" : "text-[#B3432B]"}`}>
-                  {surplus ? "" : "-"}{formatGHS(Math.abs(netBalance))}
+                  {surplus ? "" : "-"}{formatGHS(Math.abs(fundBalance))}
                 </p>
               </div>
             </div>

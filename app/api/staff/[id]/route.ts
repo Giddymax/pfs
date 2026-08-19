@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { Profile } from "@/lib/types";
+import type { Profile, RestrictablePage } from "@/lib/types";
+
+const VALID_RESTRICTABLE_PAGES: RestrictablePage[] = ["overview", "settings", "staff_performance", "momo_performance"];
 
 async function requireAdmin(supabase: Awaited<ReturnType<typeof createClient>>) {
   const {
@@ -21,22 +23,44 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const { user, error } = await requireAdmin(supabase);
   if (error) return error;
 
-  const { full_name, role } = await request.json();
+  const { full_name, role, email, restricted_pages } = await request.json();
 
-  if (!full_name && !role) {
-    return NextResponse.json({ error: "Provide at least full_name or role to update" }, { status: 400 });
+  if (!full_name && !role && !email && restricted_pages === undefined) {
+    return NextResponse.json({ error: "Provide at least full_name, role, email, or restricted_pages to update" }, { status: 400 });
   }
   if (role && !["admin", "staff"].includes(role)) {
     return NextResponse.json({ error: "role must be 'admin' or 'staff'" }, { status: 400 });
   }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return NextResponse.json({ error: "Enter a valid email address" }, { status: 400 });
+  }
+  if (
+    restricted_pages !== undefined &&
+    (!Array.isArray(restricted_pages) || !restricted_pages.every((p) => VALID_RESTRICTABLE_PAGES.includes(p)))
+  ) {
+    return NextResponse.json({ error: "restricted_pages contains an invalid page key" }, { status: 400 });
+  }
 
   const admin = createAdminClient();
-  const update: Record<string, string> = {};
+
+  // The login credential lives on the auth user, not the profiles row — an
+  // email change has to update both, or the account would show a new email
+  // in the staff list while still requiring the old one to sign in.
+  if (email) {
+    const { error: authUpdateError } = await admin.auth.admin.updateUserById(id, { email });
+    if (authUpdateError) return NextResponse.json({ error: authUpdateError.message }, { status: 400 });
+  }
+
+  const update: Record<string, string | string[]> = {};
   if (full_name) update.full_name = full_name;
   if (role) update.role = role;
+  if (email) update.email = email;
+  if (restricted_pages !== undefined) update.restricted_pages = restricted_pages;
 
-  const { error: updateError } = await admin.from("profiles").update(update).eq("id", id);
-  if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
+  if (Object.keys(update).length > 0) {
+    const { error: updateError } = await admin.from("profiles").update(update).eq("id", id);
+    if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
+  }
 
   return NextResponse.json({ success: true });
 }
