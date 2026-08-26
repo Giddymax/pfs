@@ -71,7 +71,7 @@ export function RecordRevenueDepositButton({ revenueAvailable }: { revenueAvaila
               <div>
                 <h3 className="text-[15px] font-semibold text-[#7C3AED]">Deposit revenue</h3>
                 <p className="mt-0.5 text-[12.5px] text-[#0A2240]/45">
-                  Sweeps an amount out of Revenue Available into the PFS Consolidated Fund — the only way money can enter that account. Can only be recorded between 19:00 and 23:30 each day.
+                  Sweeps an amount out of Revenue Available into the PFS Consolidated Fund — the only way money can enter that account. Can only be recorded between 17:20 and 23:30 each day.
                 </p>
               </div>
               <button
