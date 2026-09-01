@@ -10,6 +10,7 @@ import { getSettings } from "@/lib/settings/cache";
 import { computeAccountSummary } from "@/lib/finance/account-summary";
 import { PrintAccountListButton } from "@/components/print-account-list-button";
 import { ClientPhotoViewer } from "@/components/client-photo-viewer";
+import { WithdrawButtonModal } from "@/components/withdraw-button-modal";
 import type { Account, ProductType } from "@/lib/types";
 
 const DEFAULT_REVENUE_COMPONENTS = {
@@ -128,6 +129,7 @@ export async function AccountTypeList({
         description={product.description}
         action={
           <div className="flex flex-wrap items-center gap-2">
+            {product.product_type === "susu" && <WithdrawButtonModal />}
             <ExportCsvButton
               endpoint="/api/accounts/export"
               filename={`${slug}-accounts.xlsx`}
