@@ -5,7 +5,7 @@ import type { Client } from "@/lib/types";
 
 const ACCOUNT_TYPE_LABEL: Record<string, string> = {
   savings: "Savings",
-  susu: "Daily Susu",
+  susu: "Savings(Daily)",
 };
 
 export async function GET() {

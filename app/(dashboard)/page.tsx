@@ -157,7 +157,7 @@ export default async function OverviewPage() {
         )}
         {kpi.total_susu.visible && (
           <SummaryCard
-            label="Total Daily Susu"
+            label="Total Savings(Daily)"
             value={formatGHS(totalSusu)}
             hint="Total contributions — no withdrawals or deductions"
             tone="green"
@@ -240,7 +240,7 @@ export default async function OverviewPage() {
           <SummaryCard
             label="Combined Account Total"
             value={formatGHS(combinedTotal)}
-            hint={`Savings ${formatGHS(totalSavings)} + Susu ${formatGHS(totalSusu)} — revenue counts once it's swept into the PFS Consolidated Fund`}
+            hint={`Savings ${formatGHS(totalSavings)} + Savings(Daily) ${formatGHS(totalSusu)} — revenue counts once it's swept into the PFS Consolidated Fund`}
             tone="orange"
             icon={<Layers size={17} />}
           />

@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 -- Two bugs found while compiling the calculation-logic reference doc, both
 -- in compute_period_summary() (Transaction Summary page) and
 -- list_daily_account_summary() (Account Summary page) — neither has been
@@ -38,7 +36,11 @@
 --
 -- Return signatures are unchanged from 0071, so plain create-or-replace is
 -- enough — no drop needed.
->>>>>>> 26d6817046175dac73ce0bf6a2914940e53a4afa
+--
+-- NOTE: this file was committed to main with unresolved git merge-conflict
+-- markers (<<<<<<< HEAD / ======= / >>>>>>>) wrapping this comment block,
+-- which would have made the whole file invalid SQL. Re-saved clean here —
+-- see 0083_susu_savings_daily_update.sql for why this surfaced.
 
 create or replace function compute_period_summary(p_from date, p_to date)
 returns table (

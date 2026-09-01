@@ -5,7 +5,7 @@ import type { Account, Client, ProductType } from "@/lib/types";
 
 const PRODUCT_LABEL: Record<ProductType, string> = {
   savings: "Savings",
-  susu: "Daily Susu",
+  susu: "Savings(Daily)",
 };
 
 export async function GET(request: Request) {
@@ -43,7 +43,7 @@ export async function GET(request: Request) {
   }));
 
   return xlsxResponse(rows, {
-    sheetName: product === "savings" ? "Savings Accounts" : "Susu Accounts",
+    sheetName: product === "savings" ? "Savings Accounts" : "Savings(Daily) Accounts",
     filename: `${product}-accounts-${new Date().toISOString().slice(0, 10)}.xlsx`,
     colWidths: product === "susu"
       ? [24, 12, 14, 16, 14, 14, 16, 16, 18, 10, 14, 14]

@@ -27,7 +27,7 @@ import type { Account, Client, Profile, SusuClaim, SusuPayment, Transaction } fr
 
 const PRODUCT_LABEL: Record<Account["product_type"], string> = {
   savings: "Savings account",
-  susu: "Daily susu account",
+  susu: "Savings(Daily) account",
 };
 
 const DEFAULT_REVENUE_COMPONENTS = {

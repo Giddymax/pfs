@@ -30,7 +30,7 @@ interface WithdrawalContext {
 
 const PRODUCT_LABEL: Record<AccountResult["product_type"], string> = {
   savings: "Savings",
-  susu: "Daily Susu",
+  susu: "Savings(Daily)",
 };
 
 const PRODUCT_ICON: Record<AccountResult["product_type"], typeof PiggyBank> = {

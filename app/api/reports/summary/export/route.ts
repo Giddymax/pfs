@@ -24,7 +24,7 @@ interface PeriodTransaction {
 
 const PRODUCT_LABEL: Record<PeriodTransaction["product_type"], string> = {
   savings: "Savings",
-  susu: "Daily Susu",
+  susu: "Savings(Daily)",
 };
 
 export async function GET(request: Request) {

@@ -6,11 +6,14 @@ export interface SusuQualification {
   claims: SusuClaim[];
   // The cycle currently in progress, if any.
   activeCycle: SusuCycle | null;
-  // A completed, unclaimed cycle the client can draw a normal (commission-
-  // exempt) withdrawal against.
+  // A completed, unclaimed cycle the client can draw a normal withdrawal
+  // against (still subject to the standard one-day-contribution commission
+  // — susu is no longer commission-exempt).
   normalCycle: SusuCycle | null;
-  // The in-progress cycle an emergency (early) withdrawal would apply to —
-  // null once one has already been claimed/paid for that cycle.
+  // The cycle an emergency (early) withdrawal would apply to. No longer
+  // requires an in-progress cycle — falls back to the most recent cycle in
+  // any status, as long as it doesn't already have a live/paid emergency
+  // claim against it.
   emergencyCycle: SusuCycle | null;
   // True only when a complete, unclaimed cycle exists and the account still
   // holds a positive balance.
@@ -42,9 +45,13 @@ export async function computeSusuQualification(
     claims.filter((c) => liveClaimStatuses.includes(c.status) || c.status === "paid").map((c) => c.cycle_id)
   );
   const normalCycle = cycles.find((c) => c.status === "complete" && !claimedCycleIds.has(c.id)) ?? null;
+  // No cycle-status constraint — the most recent cycle (any status)
+  // qualifies for an emergency claim as long as it hasn't already got a
+  // live or paid one against it.
+  const mostRecentCycle = cycles[0] ?? null;
   const emergencyCycle =
-    activeCycle && !claims.some((c) => c.cycle_id === activeCycle.id && c.claim_type === "emergency" && c.status !== "rejected")
-      ? activeCycle
+    mostRecentCycle && !claims.some((c) => c.cycle_id === mostRecentCycle.id && c.claim_type === "emergency" && c.status !== "rejected")
+      ? mostRecentCycle
       : null;
 
   // Qualified only when a complete unclaimed cycle exists (full 31-day cycle finished)

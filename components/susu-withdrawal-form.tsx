@@ -76,8 +76,8 @@ export function SusuWithdrawalForm({
       setError("Enter an amount greater than zero.");
       return;
     }
-    if (amountNum > availableBalance) {
-      setError("That exceeds the account's available balance.");
+    if (amountNum > availableBalance - companyFee) {
+      setError(`That exceeds what's available after the ${formatGHS(companyFee)} commission (1 day's contribution).`);
       return;
     }
     if (!validateProxy()) return;
@@ -168,8 +168,8 @@ export function SusuWithdrawalForm({
                 </h3>
                 <p className="mt-0.5 text-[12.5px] text-[#0A2240]/45">
                   {showEmergencyFlow
-                    ? "The cycle is still in progress. The company fee (1 day's contribution) is deducted automatically."
-                    : "The 30-day cycle is complete. Drawn against the available balance — exempt from commission."}
+                    ? "The company fee (1 day's contribution) is deducted automatically."
+                    : "Drawn against the available balance. A commission of 1 day's contribution applies, as on every susu withdrawal."}
                 </p>
               </div>
               <button type="button" aria-label="Close" onClick={close} className="text-[#0A2240]/35 hover:text-[#0A2240]">
@@ -249,7 +249,12 @@ export function SusuWithdrawalForm({
                 )}
 
                 <label className="block">
-                  <span className="mb-1.5 block text-[12.5px] font-medium text-[#0033AA]/75">Amount (GHS)</span>
+                  <span className="mb-1.5 block text-[12.5px] font-medium text-[#0033AA]/75">
+                    Amount (GHS)
+                    <span className="ml-1.5 font-normal text-[#0A2240]/40">
+                      · Max {formatGHS(Math.max(availableBalance - companyFee, 0))} after commission
+                    </span>
+                  </span>
                   <input
                     type="number"
                     min="0"
@@ -260,6 +265,13 @@ export function SusuWithdrawalForm({
                     className="w-full rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
                   />
                 </label>
+
+                <div className="rounded-lg border border-[#0033AA]/10 bg-[#0033AA]/[0.02] px-4 py-3 text-[13px]">
+                  <div className="flex items-center justify-between text-[#963522]">
+                    <span>Commission (1 day&apos;s contribution)</span>
+                    <span className="font-medium">− {formatGHS(companyFee)}</span>
+                  </div>
+                </div>
 
                 <ProxyFields
                   isClient={isClient}

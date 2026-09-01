@@ -212,7 +212,7 @@ export function RecordTransactionForm({
                     className="w-full rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
                   />
                   <p className="mt-1 text-[11.5px] text-[#0A2240]/45">
-                    Entered manually — leave at 0 if no commission applies. Susu withdrawals are always exempt.
+                    Entered manually — leave at 0 if no commission applies. Susu withdrawals ignore this field; their commission is always charged automatically as one day&apos;s contribution.
                   </p>
                 </label>
               )}

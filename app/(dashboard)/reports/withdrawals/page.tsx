@@ -145,9 +145,11 @@ export default async function WithdrawalsPage({
       .reduce((s, t) => s + t.amount, 0)
   );
   // Commission mirrors the app-wide definition (lib/finance/account-summary.ts):
-  // susu withdrawals are commission-exempt by construction (record_withdrawal
-  // hard-codes fee=0 for susu); any fee on a susu row is an early-withdrawal
-  // penalty, not a commission, so only savings-account fees count here.
+  // every susu withdrawal charges a fee too now (always one day's
+  // contribution — record_withdrawal), but it's still not "commission" in
+  // this report's sense — it's grouped with the other susu-cycle fees
+  // (day-31, early-withdrawal penalties) instead, so only savings-account
+  // fees count here.
   const withdrawalCommission = round2(
     activeWithdrawals.filter((t) => t.product_type === "savings").reduce((s, t) => s + t.fee, 0)
   );
@@ -277,13 +279,13 @@ export default async function WithdrawalsPage({
         <StatCard
           label="Withdrawal Commission"
           value={formatGHS(withdrawalCommission)}
-          hint="Savings withdrawals only — susu is commission-exempt"
+          hint="Savings withdrawals only"
           icon={<Percent size={16} />}
         />
         <StatCard
           label="Susu Fees"
           value={formatGHS(susuFees)}
-          hint="Day-31 cycle fee + early-withdrawal + paid emergency penalties"
+          hint="Day-31 cycle fee + every withdrawal's 1-day commission"
           icon={<Coins size={16} />}
         />
         <StatCard

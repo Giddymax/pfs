@@ -34,7 +34,7 @@ export default async function SusuClaimsPage() {
     <div>
       <PageHeader
         back="/"
-        eyebrow="Daily Susu"
+        eyebrow="Savings(Daily)"
         title="Claims worklist"
         description="Emergency claims requested mid-cycle require admin review before payout. Normal claims are auto-approved and only need to be paid out."
         action={<ExportCsvButton endpoint="/api/susu/claims/export" filename="susu-claims.xlsx" label="Export Excel" />}

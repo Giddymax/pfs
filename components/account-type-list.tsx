@@ -29,7 +29,7 @@ const PRODUCT_BY_SLUG: Record<string, { product_type: ProductType; label: string
   },
   susu: {
     product_type: "susu",
-    label: "Daily Susu accounts",
+    label: "Savings(Daily) accounts",
     description: "Clients on a daily collector-based susu cycle.",
   },
 };

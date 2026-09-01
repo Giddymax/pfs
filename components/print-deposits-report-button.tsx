@@ -114,7 +114,7 @@ export function PrintDepositsReportButton({
                 <SummaryBox label="Account Balance" value={formatGHS(accountBalance)} color="#0033AA" />
                 <SummaryBox label="Total Deposits" value={formatGHS(totalDeposits)} color="#15803D" />
                 <SummaryBox label="Savings Deposits" value={formatGHS(savingsDeposits)} color="#EA580C" />
-                <SummaryBox label="Daily Susu Deposits" value={formatGHS(susuDeposits)} color="#0284C7" />
+                <SummaryBox label="Savings(Daily) Deposits" value={formatGHS(susuDeposits)} color="#0284C7" />
               </div>
 
               <div className="mb-5">

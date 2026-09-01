@@ -204,7 +204,7 @@ export default async function SummaryPage({
                 color="text-[#1F6E4A]"
               />
               <MetricRow
-                label="Deposits (Susu)"
+                label="Deposits (Savings(Daily))"
                 amount={susuDepositTotal}
                 count={susuDeposits.length}
                 sign="+"

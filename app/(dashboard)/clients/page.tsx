@@ -14,7 +14,7 @@ import type { Client, Account, ProductType, Profile } from "@/lib/types";
 
 const PRODUCT_LABEL: Record<ProductType, string> = {
   savings: "Savings",
-  susu: "Daily Susu",
+  susu: "Savings(Daily)",
 };
 
 const PRODUCT_ICON: Record<ProductType, typeof PiggyBank> = {
@@ -31,7 +31,7 @@ const STATUS_OPTIONS: FilterOption[] = [
 
 const ACCOUNT_OPTIONS: FilterOption[] = [
   { value: "savings", label: "Savings" },
-  { value: "susu", label: "Daily Susu" },
+  { value: "susu", label: "Savings(Daily)" },
 ];
 
 const MIGRATED_OPTIONS: FilterOption[] = [

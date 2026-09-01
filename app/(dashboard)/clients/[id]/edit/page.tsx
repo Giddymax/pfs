@@ -349,7 +349,7 @@ export default function EditClientPage({ params }: { params: Promise<{ id: strin
           <section className="rounded-xl border border-[#0033AA]/8 bg-white p-6">
             <h2 className="mb-1 text-[14px] font-semibold text-[#0033AA]">Deposit accounts</h2>
             <p className="mb-4 text-[12.5px] text-[#0A2240]/50">
-              Change the account type for a Savings or Daily Susu account. The account keeps its balance and number, just with a new prefix.
+              Change the account type for a Savings or Savings(Daily) account. The account keeps its balance and number, just with a new prefix.
             </p>
             <div className="space-y-5">
               {accounts.map((a) => (
@@ -363,7 +363,7 @@ export default function EditClientPage({ params }: { params: Promise<{ id: strin
                     <Field label="Account type">
                       <Select value={a.type} onChange={(v) => updateAccountType(a.id, v as ProductType)}>
                         <option value="savings">Savings</option>
-                        <option value="susu">Daily Susu</option>
+                        <option value="susu">Savings(Daily)</option>
                       </Select>
                     </Field>
                     {a.type === "susu" && (
@@ -378,7 +378,7 @@ export default function EditClientPage({ params }: { params: Promise<{ id: strin
                   </div>
                   {a.type !== a.original_type && (
                     <p className="mt-3 text-[12px] font-medium text-[#0062E1]">
-                      Will convert from {a.original_type === "savings" ? "Savings" : "Daily Susu"} to {a.type === "savings" ? "Savings" : "Daily Susu"} when you save.
+                      Will convert from {a.original_type === "savings" ? "Savings" : "Savings(Daily)"} to {a.type === "savings" ? "Savings" : "Savings(Daily)"} when you save.
                     </p>
                   )}
                 </div>

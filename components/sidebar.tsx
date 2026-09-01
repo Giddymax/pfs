@@ -120,7 +120,7 @@ const ACCOUNT_NAV = [
   },
   {
     href: "/accounts/susu",
-    label: "Daily Susu",
+    label: "Savings(Daily)",
     icon: Coins,
     active: "bg-[#0284C7]/15 text-[#FFFFFF]",
     activeIcon: "text-[#0284C7]",

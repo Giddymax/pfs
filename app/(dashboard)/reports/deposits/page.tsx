@@ -189,7 +189,7 @@ export default async function DepositsPage({
           icon={<PiggyBank size={16} />}
         />
         <StatCard
-          label="Daily Susu deposits"
+          label="Savings(Daily) deposits"
           value={formatGHS(susuDeposits)}
           hint="Susu accounts only"
           icon={<Coins size={16} />}

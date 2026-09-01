@@ -56,7 +56,7 @@ export function PrintAccountListButton({
   }
 
   const isSavings = productType === "savings";
-  const title = isSavings ? "Savings Accounts Report" : "Daily Susu Accounts Report";
+  const title = isSavings ? "Savings Accounts Report" : "Savings(Daily) Accounts Report";
 
   function detailValue(account: AccountRow) {
     if (account.product_type === "savings") {

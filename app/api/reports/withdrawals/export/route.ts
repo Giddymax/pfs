@@ -24,7 +24,7 @@ interface PeriodTransaction {
 
 const PRODUCT_LABEL: Record<PeriodTransaction["product_type"], string> = {
   savings: "Savings",
-  susu: "Daily Susu",
+  susu: "Savings(Daily)",
 };
 
 // Mirrors the Withdrawals report page's own search box exactly, so an admin

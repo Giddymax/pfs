@@ -415,7 +415,7 @@ export default function NewClientPage() {
               >
                 <option value="">Select account type</option>
                 <option value="savings">Savings</option>
-                <option value="susu">Daily Susu</option>
+                <option value="susu">Savings(Daily)</option>
               </Select>
             </Field>
 

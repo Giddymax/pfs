@@ -43,20 +43,22 @@ export async function POST(request: Request) {
 
   const daily = account.daily_contribution_amount ?? 0;
   if (daily <= 0) return NextResponse.json({ error: "No daily contribution amount set" }, { status: 400 });
-  if (account.balance <= daily) {
-    return NextResponse.json({ error: "Balance is too low for an emergency withdrawal after the company fee" }, { status: 400 });
-  }
 
-  // Fetch the active cycle
+  // No balance/cycle-status constraint on an emergency withdrawal — it can
+  // always be processed. The company fee is capped at whatever balance is
+  // actually available, so the account never goes negative even when the
+  // balance is below (or below zero away from) a full day's contribution.
+  const companyFee = Math.min(daily, account.balance);
+  const payout = Math.max(account.balance - companyFee, 0);
+
+  // Fetch the active cycle, if any — an emergency withdrawal no longer
+  // requires one to exist.
   const { data: activeCycle } = await admin
     .from("susu_cycles")
     .select("id, total_collected, cycle_number")
     .eq("account_id", accountId)
     .eq("status", "in_progress")
     .maybeSingle<{ id: string; total_collected: number; cycle_number: number }>();
-
-  const companyFee = daily;
-  const payout = account.balance - companyFee;
 
   // Record the withdrawal transaction (payout to client)
   const { data: txn, error: txnError } = await admin

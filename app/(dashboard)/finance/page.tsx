@@ -180,7 +180,7 @@ export default async function FinancePage() {
             valueColor="text-[#15803D]"
           />
           <ProductRevenueCard
-            label="Daily Susu"
+            label="Savings(Daily)"
             sublabel="Susu fees"
             value={susuFees}
             accent="border-l-[#0891B2]"

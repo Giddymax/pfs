@@ -147,7 +147,7 @@ export default async function UpcomingPage() {
                     {a.client_full_name}
                   </Link>
                   <p className="text-[12px] text-[#0A2240]/45">
-                    {a.account_number} · {a.product_type === "savings" ? "Savings" : "Daily Susu"} · Balance as of {fmtDate(INTEREST_PERIOD_END)}: {formatGHS(a.reference_balance)}
+                    {a.account_number} · {a.product_type === "savings" ? "Savings" : "Savings(Daily)"} · Balance as of {fmtDate(INTEREST_PERIOD_END)}: {formatGHS(a.reference_balance)}
                   </p>
                 </div>
                 <DisburseInterestButton

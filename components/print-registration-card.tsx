@@ -10,7 +10,7 @@ import type { Account, Client, ProductType } from "@/lib/types";
 
 const PRODUCT_LABEL: Record<ProductType, string> = {
   savings: "Savings",
-  susu: "Daily Susu",
+  susu: "Savings(Daily)",
 };
 
 function fullDate(value: string | null) {
