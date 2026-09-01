@@ -12,18 +12,14 @@ import { PrintTransactionHistoryButton, type TxnWithAccount } from "@/components
 import { PrintAccountStatementButton } from "@/components/print-account-statement-button";
 import { ExportCsvButton } from "@/components/export-csv-button";
 import { SusuContributionForm } from "@/components/susu-contribution-form";
-import { SusuWithdrawalForm } from "@/components/susu-withdrawal-form";
-import { SusuClaimRequestButton } from "@/components/susu-claim-request-button";
-import { SusuClaimActions } from "@/components/susu-claim-actions";
 import { ResetSusuButton } from "@/components/reset-susu-button";
 import { ClearTransactionsButton } from "@/components/clear-transactions-button";
 import { ClientPhotoViewer } from "@/components/client-photo-viewer";
 import { RecordRevenueDepositButton } from "@/components/record-revenue-deposit-button";
 import { getSettings } from "@/lib/settings/cache";
 import { computeAccountSummary } from "@/lib/finance/account-summary";
-import { computeSusuQualification, type SusuQualification } from "@/lib/susu/qualification";
 import { formatGHS } from "@/lib/loan";
-import type { Account, Client, Profile, SusuClaim, SusuPayment, Transaction } from "@/lib/types";
+import type { Account, Client, Profile, SusuCycle, SusuPayment, Transaction } from "@/lib/types";
 
 const PRODUCT_LABEL: Record<Account["product_type"], string> = {
   savings: "Savings account",
@@ -78,22 +74,14 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
   })) as TxnWithAccount[];
   const isSusu = account.product_type === "susu";
 
-  let claims: SusuClaim[] = [];
   let payments: SusuPayment[] = [];
-  let activeCycle: SusuQualification["activeCycle"] = null;
-  let normalCycle: SusuQualification["normalCycle"] = null;
-  let emergencyCycle: SusuQualification["emergencyCycle"] = null;
-  let isQualifiedToWithdraw = false;
+  let activeCycle: SusuCycle | null = null;
   if (isSusu) {
-    const [qualification, { data: paymentRows }] = await Promise.all([
-      computeSusuQualification(supabase, id, account.balance),
+    const [{ data: cycleRows }, { data: paymentRows }] = await Promise.all([
+      supabase.from("susu_cycles").select("*").eq("account_id", id).eq("status", "in_progress").order("cycle_number", { ascending: false }).limit(1).returns<SusuCycle[]>(),
       supabase.from("susu_payments").select("*").eq("account_id", id).order("day_in_cycle", { ascending: false }).returns<SusuPayment[]>(),
     ]);
-    claims = qualification.claims;
-    activeCycle = qualification.activeCycle;
-    normalCycle = qualification.normalCycle;
-    emergencyCycle = qualification.emergencyCycle;
-    isQualifiedToWithdraw = qualification.isQualified;
+    activeCycle = cycleRows?.[0] ?? null;
     payments = paymentRows ?? [];
   }
 
@@ -104,15 +92,7 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
   // The full cycle is 31 days — day 31's contribution becomes the company fee
   const CLIENT_DAYS = 31;
   const clientDayInCycle = Math.min(dayInCycle, CLIENT_DAYS);
-
-  // Susu KPI values — grounded in the live account balance so deletions always reflect correctly
   const daily = account.daily_contribution_amount ?? 0;
-  const companyFeeAmount = normalCycle
-    ? (normalCycle.company_fee ?? daily)
-    : account.balance >= daily ? daily : 0;
-  const clientCycleBalance = normalCycle
-    ? Math.max(normalCycle.total_collected - (normalCycle.company_fee ?? daily), 0)
-    : Math.max(account.balance - companyFeeAmount, 0);
 
   return (
     <div>
@@ -127,8 +107,7 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
               {isSusu ? (
                 <>
                   <SusuContributionForm accountId={account.id} dailyAmount={account.daily_contribution_amount} />
-                  {isAdmin && <SusuWithdrawalForm accountId={account.id} availableBalance={account.balance} dailyAmount={daily} isQualified={isQualifiedToWithdraw} emergencyCycle={emergencyCycle} />}
-                  <SusuClaimRequestButton accountId={account.id} normalCycle={normalCycle} emergencyCycle={emergencyCycle} />
+                  {isAdmin && <RecordTransactionForm accountId={account.id} kind="withdrawal" productType="susu" dailyContributionAmount={daily} />}
                   {isAdmin && <ResetSusuButton accountId={account.id} />}
                 </>
               ) : (
@@ -182,22 +161,6 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
         <StatCard label="Commission paid" value={formatGHS(account.comm)} icon={<ReceiptText size={16} />} />
       </div>
 
-      {isSusu && (activeCycle || normalCycle) && (
-        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <StatCard
-            label="Client cycle balance"
-            value={formatGHS(clientCycleBalance)}
-            icon={<PiggyBank size={16} />}
-            highlight={isQualifiedToWithdraw}
-          />
-          <StatCard
-            label="Company fee (cycle)"
-            value={formatGHS(companyFeeAmount)}
-            icon={<ReceiptText size={16} />}
-          />
-        </div>
-      )}
-
       {isSusu && (
         <Card className="mb-6">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#0033AA]/8 px-5 py-4">
@@ -213,16 +176,11 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
                   : ` · ${formatGHS(activeCycle.total_collected)} collected`}
               </span>
             )}
-            {normalCycle && !activeCycle && (
-              <span className="rounded-full border border-[#1F6E4A]/25 bg-[#1F6E4A]/10 px-2.5 py-1 text-[11.5px] font-semibold text-[#1F6E4A]">
-                Qualified to withdraw
-              </span>
-            )}
           </div>
 
           <div className="px-5 py-5">
             {activeCycle ? (
-              <div className="mb-5">
+              <div>
                 <div className="mb-1.5 h-2.5 w-full overflow-hidden rounded-full bg-[#0033AA]/8">
                   <div
                     className="susu-cycle-bar h-full rounded-full bg-[#0033AA] transition-[width]"
@@ -236,33 +194,8 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
                 </p>
               </div>
             ) : (
-              <p className="mb-5 text-[13.5px] text-[#0A2240]/50">No cycle has started on this account yet — record the first contribution to begin one.</p>
+              <p className="text-[13.5px] text-[#0A2240]/50">No cycle has started on this account yet — record the first contribution to begin one.</p>
             )}
-
-            <div className="border-t border-[#0033AA]/6 pt-4">
-              <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.1em] text-[#0A2240]/40">Claims</p>
-              {claims.length === 0 ? (
-                <p className="text-[13px] text-[#0A2240]/45">No claims have been requested on this account.</p>
-              ) : (
-                <ul className="space-y-2.5">
-                  {claims.map((claim) => (
-                    <li key={claim.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#0033AA]/8 bg-[#0033AA]/[0.02] px-4 py-3">
-                      <div className="min-w-0">
-                        <p className="flex items-center gap-2 text-[13.5px] font-medium text-[#0A2240]">
-                          <span className="capitalize">{claim.claim_type} claim</span>
-                          <SusuClaimStatusBadge status={claim.status} />
-                        </p>
-                        <p className="mt-0.5 text-[12px] text-[#0A2240]/45">
-                          {formatGHS(claim.amount)}
-                          {claim.penalty_amount > 0 ? ` · penalty ${formatGHS(claim.penalty_amount)}` : ""} · requested {formatDateTime(claim.requested_at)}
-                        </p>
-                      </div>
-                      <SusuClaimActions claim={claim} isAdmin={isAdmin} />
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
           </div>
         </Card>
       )}
@@ -395,28 +328,6 @@ function TransactionFlags({ txn }: { txn: Transaction }) {
     );
   }
   return null;
-}
-
-const SUSU_CLAIM_STATUS_STYLE: Record<SusuClaim["status"], string> = {
-  pending_admin: "border-[#B58A2A]/25 bg-[#B58A2A]/[0.08] text-[#8A6A1F]",
-  approved: "border-[#0062E1]/20 bg-[#0062E1]/[0.06] text-[#0A4DA6]",
-  paid: "border-[#1F6E4A]/20 bg-[#1F6E4A]/[0.06] text-[#1F6E4A]",
-  rejected: "border-[#B3432B]/20 bg-[#B3432B]/[0.06] text-[#963522]",
-};
-
-const SUSU_CLAIM_STATUS_LABEL: Record<SusuClaim["status"], string> = {
-  pending_admin: "Pending admin",
-  approved: "Approved",
-  paid: "Paid",
-  rejected: "Rejected",
-};
-
-function SusuClaimStatusBadge({ status }: { status: SusuClaim["status"] }) {
-  return (
-    <span className={`rounded-full border px-2 py-0.5 text-[10.5px] font-medium uppercase tracking-wide ${SUSU_CLAIM_STATUS_STYLE[status]}`}>
-      {SUSU_CLAIM_STATUS_LABEL[status]}
-    </span>
-  );
 }
 
 function DetailRow({ label, value }: { label: string; value: string }) {

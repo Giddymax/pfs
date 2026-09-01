@@ -24,13 +24,21 @@ const KIND_COPY: Record<TransactionKind, { label: string; cta: string; endpoint:
 export function RecordTransactionForm({
   accountId,
   kind,
+  productType = "savings",
+  dailyContributionAmount = 0,
 }: {
   accountId: string;
   kind: TransactionKind;
+  /** Susu withdrawals ignore the manually-entered commission field entirely
+   *  — record_withdrawal() always charges exactly one day's contribution
+   *  for a susu account, so the form shows that instead of an input. */
+  productType?: "savings" | "susu";
+  dailyContributionAmount?: number;
 }) {
   const router = useRouter();
   const copy = KIND_COPY[kind];
   const Icon = kind === "deposit" ? ArrowDownToLine : ArrowUpFromLine;
+  const isSusuWithdrawal = kind === "withdrawal" && productType === "susu";
 
   // Default to today's date and current time (updated when modal opens)
   function todayStr() { return new Date().toISOString().slice(0, 10); }
@@ -80,7 +88,7 @@ export function RecordTransactionForm({
       return;
     }
 
-    if (kind === "withdrawal" && feeNum < 0) {
+    if (kind === "withdrawal" && !isSusuWithdrawal && feeNum < 0) {
       setError("Commission cannot be negative.");
       return;
     }
@@ -119,7 +127,7 @@ export function RecordTransactionForm({
           amount: amountNum,
           notes: combinedNotes || null,
           created_at: customTs,
-          ...(kind === "withdrawal" ? { fee: feeNum } : {}),
+          ...(kind === "withdrawal" && !isSusuWithdrawal ? { fee: feeNum } : {}),
           ...(!isClient && kind === "withdrawal" ? { proxy_name: proxyName.trim() } : {}),
         }),
       });
@@ -199,7 +207,19 @@ export function RecordTransactionForm({
                 />
               </label>
 
-              {kind === "withdrawal" && (
+              {kind === "withdrawal" && isSusuWithdrawal && (
+                <div className="rounded-lg border border-[#0033AA]/10 bg-[#0033AA]/[0.02] px-4 py-3 text-[13px]">
+                  <div className="flex items-center justify-between text-[#963522]">
+                    <span>Commission (1 day&apos;s contribution)</span>
+                    <span className="font-medium">− GHS {dailyContributionAmount.toFixed(2)}</span>
+                  </div>
+                  <p className="mt-1.5 text-[11.5px] text-[#0A2240]/45">
+                    Charged automatically on every susu withdrawal — not editable.
+                  </p>
+                </div>
+              )}
+
+              {kind === "withdrawal" && !isSusuWithdrawal && (
                 <label className="block">
                   <span className="mb-1.5 block text-[12.5px] font-medium text-[#0033AA]/75">Commission (GHS)</span>
                   <input
@@ -212,7 +232,7 @@ export function RecordTransactionForm({
                     className="w-full rounded-md border border-[#0033AA]/15 bg-[#FFFFFF]/40 px-3.5 py-2.5 text-[14px] outline-none transition-colors focus:border-[#0062E1] focus:bg-white"
                   />
                   <p className="mt-1 text-[11.5px] text-[#0A2240]/45">
-                    Entered manually — leave at 0 if no commission applies. Susu withdrawals ignore this field; their commission is always charged automatically as one day&apos;s contribution.
+                    Entered manually — leave at 0 if no commission applies.
                   </p>
                 </label>
               )}

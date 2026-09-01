@@ -12,7 +12,6 @@ import {
   ShieldCheck,
   Settings,
   UsersRound,
-  ReceiptText,
   BarChart3,
   Building2,
   TrendingUp,
@@ -165,15 +164,6 @@ const ADMIN_NAV = [
     activeIcon: "text-[#FBBF24]",
     idle: "group text-[#FFFFFF] hover:bg-[#D97706]/15 hover:text-[#FFFFFF]",
     idleIcon: "text-[#FFFFFF] transition-colors group-hover:text-[#FBBF24]",
-  },
-  {
-    href: "/susu/claims",
-    label: "Susu Claims",
-    icon: ReceiptText,
-    active: "bg-[#B58A2A]/15 text-[#FFFFFF]",
-    activeIcon: "text-[#B58A2A]",
-    idle: "group text-[#FFFFFF] hover:bg-[#B58A2A]/15 hover:text-[#FFFFFF]",
-    idleIcon: "text-[#FFFFFF] transition-colors group-hover:text-[#B58A2A]",
   },
   {
     href: "/settings",

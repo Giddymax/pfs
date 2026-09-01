@@ -19,20 +19,8 @@ export const smsTemplates = {
   susuMultiDayPayment: (clientName: string, days: number, amountPerDay: number, total: number, balanceAfter: number) =>
     `DEPOSIT: ${clientName}, ${formatGHS(total)} susu received, covering ${days} days (${days} × ${formatGHS(amountPerDay)}). Bal: ${formatGHS(balanceAfter)}. Thank you.`,
 
-  susuWithdrawalRecorded: (clientName: string, amount: number, balanceAfter: number, proxyName?: string | null) =>
-    `WITHDRAWAL: ${clientName}, susu ${formatGHS(amount)} paid out. Bal: ${formatGHS(balanceAfter)}.${proxyName ? ` Withdrawn by: ${proxyName}.` : ""}`,
-
   susuDay31FeeTaken: (clientName: string, feeAmount: number, remainingClaimable: number) =>
-    `SUSU: ${clientName}, your 31-day cycle is complete. Company fee of ${formatGHS(feeAmount)} has been taken. ${formatGHS(remainingClaimable)} is now eligible to claim.`,
-
-  susuClaimApproved: (clientName: string, amount: number) =>
-    `${clientName}, your susu claim of ${formatGHS(amount)} is approved. Visit your branch to collect.`,
-
-  susuClaimRejected: (clientName: string) =>
-    `${clientName}, your susu claim was not approved. Contact us for details.`,
-
-  susuClaimPaid: (clientName: string, amount: number) =>
-    `${clientName}, susu claim payout of ${formatGHS(amount)} has been paid out.`,
+    `SUSU: ${clientName}, your 31-day cycle is complete. Company fee of ${formatGHS(feeAmount)} has been taken. ${formatGHS(remainingClaimable)} is available in your account.`,
 
   loanRepaymentReceivedClient: (clientName: string, amount: number, remainingBalance: number) =>
     `LOAN: ${clientName}, repayment of ${formatGHS(amount)} received. Outstanding: ${formatGHS(remainingBalance)}.`,
@@ -42,15 +30,6 @@ export const smsTemplates = {
 
   clientRegisteredAdmin: (clientName: string, clientCode: string, registeredBy?: string | null) =>
     `NEW CLIENT: ${clientName} (${clientCode}) registered${registeredBy ? ` by ${registeredBy}` : ""}.`,
-
-  adminEmergencyClaimAlert: (clientName: string, amount: number, reason?: string) =>
-    `${clientName} requested an emergency susu claim of ${formatGHS(amount)}.${reason ? ` Reason: ${reason}.` : ""} Review for approval.`,
-
-  susuEmergencyWithdrawal: (clientName: string, payout: number, companyFee: number, balanceAfter: number, proxyName?: string | null) =>
-    `EMERGENCY WITHDRAWAL: ${clientName}, ${formatGHS(payout)} paid out (company fee ${formatGHS(companyFee)} deducted). Bal: ${formatGHS(balanceAfter)}.${proxyName ? ` Withdrawn by: ${proxyName}.` : ""}`,
-
-  susuEmergencyWithdrawalAdmin: (clientName: string, payout: number, companyFee: number, reason: string, staffName: string, proxyName?: string | null) =>
-    `EMERGENCY WITHDRAWAL: ${clientName}, ${formatGHS(payout)} paid out (fee ${formatGHS(companyFee)}).${reason ? ` Reason: ${reason}.` : ""}${proxyName ? ` Withdrawn by: ${proxyName}.` : ""} By: ${staffName}.`,
 
   interestDisbursed: (clientName: string, amount: number, balanceAfter: number, accountNumber: string) =>
     `INTEREST: ${clientName}, ${formatGHS(amount)} interest has been credited to acct ${accountNumber}. Bal: ${formatGHS(balanceAfter)}. Thank you for saving with us.`,

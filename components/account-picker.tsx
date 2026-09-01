@@ -5,8 +5,6 @@ import { Search, PiggyBank, Coins, UserRound, X, Loader2 } from "lucide-react";
 import { formatGHS } from "@/lib/loan";
 import { RecordTransactionForm } from "@/components/record-transaction-form";
 import { SusuContributionForm } from "@/components/susu-contribution-form";
-import { SusuWithdrawalForm } from "@/components/susu-withdrawal-form";
-import type { SusuCycle } from "@/lib/types";
 
 interface AccountResult {
   id: string;
@@ -18,14 +16,6 @@ interface AccountResult {
   client_id: string;
   client_full_name: string;
   client_code: string;
-}
-
-interface WithdrawalContext {
-  product_type: "savings" | "susu";
-  balance: number;
-  daily_contribution_amount?: number | null;
-  is_qualified?: boolean;
-  emergency_cycle?: SusuCycle | null;
 }
 
 const PRODUCT_LABEL: Record<AccountResult["product_type"], string> = {
@@ -42,9 +32,9 @@ const PRODUCT_ICON: Record<AccountResult["product_type"], typeof PiggyBank> = {
  * Search-and-select widget that lets an admin/staff member jump straight to
  * recording a deposit or withdrawal from the Deposits/Withdrawals report
  * pages, without navigating to the client's account page first. Reuses the
- * exact same recording forms (RecordTransactionForm / SusuContributionForm /
- * SusuWithdrawalForm) those pages use, so the actual transaction logic never
- * diverges — this component only adds account discovery on top.
+ * exact same recording forms (RecordTransactionForm / SusuContributionForm)
+ * those pages use, so the actual transaction logic never diverges — this
+ * component only adds account discovery on top.
  */
 export function AccountPicker({ mode }: { mode: "withdrawal" | "deposit" }) {
   const [query, setQuery] = useState("");
@@ -52,9 +42,6 @@ export function AccountPicker({ mode }: { mode: "withdrawal" | "deposit" }) {
   const [searching, setSearching] = useState(false);
   const [searched, setSearched] = useState(false);
   const [selected, setSelected] = useState<AccountResult | null>(null);
-  const [context, setContext] = useState<WithdrawalContext | null>(null);
-  const [contextLoading, setContextLoading] = useState(false);
-  const [contextError, setContextError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -83,32 +70,14 @@ export function AccountPicker({ mode }: { mode: "withdrawal" | "deposit" }) {
     };
   }, [query]);
 
-  async function selectAccount(account: AccountResult) {
+  function selectAccount(account: AccountResult) {
     setSelected(account);
     setResults([]);
     setQuery("");
-    setContext(null);
-    setContextError(null);
-
-    if (mode === "withdrawal" && account.product_type === "susu") {
-      setContextLoading(true);
-      try {
-        const res = await fetch(`/api/accounts/${account.id}/withdrawal-context`);
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.error ?? "Could not load this account's withdrawal eligibility.");
-        setContext(json);
-      } catch (err) {
-        setContextError(err instanceof Error ? err.message : "Could not load this account's withdrawal eligibility.");
-      } finally {
-        setContextLoading(false);
-      }
-    }
   }
 
   function reset() {
     setSelected(null);
-    setContext(null);
-    setContextError(null);
     setQuery("");
     setResults([]);
     setSearched(false);
@@ -204,12 +173,6 @@ export function AccountPicker({ mode }: { mode: "withdrawal" | "deposit" }) {
             Balance: <span className="font-semibold text-[#0A2240]">{formatGHS(selected.balance)}</span>
           </p>
 
-          {contextError && (
-            <div className="mb-3 rounded-md border border-[#B3432B]/25 bg-[#B3432B]/[0.06] px-3.5 py-2.5 text-[12.5px] text-[#963522]">
-              {contextError}
-            </div>
-          )}
-
           {mode === "deposit" && selected.product_type === "savings" && (
             <RecordTransactionForm accountId={selected.id} kind="deposit" />
           )}
@@ -217,23 +180,13 @@ export function AccountPicker({ mode }: { mode: "withdrawal" | "deposit" }) {
             <SusuContributionForm accountId={selected.id} dailyAmount={selected.daily_contribution_amount} />
           )}
 
-          {mode === "withdrawal" && selected.product_type === "savings" && (
-            <RecordTransactionForm accountId={selected.id} kind="withdrawal" />
-          )}
-          {mode === "withdrawal" && selected.product_type === "susu" && (
-            contextLoading ? (
-              <span className="inline-flex items-center gap-2 text-[13px] text-[#0A2240]/45">
-                <Loader2 size={14} className="animate-spin" /> Checking withdrawal eligibility…
-              </span>
-            ) : context && context.product_type === "susu" ? (
-              <SusuWithdrawalForm
-                accountId={selected.id}
-                availableBalance={context.balance}
-                dailyAmount={context.daily_contribution_amount ?? 0}
-                isQualified={context.is_qualified}
-                emergencyCycle={context.emergency_cycle}
-              />
-            ) : null
+          {mode === "withdrawal" && (
+            <RecordTransactionForm
+              accountId={selected.id}
+              kind="withdrawal"
+              productType={selected.product_type}
+              dailyContributionAmount={selected.daily_contribution_amount ?? 0}
+            />
           )}
         </div>
       )}
