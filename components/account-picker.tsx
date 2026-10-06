@@ -184,8 +184,6 @@ export function AccountPicker({ mode }: { mode: "withdrawal" | "deposit" }) {
             <RecordTransactionForm
               accountId={selected.id}
               kind="withdrawal"
-              productType={selected.product_type}
-              dailyContributionAmount={selected.daily_contribution_amount ?? 0}
             />
           )}
         </div>
