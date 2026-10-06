@@ -107,7 +107,7 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
               {isSusu ? (
                 <>
                   <SusuContributionForm accountId={account.id} dailyAmount={account.daily_contribution_amount} />
-                  {isAdmin && <RecordTransactionForm accountId={account.id} kind="withdrawal" productType="susu" dailyContributionAmount={daily} />}
+                  {isAdmin && <RecordTransactionForm accountId={account.id} kind="withdrawal" />}
                   {isAdmin && <ResetSusuButton accountId={account.id} />}
                 </>
               ) : (
