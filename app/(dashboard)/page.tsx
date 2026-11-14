@@ -204,7 +204,7 @@ export default async function OverviewPage() {
           <SummaryCard
             label="Withdrawal Commission"
             value={formatGHS(commission)}
-            hint="Charged on savings withdrawals only — susu is commission-exempt. Included in Total Revenue and Total Withdrawals"
+            hint="Charged on savings withdrawals only — susu is commission-exempt. Included in Total Revenue and Total Debits to Client Balances"
             tone="indigo"
             icon={<BadgePercent size={17} />}
           />
@@ -213,7 +213,7 @@ export default async function OverviewPage() {
           <SummaryCard
             label="Susu Fees"
             value={formatGHS(susuFees)}
-            hint="Day-31 completion fee plus early-withdrawal and emergency-claim penalties. Included in Total Revenue and Total Withdrawals"
+            hint="Day-31 completion fee plus early-withdrawal and emergency-claim penalties. Included in Total Revenue and Total Debits to Client Balances"
             tone="lime"
             icon={<Coins size={17} />}
           />
@@ -222,7 +222,7 @@ export default async function OverviewPage() {
           <SummaryCard
             label="SMS Fees"
             value={formatGHS(totalSmsFees)}
-            hint="Monthly SMS charges deducted from client balances. Included in Total Revenue and Total Withdrawals"
+            hint="Monthly SMS charges deducted from client balances. Included in Total Debits to Client Balances"
             tone="fuchsia"
             icon={<MessageSquare size={17} />}
           />
@@ -231,7 +231,7 @@ export default async function OverviewPage() {
           <SummaryCard
             label="Processing Fees"
             value={formatGHS(processingFees)}
-            hint="Charged when a loan is activated, deducted from the client's balance. Included in Total Revenue and Total Withdrawals"
+            hint="Charged when a loan is activated, deducted from the client's balance. Included in Total Revenue and Total Debits to Client Balances"
             tone="slate"
             icon={<FileText size={17} />}
           />
@@ -247,7 +247,7 @@ export default async function OverviewPage() {
         )}
         {kpi.total_withdrawals.visible && (
           <SummaryCard
-            label="Total Withdrawals"
+            label="Total Debits to Client Balances"
             value={formatGHS(totalWithdrawals)}
             hint={`Revenue Withdrawals ${formatGHS(revenueWithdrawals)} + Transactional Withdrawals ${formatGHS(withdrawalPrincipal)}`}
             tone="rust"
@@ -303,7 +303,7 @@ export default async function OverviewPage() {
           <SummaryCard
             label="Account Balance"
             value={formatGHS(accountBalance)}
-            hint={`Combined Account Total ${formatGHS(combinedTotal)} − Total Withdrawals ${formatGHS(totalWithdrawals)} (net of loans; expenditures are Consolidated Fund withdrawals, already included)`}
+            hint={`Combined Account Total ${formatGHS(combinedTotal)} − Total Debits to Client Balances ${formatGHS(totalWithdrawals)} (net of loans; expenditures are Consolidated Fund withdrawals, already included)`}
             tone="purple"
             icon={<Wallet size={17} />}
           />
